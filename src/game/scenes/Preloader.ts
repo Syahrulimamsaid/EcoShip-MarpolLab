@@ -140,6 +140,16 @@ export class Preloader extends Scene {
             "AnatomiStructure.background",
             "assets/bg-sub.png",
         );
+
+        this.load.image(
+            "ows.background",
+            "assets/ows/bg.png",
+        );
+
+        this.load.image(
+            "pilah_sampah.background",
+            "assets/pilah_sapah/bg.png",
+        );
     }
 
     create() {

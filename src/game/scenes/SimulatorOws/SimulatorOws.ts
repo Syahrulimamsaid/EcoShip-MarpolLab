@@ -81,7 +81,7 @@ export class SimulatorOws extends Scene {
     }
 
     create() {
-        this.background = this.add.image(0, 0, "AnatomiStructure.background");
+        this.background = this.add.image(0, 0, "ows.background");
         this.root = this.add.container(0, 0);
 
         this.resetGameState();

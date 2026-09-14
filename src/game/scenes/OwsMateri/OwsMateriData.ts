@@ -1,44 +1,149 @@
-/** Text content for the 4-step "Materi OWS" slideshow. Illustration code
- * lives in OwsMateri.ts since each step's visual differs too much (tank
- * cross-section, OCM gauge, valve legend, bypass warning) to usefully
- * data-drive — this file only holds the copy. */
+/** Text/content data for the 7-step "Materi OWS" page. Kept separate from
+ * OwsMateri.ts (which owns all layout/drawing) since several steps share
+ * the same list/card/table shapes and are easiest to iterate over when the
+ * copy lives in plain data. */
 
-export interface OwsValveInfo {
-    number: 1 | 2 | 3;
-    label: string;
-    role: string;
-    colorHex: string;
-    color: number;
+export interface OwsSidebarStep {
+    id: number;
+    title: string;
 }
 
-export const OWS_VALVES: OwsValveInfo[] = [
+export const OWS_SIDEBAR_STEPS: OwsSidebarStep[] = [
+    { id: 1, title: "Pengertian OWS" },
+    { id: 2, title: "Prinsip Kerja" },
+    { id: 3, title: "Komponen Utama" },
+    { id: 4, title: "Prosedur Operasi" },
+    { id: 5, title: "Batas Buangan 15 PPM" },
+    { id: 6, title: "Kewajiban Pencatatan" },
+    { id: 7, title: "Ketentuan MARPOL Annex I" },
+];
+
+/** Step 2 — the OWS work-flow, drawn as a horizontal numbered chain. */
+export interface OwsFlowStep {
+    number: number;
+    label: string;
+    description: string;
+}
+
+export const OWS_WORK_FLOW: OwsFlowStep[] = [
+    { number: 1, label: "Bilge Tank", description: "Bilge water dialirkan dari bilge tank." },
+    { number: 2, label: "Pompa Bilge", description: "Pompa mengalirkan bilge water menuju OWS." },
+    { number: 3, label: "OWS", description: "OWS memisahkan minyak dan air." },
+    { number: 4, label: "Oil Content Monitor", description: "Oil Content Monitor membaca kadar minyak." },
+    { number: 5, label: "< 15 PPM ?", description: "Air hanya diarahkan ke overboard apabila memenuhi batas yang diizinkan." },
+];
+
+/** Step 3 — component callout markers positioned over the real background
+ * artwork (fractions of the 1920x1080 design canvas), not drawn machinery. */
+export interface OwsComponentMarker {
+    number: string;
+    title: string;
+    role: string;
+    xFrac: number;
+    yFrac: number;
+}
+
+export const OWS_COMPONENT_MARKERS: OwsComponentMarker[] = [
     {
-        number: 1,
-        label: "KATUP 1 — INLET",
-        role: "Membuka aliran air got (bilge water) yang kotor dari tangki menuju separator untuk mulai disaring.",
-        colorHex: "#c0392b",
-        color: 0xc0392b,
+        number: "01",
+        title: "Bilge Water Pump",
+        role: "Mengalirkan bilge water menuju separator.",
+        xFrac: 0.305,
+        yFrac: 0.685,
     },
     {
-        number: 2,
-        label: "KATUP 2 — OUTLET",
-        role: "Membuang air yang sudah bersih (di bawah 15 PPM) ke laut. Hanya boleh terbuka setelah OCM menyatakan aman.",
-        colorHex: "#1f8d52",
-        color: 0x1f8d52,
+        number: "02",
+        title: "Oil Water Separator",
+        role: "Memisahkan minyak dari air.",
+        xFrac: 0.495,
+        yFrac: 0.46,
     },
     {
-        number: 3,
-        label: "KATUP 3 — BYPASS",
-        role: "Jalur darurat yang melewati separator. HARUS selalu tertutup selama operasi normal — membukanya membuang air kotor langsung ke laut.",
-        colorHex: "#2f68d8",
-        color: 0x2f68d8,
+        number: "03",
+        title: "Oil Content Monitor (OCM)",
+        role: "Mengukur kadar minyak pada air keluaran.",
+        xFrac: 0.665,
+        yFrac: 0.53,
+    },
+    {
+        number: "04",
+        title: "Inlet Valve",
+        role: "Mengatur aliran masuk.",
+        xFrac: 0.325,
+        yFrac: 0.51,
+    },
+    {
+        number: "05",
+        title: "Outlet / Overboard Valve",
+        role: "Mengatur aliran air hasil pemisahan.",
+        xFrac: 0.785,
+        yFrac: 0.535,
+    },
+    {
+        number: "06",
+        title: "Bypass / Recirculation Line",
+        role: "Mengembalikan aliran apabila kondisi pembuangan belum memenuhi persyaratan.",
+        xFrac: 0.495,
+        yFrac: 0.205,
     },
 ];
 
-export const MATERIAL_COMPLETION_CHECKLIST = [
-    "Fungsi Oily Water Separator (OWS)",
-    "Batas aman 15 PPM (MARPOL Annex I)",
-    "Peran Oil Content Monitor (OCM)",
-    "Fungsi Katup 1, 2, dan 3",
-    "Bahaya membuka Katup Bypass",
+/** Step 4 — operating procedure checklist. */
+export const OWS_PROCEDURE_STEPS: string[] = [
+    "Periksa kondisi sistem",
+    "Pastikan jalur dan valve sesuai",
+    "Jalankan bilge water pump",
+    "Operasikan OWS",
+    "Pantau Oil Content Monitor",
+    "Pastikan nilai memenuhi batas pembuangan",
+    "Arahkan aliran sesuai kondisi sistem",
+    "Catat operasi sesuai prosedur kapal",
+];
+
+/** Step 5 — PPM reading comparison cards. */
+export interface OwsPpmSample {
+    ppm: number;
+    verdict: "MEMENUHI" | "BATAS" | "TIDAK MEMENUHI";
+}
+
+export const OWS_PPM_SAMPLES: OwsPpmSample[] = [
+    { ppm: 12, verdict: "MEMENUHI" },
+    { ppm: 15, verdict: "BATAS" },
+    { ppm: 25, verdict: "TIDAK MEMENUHI" },
+    { ppm: 45, verdict: "TIDAK MEMENUHI" },
+];
+
+/** Step 6 — Oil Record Book example fields/rows (placeholder content only,
+ * never real ship data per the brief). */
+export const OWS_RECORD_BOOK_FIELDS: string[] = [
+    "Tanggal / waktu",
+    "Jenis operasi",
+    "Lokasi / posisi kapal (jika diperlukan)",
+    "Jumlah atau kondisi terkait operasi",
+    "Keterangan operasi",
+    "Petugas yang bertanggung jawab",
+];
+
+export interface OwsRecordBookExampleRow {
+    tanggal: string;
+    operasi: string;
+    jumlah: string;
+    petugas: string;
+}
+
+export const OWS_RECORD_BOOK_EXAMPLE: OwsRecordBookExampleRow[] = [
+    { tanggal: "08-11-2025 / 06.40", operasi: "Pengoperasian OWS — pemompaan bilge water", jumlah: "± 0,8 m³, OCM 11 PPM", petugas: "Masinis Jaga (contoh)" },
+    { tanggal: "08-11-2025 / 07.15", operasi: "Pembuangan air hasil filtrasi ke laut", jumlah: "OCM 9 PPM (memenuhi batas)", petugas: "KKM (contoh)" },
+];
+
+/** Step 7 — closing MARPOL Annex I summary cards. */
+export interface OwsSummaryCard {
+    title: string;
+    body: string;
+}
+
+export const OWS_SUMMARY_CARDS: OwsSummaryCard[] = [
+    { title: "PENCEGAHAN", body: "Mencegah pencemaran laut oleh minyak." },
+    { title: "PENGENDALIAN", body: "Operasi pembuangan harus mengikuti persyaratan yang berlaku." },
+    { title: "PENCATATAN", body: "Aktivitas terkait minyak dicatat sesuai prosedur dan regulasi." },
 ];

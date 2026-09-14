@@ -1,83 +1,106 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
-import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
-import { createStepDots } from "../../../component/StepDots/StepDots";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { setMaterialCompleted } from "../../OwsModuleState";
-import { MATERIAL_COMPLETION_CHECKLIST, OWS_VALVES } from "./OwsMateriData";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
+import {
+    OWS_COMPONENT_MARKERS,
+    OWS_PPM_SAMPLES,
+    OWS_PROCEDURE_STEPS,
+    OWS_RECORD_BOOK_EXAMPLE,
+    OWS_RECORD_BOOK_FIELDS,
+    OWS_SIDEBAR_STEPS,
+    OWS_SUMMARY_CARDS,
+    OWS_WORK_FLOW,
+    OwsComponentMarker,
+} from "./OwsMateriData";
 
-// Authored at a fixed reference resolution and uniformly scaled to fit the
-// window, same approach as the other module scenes.
-const DESIGN_WIDTH = 1536;
-const DESIGN_HEIGHT = 980;
-const MARGIN = 40;
-const TOTAL_STEPS = 4;
+// This page is authored directly at the game's own base resolution (no
+// extra internal scale-to-fit layer) per the brief's "desain utama mengacu
+// 1920x1080" — the background art is exactly 16:9 too, so it can just fill
+// the canvas edge-to-edge.
+const DESIGN_WIDTH = 1920;
+const DESIGN_HEIGHT = 1080;
 
-const CARD_X = MARGIN;
-const CARD_Y = 300;
-const CARD_WIDTH = DESIGN_WIDTH - MARGIN * 2;
-const CARD_HEIGHT = 560;
+const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
+const TOTAL_STEPS = OWS_SIDEBAR_STEPS.length;
 
-const CONTENT_X = CARD_X + 40;
-const CONTENT_TOP = CARD_Y + 36;
-const CONTENT_WIDTH = CARD_WIDTH - 80;
-
-const TEXT_COL_WIDTH = 560;
-const ILLU_COL_X = CONTENT_X + TEXT_COL_WIDTH + 40;
-const ILLU_COL_WIDTH = CONTENT_WIDTH - TEXT_COL_WIDTH - 40;
-const ILLU_COL_CENTER_X = ILLU_COL_X + ILLU_COL_WIDTH / 2;
-
-const GREEN_HEX = "#1f8d52";
-const RED_HEX = "#c0392b";
 const GREEN = 0x1f8d52;
+const GREEN_HEX = "#1f8d52";
 const RED = 0xc0392b;
-const NAVY = 0x143a84;
+const RED_HEX = "#c0392b";
+const AMBER = 0xe0792e;
+const AMBER_HEX = "#b5651d";
+const SKY = 0xeaf3ff;
 
-// Local helper instead of Phaser.Math.DegToRad — this scene only imports
-// named values from "phaser", and the ambient global `Phaser` namespace
-// that'd need isn't reliably present at runtime here.
-const degToRad = (deg: number) => (deg * Math.PI) / 180;
+const SIDEBAR_X = 24;
+const SIDEBAR_Y = 104;
+const SIDEBAR_WIDTH = 280;
+const FOOTER_TOP = 976;
+const SIDEBAR_HEIGHT = FOOTER_TOP - 16 - SIDEBAR_Y;
+
+const BOARD_X = SIDEBAR_X + SIDEBAR_WIDTH + 24;
+const BOARD_WIDTH = DESIGN_WIDTH - BOARD_X - 24;
+const BOARD_HEIGHT = 380;
+const BOARD_Y = FOOTER_TOP - 16 - BOARD_HEIGHT;
+const BOARD_PAD = 32;
+const CONTENT_X = BOARD_X + BOARD_PAD;
+const CONTENT_WIDTH = BOARD_WIDTH - BOARD_PAD * 2;
 
 /**
- * The 4-step "Materi OWS" slideshow reached from MainMenu before the new
- * SimulatorOws scene — pure reading material, no gameplay of its own. Step 5
- * (internal only) is the completion summary. Structurally a twin of
- * StabilitasMateri, with far simpler per-step illustrations.
+ * "Materi OWS" — a 7-step reading module overlaid on the same OWS engine-
+ * room artwork the simulator uses (`ows.background`), styled as a sidebar +
+ * whiteboard learning page rather than a full-bleed card, so the real
+ * machinery (tank, valves, OCM, pipe runs) stays visible as the actual
+ * subject matter instead of being redrawn. Reached from MainMenu before
+ * PilihAktivitasOws / SimulatorOws.
  */
 export class OwsMateri extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
-    private bodyContainer!: GameObjects.Container;
+    private sidebarContainer!: GameObjects.Container;
+    private boardContainer!: GameObjects.Container;
+    private footerContainer!: GameObjects.Container;
     private transitionGroups: GameObjects.GameObject[][] = [];
 
     private step = 1;
-
-    private stepLabelText!: GameObjects.Text;
-    private stepDotsGroup!: GameObjects.Container;
+    private maxReachedStep = 1;
+    private activeMarkerIndex: number | null = null;
+    private recordBookExampleOpen = false;
 
     constructor() {
         super("OwsMateri");
     }
 
     create() {
-        this.background = this.add.image(0, 0, "AnatomiStructure.background");
+        this.background = this.add.image(0, 0, "ows.background");
         this.root = this.add.container(0, 0);
+
+        this.step = 1;
+        this.maxReachedStep = 1;
+        this.activeMarkerIndex = null;
+        this.recordBookExampleOpen = false;
 
         const groups: GameObjects.GameObject[][] = [];
         trackGroup(this.root, groups, () => this.buildHeader());
-        trackGroup(this.root, groups, () => this.buildStepIndicator());
-        trackGroup(this.root, groups, () => this.buildCardChrome());
 
-        this.bodyContainer = this.add.container(0, 0);
-        this.root.add(this.bodyContainer);
-        groups.push([this.bodyContainer]);
+        this.sidebarContainer = this.add.container(0, 0);
+        this.root.add(this.sidebarContainer);
+        groups.push([this.sidebarContainer]);
+
+        this.boardContainer = this.add.container(0, 0);
+        this.root.add(this.boardContainer);
+        groups.push([this.boardContainer]);
+
+        this.footerContainer = this.add.container(0, 0);
+        this.root.add(this.footerContainer);
+        groups.push([this.footerContainer]);
+
         this.transitionGroups = groups;
 
-        this.step = 1;
         this.renderStep();
 
         this.layout(this.scale.width, this.scale.height);
@@ -99,114 +122,291 @@ export class OwsMateri extends Scene {
         playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
     }
 
-    // ---- Header / chrome ------------------------------------------------------
+    // ---- Header ---------------------------------------------------------------------
 
     private buildHeader() {
-        const header = new ModuleHeader(this, {
-            x: MARGIN,
-            badgeLabel: "MODUL SIMULATOR OWS",
-            breadcrumbLabel: "Materi Oily Water Separator",
-            heading: "MENGENAL OILY WATER SEPARATOR",
-            subtitle: "Pelajari cara kerja OWS dan batas aman MARPOL Annex I sebelum melakukan simulasi.",
-            onBack: () => this.goTo("MainMenu"),
+        const iconSize = 52;
+        const y = 24 + iconSize / 2;
+
+        const backBtn = this.buildIconButton(24 + iconSize / 2, y, iconSize, "‹", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.goTo("MainMenu");
         });
-        this.root.add(header.view);
+
+        const badgeX = 24 + iconSize + 14;
+        const dropletBg = this.add.graphics();
+        dropletBg.fillStyle(PRIMARY_BLUE, 1);
+        dropletBg.fillRoundedRect(badgeX, y - iconSize / 2, iconSize, iconSize, 14);
+        const droplet = this.add.text(badgeX + iconSize / 2, y - 1, "💧", { fontFamily: FONT, fontSize: 22 }).setOrigin(0.5);
+
+        const labelX = badgeX + iconSize + 14;
+        const title = this.add.text(labelX, y - 16, "MATERI OWS", { fontFamily: FONT, fontSize: 18, fontStyle: "700", color: "#ffffff" });
+        const subtitle = this.add.text(labelX, y + 4, "MARPOL Annex I", { fontFamily: FONT, fontSize: 12, color: "#dce9ff" });
+
+        this.root.add([backBtn, dropletBg, droplet, title, subtitle]);
     }
 
-    private buildStepIndicator() {
-        this.stepLabelText = this.add.text(MARGIN, 262, "MATERI 1 / 4", {
-            fontFamily: "Arial Black",
-            fontSize: 15,
-            color: PRIMARY_BLUE_HEX,
-        });
-        this.stepDotsGroup = this.add.container(0, 0);
-        this.root.add([this.stepLabelText, this.stepDotsGroup]);
+    private buildIconButton(x: number, y: number, size: number, glyph: string, onClick: () => void): GameObjects.Container {
+        const bg = this.add.graphics();
+        bg.fillStyle(0xffffff, 1);
+        bg.fillRoundedRect(-size / 2, -size / 2, size, size, 14);
+        bg.lineStyle(2, BORDER_BLUE, 1);
+        bg.strokeRoundedRect(-size / 2, -size / 2, size, size, 14);
+        const label = this.add.text(0, -2, glyph, { fontFamily: FONT, fontSize: 22, fontStyle: "700", color: PRIMARY_BLUE_HEX }).setOrigin(0.5);
+        const hit = this.add.rectangle(0, 0, size, size, 0xffffff, 0).setInteractive({ useHandCursor: true });
+        hit.on("pointerdown", onClick);
+        return this.add.container(x, y, [bg, label, hit]);
     }
 
-    private updateStepIndicator() {
-        const visible = this.step <= TOTAL_STEPS;
-        this.stepLabelText.setVisible(visible);
-        this.stepDotsGroup.setVisible(visible);
-        if (!visible) return;
+    // ---- Sidebar ---------------------------------------------------------------------
 
-        this.stepLabelText.setText(`MATERI ${this.step} / ${TOTAL_STEPS}`);
-        this.stepDotsGroup.removeAll(true);
-        this.stepDotsGroup.add(createStepDots(this, MARGIN + 150, 269, TOTAL_STEPS, this.step));
-    }
+    private buildSidebar() {
+        this.sidebarContainer.removeAll(true);
 
-    private buildCardChrome() {
+        const cardRadius = 18;
+        const headerHeight = 64;
+
         const card = this.add.graphics();
         card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
+        card.fillRoundedRect(SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, SIDEBAR_HEIGHT, cardRadius);
         card.lineStyle(2, BORDER_BLUE, 1);
-        card.strokeRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
-        this.root.add(card);
+        card.strokeRoundedRect(SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, SIDEBAR_HEIGHT, cardRadius);
+        this.sidebarContainer.add(card);
+
+        // Blue banner header — rounded top corners only, so it reads as
+        // stitched onto the white body rather than a separate floating bar.
+        const header = this.add.graphics();
+        header.fillStyle(PRIMARY_BLUE, 1);
+        header.fillRoundedRect(SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, headerHeight, { tl: cardRadius, tr: cardRadius, bl: 0, br: 0 });
+        this.sidebarContainer.add(header);
+
+        const bookIcon = this.add.text(SIDEBAR_X + 24, SIDEBAR_Y + headerHeight / 2, "📖", { fontFamily: FONT, fontSize: 20 }).setOrigin(0.5);
+        const heading = this.add
+            .text(SIDEBAR_X + 48, SIDEBAR_Y + headerHeight / 2, "Daftar Materi", {
+                fontFamily: FONT,
+                fontSize: 17,
+                fontStyle: "800",
+                color: "#ffffff",
+            })
+            .setOrigin(0, 0.5);
+        this.sidebarContainer.add([bookIcon, heading]);
+
+        const rowTop = SIDEBAR_Y + headerHeight + 20;
+        const rowHeight = 90;
+
+        OWS_SIDEBAR_STEPS.forEach((item, index) => {
+            const rowY = rowTop + index * rowHeight;
+            const unlocked = item.id <= this.maxReachedStep;
+            const active = item.id === this.step;
+            const completed = item.id < this.maxReachedStep;
+
+            if (active) {
+                const activeBg = this.add.graphics();
+                activeBg.fillStyle(SKY, 1);
+                activeBg.fillRoundedRect(SIDEBAR_X + 12, rowY - 10, SIDEBAR_WIDTH - 24, rowHeight - 16, 12);
+                this.sidebarContainer.add(activeBg);
+            }
+
+            // Number circles stay solid blue regardless of lock state (matching
+            // the reference design) — the unlock gate is enforced on the click
+            // handler below, not communicated through a dimmed circle/label.
+            // The whole circle+label group is centered as a unit within the
+            // row (not left-anchored), matching the reference chip look.
+            const circleRadius = 18;
+            const groupGap = 14;
+            const rowCenterY = rowY + 18;
+
+            const label = this.add.text(0, 0, item.title, {
+                fontFamily: FONT,
+                fontSize: 15,
+                fontStyle: "700",
+                color: DARK_NAVY,
+                wordWrap: { width: SIDEBAR_WIDTH - 72 - 30 },
+                lineSpacing: 3,
+            });
+
+            const groupWidth = circleRadius * 2 + groupGap + label.width;
+            const groupStartX = SIDEBAR_X + (SIDEBAR_WIDTH - groupWidth) / 2;
+            const circleX = groupStartX + circleRadius;
+            const labelX = groupStartX + circleRadius * 2 + groupGap;
+
+            const circle = this.add.circle(circleX, rowCenterY, circleRadius, PRIMARY_BLUE, 1);
+            const numberText = this.add
+                .text(circleX, rowCenterY, String(item.id), {
+                    fontFamily: FONT,
+                    fontSize: 15,
+                    fontStyle: "700",
+                    color: "#ffffff",
+                })
+                .setOrigin(0.5);
+            label.setPosition(labelX, rowCenterY - label.height / 2);
+
+            this.sidebarContainer.add([circle, numberText, label]);
+
+            if (completed) {
+                const check = this.add.text(SIDEBAR_X + SIDEBAR_WIDTH - 26, rowY + 18, "✓", {
+                    fontFamily: FONT,
+                    fontSize: 16,
+                    fontStyle: "800",
+                    color: GREEN_HEX,
+                }).setOrigin(0.5);
+                this.sidebarContainer.add(check);
+            }
+
+            if (unlocked) {
+                const hit = this.add
+                    .rectangle(SIDEBAR_X + SIDEBAR_WIDTH / 2, rowY + 18, SIDEBAR_WIDTH - 12, rowHeight - 16, 0xffffff, 0)
+                    .setInteractive({ useHandCursor: true });
+                hit.on("pointerdown", () => this.goToStep(item.id));
+                this.sidebarContainer.add(hit);
+            }
+        });
     }
 
-    /** Rebuilt every renderStep() (added to bodyContainer, which is fully
-     * cleared each time) so the disabled/enabled look and label always
-     * match the current step without needing separate enable/disable
-     * bookkeeping on persistent objects. */
-    private buildNavButtonsForStep() {
-        const buttonHeight = 50;
-        const navY = CARD_Y + CARD_HEIGHT + 40;
+    // ---- Footer nav -------------------------------------------------------------------
+
+    private buildFooter() {
+        this.footerContainer.removeAll(true);
+
+        const navY = FOOTER_TOP + 18;
+        const buttonHeight = 52;
         const atFirst = this.step <= 1;
-        const isCompletion = this.step > TOTAL_STEPS;
+        const isLast = this.step >= TOTAL_STEPS;
 
         const prevWidth = 190;
         const prevButton = new Button(this, {
-            x: CARD_X + prevWidth / 2,
+            x: BOARD_X + prevWidth / 2,
             y: navY + buttonHeight / 2,
             width: prevWidth,
             height: buttonHeight,
-            text: "← SEBELUMNYA",
+            text: "← Sebelumnya",
+            fontFamily: FONT,
             fontSize: 14,
-            borderRadius: 12,
+            fontStyle: "700",
+            borderRadius: buttonHeight / 2,
             disabled: atFirst,
             fillColor: atFirst ? 0xe2e8f0 : 0xffffff,
             strokeColor: atFirst ? 0xe2e8f0 : PRIMARY_BLUE,
             strokeAlpha: 1,
             textColor: atFirst ? "#94a3b8" : PRIMARY_BLUE_HEX,
         });
-        prevButton.on("pointerdown", () => this.goPrev());
-        this.bodyContainer.add(prevButton.view);
-
-        if (!isCompletion) {
-            const nextWidth = 190;
-            const nextButton = new Button(this, {
-                x: CARD_X + CARD_WIDTH - nextWidth / 2,
-                y: navY + buttonHeight / 2,
-                width: nextWidth,
-                height: buttonHeight,
-                text: this.step === TOTAL_STEPS ? "LIHAT RINGKASAN →" : "SELANJUTNYA →",
-                fontSize: 14,
-                borderRadius: 12,
-                fillColor: PRIMARY_BLUE,
-                strokeAlpha: 0,
-                textColor: "#ffffff",
+        if (!atFirst) {
+            prevButton.on("pointerdown", () => {
+                playSfx(this, SFX_KEYS.click);
+                this.goToStep(this.step - 1);
             });
-            nextButton.on("pointerdown", () => this.goNext());
-            this.bodyContainer.add(nextButton.view);
         }
+
+        const nextWidth = isLast ? 300 : 190;
+        const nextButton = new Button(this, {
+            x: BOARD_X + BOARD_WIDTH - nextWidth / 2,
+            y: navY + buttonHeight / 2,
+            width: nextWidth,
+            height: buttonHeight,
+            text: isLast ? "Mulai Simulator OWS →" : "Selanjutnya →",
+            fontFamily: FONT,
+            fontSize: 14,
+            fontStyle: "700",
+            borderRadius: buttonHeight / 2,
+            fillColor: PRIMARY_BLUE,
+            strokeAlpha: 0,
+            textColor: "#ffffff",
+        });
+        nextButton.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            if (isLast) {
+                setMaterialCompleted();
+                this.goTo("PilihAktivitasOws");
+            } else {
+                this.goToStep(this.step + 1);
+            }
+        });
+
+        // Backing card for the step label + progress bar, so they don't
+        // float directly on the (often busy) background art.
+        const pillWidth = 420;
+        const pillHeight = 80;
+        const pillX = BOARD_X + BOARD_WIDTH / 2 - pillWidth / 2;
+        const pillY = navY - 14;
+        const pillBg = this.add.graphics();
+        pillBg.fillStyle(0xffffff, 1);
+        pillBg.fillRoundedRect(pillX, pillY, pillWidth, pillHeight, 16);
+        pillBg.lineStyle(2, BORDER_BLUE, 1);
+        pillBg.strokeRoundedRect(pillX, pillY, pillWidth, pillHeight, 16);
+
+        const stepLabel = this.add
+            .text(BOARD_X + BOARD_WIDTH / 2, navY + buttonHeight / 2 - 12, `STEP ${this.step} / ${TOTAL_STEPS}`, {
+                fontFamily: FONT,
+                fontSize: 14,
+                fontStyle: "800",
+                color: DARK_NAVY,
+            })
+            .setOrigin(0.5);
+
+        // Thin per-step progress bar under the nav row.
+        const barY = navY + buttonHeight / 2 + 16;
+        const barWidth = 360;
+        const barX = BOARD_X + BOARD_WIDTH / 2 - barWidth / 2;
+        const segGap = 6;
+        const segWidth = (barWidth - segGap * (TOTAL_STEPS - 1)) / TOTAL_STEPS;
+        const segments: GameObjects.GameObject[] = [];
+        for (let i = 0; i < TOTAL_STEPS; i++) {
+            const filled = i < this.step;
+            const seg = this.add.graphics();
+            seg.fillStyle(filled ? PRIMARY_BLUE : 0xdce6f5, 1);
+            seg.fillRoundedRect(barX + i * (segWidth + segGap), barY, segWidth, 6, 3);
+            segments.push(seg);
+        }
+
+        this.footerContainer.add([prevButton.view, nextButton.view, pillBg, stepLabel, ...segments]);
     }
 
-    private goPrev() {
-        if (this.step <= 1) return;
-        playSfx(this, SFX_KEYS.click);
-        this.step -= 1;
-        this.renderStep();
-    }
+    // ---- Step transitions -------------------------------------------------------------
 
-    private goNext() {
-        if (this.step > TOTAL_STEPS) return;
-        playSfx(this, SFX_KEYS.click);
-        this.step += 1;
+    private goToStep(id: number) {
+        // Sidebar rows only ever call this with an already-unlocked id (<=
+        // maxReachedStep); the "+1" here is what lets the Next button (and
+        // Prev/Next in general) advance into a step that becomes newly
+        // unlocked by this very move.
+        if (id < 1 || id > TOTAL_STEPS || id > this.maxReachedStep + 1) return;
+        this.step = id;
         this.renderStep();
     }
 
     private renderStep() {
-        this.bodyContainer.removeAll(true);
-        this.updateStepIndicator();
+        this.maxReachedStep = Math.max(this.maxReachedStep, this.step);
+        this.activeMarkerIndex = null;
+        this.recordBookExampleOpen = false;
+
+        this.buildSidebar();
+        this.buildFooter();
+        this.renderBoard();
+    }
+
+    // ---- Whiteboard chrome + per-step content --------------------------------------------
+
+    private addBoardChrome() {
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 1);
+        card.fillRoundedRect(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, 18);
+        card.lineStyle(2, BORDER_BLUE, 1);
+        card.strokeRoundedRect(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, 18);
+        this.boardContainer.add(card);
+    }
+
+    private addBoardTitle(text: string): GameObjects.Text {
+        const title = this.add.text(CONTENT_X, BOARD_Y + BOARD_PAD, text, {
+            fontFamily: FONT,
+            fontSize: 22,
+            fontStyle: "800",
+            color: DARK_NAVY,
+        });
+        this.boardContainer.add(title);
+        return title;
+    }
+
+    private renderBoard() {
+        this.boardContainer.removeAll(true);
 
         switch (this.step) {
             case 1:
@@ -221,372 +421,594 @@ export class OwsMateri extends Scene {
             case 4:
                 this.buildStep4();
                 break;
+            case 5:
+                this.buildStep5();
+                break;
+            case 6:
+                this.buildStep6();
+                break;
             default:
-                this.buildCompletion();
+                this.buildStep7();
                 break;
         }
-
-        this.buildNavButtonsForStep();
     }
 
-    private addStepTitle(text: string): GameObjects.Text {
-        const title = this.add.text(CONTENT_X, CONTENT_TOP, text, {
-            fontFamily: "Arial Black",
-            fontSize: 22,
-            color: DARK_NAVY,
-        });
-        this.bodyContainer.add(title);
-        return title;
-    }
-
-    // ---- Step 1: Apa itu OWS ----------------------------------------------------
+    // ---- Step 1: Pengertian OWS --------------------------------------------------------
 
     private buildStep1() {
-        const title = this.addStepTitle("APA ITU OILY WATER SEPARATOR (OWS)?");
+        this.addBoardChrome();
+        const title = this.addBoardTitle("Pengertian Oil Water Separator (OWS)");
 
-        const body = this.add.text(
+        const rowTop = title.y + title.height + 14;
+        const paraWidth = 620;
+        const para = this.add.text(
             CONTENT_X,
-            title.y + title.height + 20,
-            "OWS adalah peralatan di kamar mesin yang memisahkan minyak dari air got (bilge water) sebelum air tersebut boleh dibuang ke laut, memanfaatkan perbedaan berat jenis antara minyak dan air.",
-            {
-                fontFamily: "Arial",
-                fontSize: 15,
-                color: BODY_TEXT,
-                lineSpacing: 6,
-                wordWrap: { width: TEXT_COL_WIDTH },
-            },
+            rowTop,
+            "Oil Water Separator (OWS) adalah peralatan di kapal yang digunakan untuk memisahkan minyak dari air got (bilge water) sebelum air tersebut dibuang ke laut.",
+            { fontFamily: FONT, fontSize: 14, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: paraWidth } },
         );
-        this.bodyContainer.add(body);
+        this.boardContainer.add(para);
 
-        const calloutY = body.y + body.height + 24;
-        const calloutHeight = 90;
-        const callout = this.add.graphics();
-        callout.fillStyle(0xeaf1fd, 1);
-        callout.fillRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
-        callout.lineStyle(2, PRIMARY_BLUE, 0.5);
-        callout.strokeRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
-        const calloutTitle = this.add.text(CONTENT_X + 18, calloutY + 16, "Kenapa penting?", {
-            fontFamily: "Arial Black",
-            fontSize: 13,
-            color: PRIMARY_BLUE_HEX,
+        const cardsX = CONTENT_X + paraWidth + 32;
+        const cardsWidth = CONTENT_WIDTH - paraWidth - 32;
+        const cardW = (cardsWidth - 24) / 3;
+        const cardH = 132;
+        const highlights = [
+            { label: "FUNGSI UTAMA", value: "Memisahkan kandungan minyak dari bilge water.", accent: PRIMARY_BLUE, accentHex: PRIMARY_BLUE_HEX },
+            { label: "TARGET BUANGAN", value: "< 15 PPM", accent: GREEN, accentHex: GREEN_HEX },
+            { label: "REGULASI", value: "MARPOL Annex I", accent: AMBER, accentHex: AMBER_HEX },
+        ];
+        highlights.forEach((item, index) => {
+            const x = cardsX + index * (cardW + 12);
+            const card = this.add.graphics();
+            card.fillStyle(0xf7faff, 1);
+            card.fillRoundedRect(x, rowTop, cardW, cardH, 12);
+            card.lineStyle(2, item.accent, 0.5);
+            card.strokeRoundedRect(x, rowTop, cardW, cardH, 12);
+            const label = this.add.text(x + 14, rowTop + 14, item.label, {
+                fontFamily: FONT,
+                fontSize: 11,
+                fontStyle: "800",
+                color: item.accentHex,
+                wordWrap: { width: cardW - 28 },
+            });
+            const value = this.add.text(x + 14, rowTop + 48, item.value, {
+                fontFamily: FONT,
+                fontSize: item.value.length > 20 ? 13 : 18,
+                fontStyle: "700",
+                color: DARK_NAVY,
+                wordWrap: { width: cardW - 28 },
+                lineSpacing: 3,
+            });
+            this.boardContainer.add([card, label, value]);
         });
-        const calloutBody = this.add.text(
-            CONTENT_X + 18,
-            calloutY + 38,
-            "Tanpa OWS, air got yang tercampur minyak dari kamar mesin akan mencemari laut setiap kali dipompa keluar.",
-            { fontFamily: "Arial", fontSize: 13, color: DARK_NAVY, wordWrap: { width: TEXT_COL_WIDTH - 36 } },
-        );
-        this.bodyContainer.add([callout, calloutTitle, calloutBody]);
 
-        this.drawTankIllustration();
+        const noteY = rowTop + Math.max(para.height, cardH) + 22;
+        const note = this.add.graphics();
+        note.fillStyle(SKY, 1);
+        note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 54, 12);
+        this.boardContainer.add(note);
+        const noteText = this.add
+            .text(CONTENT_X + 16, noteY + 27, "Air buangan hanya dapat dialirkan ke laut apabila memenuhi persyaratan pembuangan yang berlaku.", {
+                fontFamily: FONT,
+                fontSize: 13,
+                fontStyle: "600",
+                color: PRIMARY_BLUE_HEX,
+                wordWrap: { width: CONTENT_WIDTH - 32 },
+            })
+            .setOrigin(0, 0.5);
+        this.boardContainer.add(noteText);
     }
 
-    private drawTankIllustration() {
-        const cx = ILLU_COL_CENTER_X;
-        const tankWidth = Math.min(ILLU_COL_WIDTH - 60, 220);
-        const tankHeight = 260;
-        const tankTop = CARD_Y + 90;
-        const tankBottom = tankTop + tankHeight;
-
-        const g = this.add.graphics();
-        // Tank body.
-        g.fillStyle(0xf1f5fb, 1);
-        g.fillRoundedRect(cx - tankWidth / 2, tankTop, tankWidth, tankHeight, 16);
-        // Water layer (bottom).
-        g.fillStyle(0x9fc6f0, 0.9);
-        g.fillRoundedRect(cx - tankWidth / 2 + 6, tankTop + tankHeight * 0.35, tankWidth - 12, tankHeight * 0.65 - 6, { tl: 4, tr: 4, bl: 12, br: 12 });
-        // Oil layer (floats on top of the water).
-        g.fillStyle(0xd9a441, 0.9);
-        g.fillRoundedRect(cx - tankWidth / 2 + 6, tankTop + tankHeight * 0.2, tankWidth - 12, tankHeight * 0.16, 6);
-        g.lineStyle(3, PRIMARY_BLUE, 0.9);
-        g.strokeRoundedRect(cx - tankWidth / 2, tankTop, tankWidth, tankHeight, 16);
-        this.bodyContainer.add(g);
-
-        const label = this.add.text(cx, tankTop + tankHeight * 0.1, "OWS", { fontFamily: "Arial Black", fontSize: 16, color: DARK_NAVY }).setOrigin(0.5);
-        this.bodyContainer.add(label);
-
-        // Inlet arrow (left, dirty water in).
-        const arrowY = tankTop + tankHeight * 0.75;
-        const inArrow = this.add.graphics();
-        inArrow.lineStyle(4, RED, 1);
-        inArrow.lineBetween(cx - tankWidth / 2 - 70, arrowY, cx - tankWidth / 2 - 10, arrowY);
-        inArrow.fillStyle(RED, 1);
-        inArrow.fillTriangle(cx - tankWidth / 2 - 4, arrowY, cx - tankWidth / 2 - 18, arrowY - 8, cx - tankWidth / 2 - 18, arrowY + 8);
-        this.bodyContainer.add(inArrow);
-        const inLabel = this.add
-            .text(cx - tankWidth / 2 - 40, arrowY - 22, "Air Got\nKotor", { fontFamily: "Arial", fontSize: 11, color: RED_HEX, align: "center" })
-            .setOrigin(0.5);
-        this.bodyContainer.add(inLabel);
-
-        // Outlet arrow (right, clean water out).
-        const outArrow = this.add.graphics();
-        outArrow.lineStyle(4, GREEN, 1);
-        outArrow.lineBetween(cx + tankWidth / 2 + 10, arrowY, cx + tankWidth / 2 + 70, arrowY);
-        outArrow.fillStyle(GREEN, 1);
-        outArrow.fillTriangle(cx + tankWidth / 2 + 76, arrowY, cx + tankWidth / 2 + 62, arrowY - 8, cx + tankWidth / 2 + 62, arrowY + 8);
-        this.bodyContainer.add(outArrow);
-        const outLabel = this.add
-            .text(cx + tankWidth / 2 + 42, arrowY - 22, "Air\nBersih", { fontFamily: "Arial", fontSize: 11, color: GREEN_HEX, align: "center" })
-            .setOrigin(0.5);
-        this.bodyContainer.add(outLabel);
-
-        const legend = this.add.text(cx, tankBottom + 34, "🟤 Lapisan minyak mengapung di atas air", {
-            fontFamily: "Arial",
-            fontSize: 12,
-            color: BODY_TEXT,
-        }).setOrigin(0.5);
-        this.bodyContainer.add(legend);
-    }
-
-    // ---- Step 2: OCM & batas 15 PPM ---------------------------------------------
+    // ---- Step 2: Prinsip kerja -----------------------------------------------------------
 
     private buildStep2() {
-        const title = this.addStepTitle("OIL CONTENT MONITOR (OCM) & BATAS 15 PPM");
+        this.addBoardChrome();
+        const title = this.addBoardTitle("Prinsip Kerja OWS");
 
-        const body = this.add.text(
-            CONTENT_X,
-            title.y + title.height + 20,
-            "MARPOL Annex I mewajibkan air buangan got memiliki kadar minyak di bawah 15 PPM (part per million). Oil Content Monitor (OCM) membaca kadar ini secara terus-menerus selama proses filtrasi.",
-            { fontFamily: "Arial", fontSize: 15, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: TEXT_COL_WIDTH } },
-        );
-        this.bodyContainer.add(body);
+        const nodeCount = OWS_WORK_FLOW.length;
+        const arrowWidth = 34;
+        const nodeWidth = (CONTENT_WIDTH - arrowWidth * (nodeCount - 1)) / nodeCount;
+        const nodeSize = 52;
+        // rowTop is the node circles' vertical CENTER, so the gap below the
+        // title needs to also clear the circles' own radius above that
+        // center — otherwise the circles visually crowd right up against
+        // the title text.
+        const rowTop = title.y + title.height + 36 + nodeSize / 2;
 
-        const calloutY = body.y + body.height + 24;
-        const calloutHeight = 90;
-        const callout = this.add.graphics();
-        callout.fillStyle(0xfdf3e7, 1);
-        callout.fillRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
-        callout.lineStyle(2, 0xe0792e, 0.6);
-        callout.strokeRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
-        const calloutTitle = this.add.text(CONTENT_X + 18, calloutY + 16, "Aturan emasnya:", {
-            fontFamily: "Arial Black",
-            fontSize: 13,
-            color: "#b5651d",
+        OWS_WORK_FLOW.forEach((flow, index) => {
+            const x = CONTENT_X + index * (nodeWidth + arrowWidth);
+            const centerX = x + nodeWidth / 2;
+            const isHighlight = flow.label.includes("15 PPM");
+
+            const circle = this.add.circle(centerX, rowTop, nodeSize / 2, isHighlight ? GREEN : PRIMARY_BLUE, 1);
+            const numberText = this.add.text(centerX, rowTop, String(flow.number), { fontFamily: FONT, fontSize: 18, fontStyle: "800", color: "#ffffff" }).setOrigin(0.5);
+            const label = this.add
+                .text(centerX, rowTop + nodeSize / 2 + 12, flow.label, {
+                    fontFamily: FONT,
+                    fontSize: 13,
+                    fontStyle: "700",
+                    color: isHighlight ? GREEN_HEX : DARK_NAVY,
+                    align: "center",
+                    wordWrap: { width: nodeWidth },
+                })
+                .setOrigin(0.5, 0);
+            const desc = this.add
+                .text(centerX, label.y + label.height + 6, flow.description, {
+                    fontFamily: FONT,
+                    fontSize: 11,
+                    color: BODY_TEXT,
+                    align: "center",
+                    lineSpacing: 2,
+                    wordWrap: { width: nodeWidth },
+                })
+                .setOrigin(0.5, 0);
+
+            this.boardContainer.add([circle, numberText, label, desc]);
+
+            if (index < nodeCount - 1) {
+                const arrow = this.add
+                    .text(x + nodeWidth + arrowWidth / 2, rowTop, "→", { fontFamily: FONT, fontSize: 22, fontStyle: "700", color: BODY_TEXT })
+                    .setOrigin(0.5);
+                this.boardContainer.add(arrow);
+            }
         });
-        const calloutBody = this.add.text(CONTENT_X + 18, calloutY + 38, "Selama OCM membaca ≥ 15 PPM, katup buang ke laut wajib tetap tertutup.", {
-            fontFamily: "Arial",
-            fontSize: 13,
-            color: DARK_NAVY,
-            wordWrap: { width: TEXT_COL_WIDTH - 36 },
-        });
-        this.bodyContainer.add([callout, calloutTitle, calloutBody]);
 
-        this.drawGaugeIllustration();
+        const noteY = rowTop + 150;
+        const note = this.add.graphics();
+        note.fillStyle(SKY, 1);
+        note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 50, 12);
+        this.boardContainer.add(note);
+        const noteText = this.add
+            .text(CONTENT_X + 16, noteY + 25, "Air hanya diarahkan ke overboard apabila Oil Content Monitor membaca kadar minyak di bawah 15 PPM — jika belum, aliran dikembalikan (recirculation).", {
+                fontFamily: FONT,
+                fontSize: 13,
+                color: PRIMARY_BLUE_HEX,
+                fontStyle: "600",
+                wordWrap: { width: CONTENT_WIDTH - 32 },
+            })
+            .setOrigin(0, 0.5);
+        this.boardContainer.add(noteText);
     }
 
-    private drawGaugeIllustration() {
-        const cx = ILLU_COL_CENTER_X;
-        const cy = CARD_Y + 260;
-        const radius = 120;
-
-        const g = this.add.graphics();
-        // Danger band (right half, ≥15 PPM) then safe band (left half, <15 PPM).
-        g.lineStyle(24, RED, 1);
-        g.beginPath();
-        g.arc(cx, cy, radius, degToRad(-180), degToRad(-20), false);
-        g.strokePath();
-        g.lineStyle(24, GREEN, 1);
-        g.beginPath();
-        g.arc(cx, cy, radius, degToRad(-20), degToRad(0), false);
-        g.strokePath();
-        this.bodyContainer.add(g);
-
-        // Needle pointing into the danger zone (illustrating the "before
-        // filtration" reading of 45 PPM the simulator starts at).
-        const needleAngle = degToRad(-95);
-        const needle = this.add.graphics();
-        needle.lineStyle(5, NAVY, 1);
-        needle.lineBetween(cx, cy, cx + Math.cos(needleAngle) * (radius - 30), cy + Math.sin(needleAngle) * (radius - 30));
-        needle.fillStyle(NAVY, 1);
-        needle.fillCircle(cx, cy, 9);
-        this.bodyContainer.add(needle);
-
-        const label = this.add.text(cx, cy + 40, "OCM", { fontFamily: "Arial Black", fontSize: 15, color: DARK_NAVY }).setOrigin(0.5);
-        const ppmLow = this.add.text(cx - radius + 10, cy + 8, "< 15 PPM\nAMAN", { fontFamily: "Arial Black", fontSize: 11, color: GREEN_HEX, align: "center" }).setOrigin(0.5);
-        const ppmHigh = this.add.text(cx + radius - 10, cy + 8, "≥ 15 PPM\nTIDAK AMAN", { fontFamily: "Arial Black", fontSize: 11, color: RED_HEX, align: "center" }).setOrigin(0.5);
-        this.bodyContainer.add([label, ppmLow, ppmHigh]);
-    }
-
-    // ---- Step 3: Mengenal 3 katup ------------------------------------------------
+    // ---- Step 3: Komponen utama (markers over the real background) ----------------------
 
     private buildStep3() {
-        const title = this.addStepTitle("MENGENAL 3 KATUP OWS");
+        // Deliberately no whiteboard card here — the brief asks this step to
+        // rely on the real background artwork via markers instead of a big
+        // card covering the machinery.
+        const pillWidth = 700;
+        const pillHeight = 64;
+        const pillX = BOARD_X + BOARD_WIDTH / 2 - pillWidth / 2;
+        const pillY = 118;
+        const pill = this.add.graphics();
+        pill.fillStyle(0xffffff, 1);
+        pill.fillRoundedRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
+        pill.lineStyle(3, PRIMARY_BLUE, 1);
+        pill.strokeRoundedRect(pillX, pillY, pillWidth, pillHeight, pillHeight / 2);
 
-        const body = this.add.text(
-            CONTENT_X,
-            title.y + title.height + 20,
-            "Simulator OWS akan melibatkan tiga katup. Kenali fungsi masing-masing sebelum mencoba menurunkan kadar minyak di bawah batas aman.",
-            { fontFamily: "Arial", fontSize: 15, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: TEXT_COL_WIDTH } },
-        );
-        this.bodyContainer.add(body);
+        const iconRadius = 22;
+        const iconX = pillX + 12 + iconRadius;
+        const iconY = pillY + pillHeight / 2;
+        const iconBg = this.add.circle(iconX, iconY, iconRadius, PRIMARY_BLUE, 1);
+        const icon = this.add.text(iconX, iconY - 1, "👆", { fontFamily: FONT, fontSize: 22 }).setOrigin(0.5);
 
-        let rowY = body.y + body.height + 30;
-        OWS_VALVES.forEach((valve) => {
-            const wheel = this.add.graphics();
-            wheel.fillStyle(valve.color, 1);
-            wheel.fillCircle(CONTENT_X + 22, rowY + 14, 20);
-            wheel.lineStyle(4, 0xffffff, 1);
-            wheel.lineBetween(CONTENT_X + 22 - 12, rowY + 14, CONTENT_X + 22 + 12, rowY + 14);
-            wheel.lineBetween(CONTENT_X + 22, rowY + 14 - 12, CONTENT_X + 22, rowY + 14 + 12);
-            this.bodyContainer.add(wheel);
+        const pillText = this.add
+            .text(iconX + iconRadius + 18, iconY, "Klik salah satu komponen pada gambar untuk melihat penjelasannya", {
+                fontFamily: FONT,
+                fontSize: 17,
+                fontStyle: "700",
+                color: PRIMARY_BLUE_HEX,
+            })
+            .setOrigin(0, 0.5);
+        this.boardContainer.add([pill, iconBg, icon, pillText]);
 
-            const label = this.add.text(CONTENT_X + 56, rowY, valve.label, { fontFamily: "Arial Black", fontSize: 14, color: DARK_NAVY });
-            const role = this.add.text(CONTENT_X + 56, rowY + 20, valve.role, {
-                fontFamily: "Arial",
-                fontSize: 12,
-                color: BODY_TEXT,
-                lineSpacing: 3,
-                wordWrap: { width: TEXT_COL_WIDTH - 56 },
-            });
-            this.bodyContainer.add([label, role]);
+        OWS_COMPONENT_MARKERS.forEach((marker, index) => {
+            const x = Math.round(marker.xFrac * DESIGN_WIDTH);
+            const y = Math.round(marker.yFrac * DESIGN_HEIGHT);
+            const isActive = this.activeMarkerIndex === index;
 
-            rowY = role.y + role.height + 22;
-        });
-
-        this.drawValveTrio();
-    }
-
-    private drawValveTrio() {
-        const cx = ILLU_COL_CENTER_X;
-        const top = CARD_Y + 90;
-        const gap = 130;
-
-        OWS_VALVES.forEach((valve, index) => {
-            const y = top + index * gap;
-            const wheel = this.add.graphics();
-            wheel.fillStyle(0xffffff, 1);
-            wheel.fillCircle(cx, y, 44);
-            wheel.lineStyle(6, valve.color, 1);
-            wheel.strokeCircle(cx, y, 44);
-            wheel.fillStyle(valve.color, 1);
-            wheel.fillCircle(cx, y, 30);
-            wheel.lineStyle(5, 0xffffff, 1);
-            wheel.lineBetween(cx - 18, y, cx + 18, y);
-            wheel.lineBetween(cx, y - 18, cx, y + 18);
-            this.bodyContainer.add(wheel);
-
-            const numberLabel = this.add
-                .text(cx, y + 62, `KATUP ${valve.number}`, { fontFamily: "Arial Black", fontSize: 12, color: DARK_NAVY })
+            const ring = this.add.circle(x, y, 20, isActive ? PRIMARY_BLUE : 0xffffff, isActive ? 0.25 : 0.9);
+            ring.setStrokeStyle(3, PRIMARY_BLUE, 1);
+            const dot = this.add.circle(x, y, 15, isActive ? PRIMARY_BLUE : 0xffffff, 1);
+            dot.setStrokeStyle(2, PRIMARY_BLUE, 1);
+            const numberText = this.add
+                .text(x, y, marker.number, {
+                    fontFamily: FONT,
+                    fontSize: 12,
+                    fontStyle: "800",
+                    color: isActive ? "#ffffff" : PRIMARY_BLUE_HEX,
+                    padding: { top: 4, bottom: 4 },
+                })
                 .setOrigin(0.5);
-            this.bodyContainer.add(numberLabel);
+
+            const hit = this.add.circle(x, y, 24, 0xffffff, 0).setInteractive({ useHandCursor: true });
+            hit.on("pointerdown", () => {
+                playSfx(this, SFX_KEYS.click);
+                this.activeMarkerIndex = index;
+                this.renderBoard();
+            });
+
+            this.boardContainer.add([ring, dot, numberText, hit]);
         });
+
+        if (this.activeMarkerIndex !== null) {
+            this.buildMarkerDetailCard(OWS_COMPONENT_MARKERS[this.activeMarkerIndex]);
+        }
     }
 
-    // ---- Step 4: Bahaya katup bypass ---------------------------------------------
+    private buildMarkerDetailCard(marker: OwsComponentMarker) {
+        const anchorX = marker.xFrac * DESIGN_WIDTH;
+        const anchorY = marker.yFrac * DESIGN_HEIGHT;
+        const cardWidth = 320;
+        const cardHeight = 116;
+        const offsetX = anchorX < DESIGN_WIDTH / 2 ? 34 : -34 - cardWidth;
+        let cardX = anchorX + offsetX;
+        let cardY = anchorY - cardHeight / 2;
+
+        cardX = Math.min(Math.max(cardX, BOARD_X), BOARD_X + BOARD_WIDTH - cardWidth);
+        cardY = Math.min(Math.max(cardY, 190), FOOTER_TOP - 16 - cardHeight);
+
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 1);
+        card.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 14);
+        card.lineStyle(2, PRIMARY_BLUE, 1);
+        card.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 14);
+
+        const numberBadge = this.add.circle(cardX + 28, cardY + 28, 16, PRIMARY_BLUE, 1);
+        const numberText = this.add.text(cardX + 28, cardY + 28, marker.number, { fontFamily: FONT, fontSize: 12, fontStyle: "800", color: "#ffffff" }).setOrigin(0.5);
+        const titleText = this.add.text(cardX + 52, cardY + 18, marker.title, {
+            fontFamily: FONT,
+            fontSize: 14,
+            fontStyle: "800",
+            color: DARK_NAVY,
+            wordWrap: { width: cardWidth - 66 },
+        });
+        const roleText = this.add.text(cardX + 20, cardY + 62, marker.role, {
+            fontFamily: FONT,
+            fontSize: 12,
+            color: BODY_TEXT,
+            lineSpacing: 3,
+            wordWrap: { width: cardWidth - 40 },
+        });
+
+        this.boardContainer.add([card, numberBadge, numberText, titleText, roleText]);
+    }
+
+    // ---- Step 4: Prosedur operasi ---------------------------------------------------------
 
     private buildStep4() {
-        const title = this.addStepTitle("BAHAYA KATUP BYPASS");
+        this.addBoardChrome();
+        const title = this.addBoardTitle("Prosedur Dasar Pengoperasian OWS");
 
-        const body = this.add.text(
-            CONTENT_X,
-            title.y + title.height + 20,
-            "Katup Bypass melewati proses filtrasi sepenuhnya. Membukanya berarti air got yang masih kotor langsung terbuang ke laut — pelanggaran serius terhadap MARPOL Annex I.",
-            { fontFamily: "Arial", fontSize: 15, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: TEXT_COL_WIDTH } },
-        );
-        this.bodyContainer.add(body);
+        const listTop = title.y + title.height + 16;
+        const columns = 2;
+        const rows = Math.ceil(OWS_PROCEDURE_STEPS.length / columns);
+        const colWidth = (CONTENT_WIDTH - 32) / columns;
+        const rowHeight = 40;
 
-        const calloutY = body.y + body.height + 24;
-        const calloutHeight = 90;
-        const callout = this.add.graphics();
-        callout.fillStyle(0xfceaea, 1);
-        callout.fillRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
-        callout.lineStyle(2, RED, 0.6);
-        callout.strokeRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
-        const calloutTitle = this.add.text(CONTENT_X + 18, calloutY + 16, "Ingat di simulator:", {
-            fontFamily: "Arial Black",
-            fontSize: 13,
-            color: RED_HEX,
+        OWS_PROCEDURE_STEPS.forEach((step, index) => {
+            const col = Math.floor(index / rows);
+            const row = index % rows;
+            const x = CONTENT_X + col * (colWidth + 32);
+            const y = listTop + row * rowHeight;
+
+            const badge = this.add.circle(x + 14, y + 14, 13, PRIMARY_BLUE, 1);
+            const num = this.add
+                .text(x + 14, y + 14, String(index + 1).padStart(2, "0"), { fontFamily: FONT, fontSize: 10, fontStyle: "800", color: "#ffffff" })
+                .setOrigin(0.5);
+            const label = this.add.text(x + 36, y + 4, step, {
+                fontFamily: FONT,
+                fontSize: 13,
+                fontStyle: "600",
+                color: DARK_NAVY,
+                wordWrap: { width: colWidth - 36 },
+            });
+            this.boardContainer.add([badge, num, label]);
         });
-        const calloutBody = this.add.text(CONTENT_X + 18, calloutY + 38, "Jangan pernah membuka Katup 3 (Bypass) — itu langsung dianggap misi gagal.", {
-            fontFamily: "Arial",
-            fontSize: 13,
-            color: DARK_NAVY,
-            wordWrap: { width: TEXT_COL_WIDTH - 36 },
-        });
-        this.bodyContainer.add([callout, calloutTitle, calloutBody]);
 
-        this.drawBypassWarning();
-    }
-
-    private drawBypassWarning() {
-        const cx = ILLU_COL_CENTER_X;
-        const cy = CARD_Y + 220;
-
-        const wheel = this.add.graphics();
-        wheel.fillStyle(0xffffff, 1);
-        wheel.fillCircle(cx, cy, 54);
-        wheel.lineStyle(7, 0x2f68d8, 1);
-        wheel.strokeCircle(cx, cy, 54);
-        wheel.fillStyle(0x2f68d8, 1);
-        wheel.fillCircle(cx, cy, 38);
-        wheel.lineStyle(6, 0xffffff, 1);
-        wheel.lineBetween(cx - 22, cy, cx + 22, cy);
-        wheel.lineBetween(cx, cy - 22, cx, cy + 22);
-        this.bodyContainer.add(wheel);
-
-        // Prohibition slash over the valve.
-        const slash = this.add.graphics();
-        slash.lineStyle(10, RED, 0.9);
-        slash.strokeCircle(cx, cy, 70);
-        slash.lineBetween(cx - 49, cy - 49, cx + 49, cy + 49);
-        this.bodyContainer.add(slash);
-
-        const label = this.add
-            .text(cx, cy + 100, "KATUP 3 — BYPASS\nJANGAN DIBUKA", { fontFamily: "Arial Black", fontSize: 14, color: RED_HEX, align: "center" })
-            .setOrigin(0.5);
-        this.bodyContainer.add(label);
-    }
-
-    // ---- Completion ---------------------------------------------------------------
-
-    private buildCompletion() {
-        const centerX = CARD_X + CARD_WIDTH / 2;
-        const icon = this.add.text(centerX, CARD_Y + 60, "✓", { fontFamily: "Arial Black", fontSize: 52, color: GREEN_HEX }).setOrigin(0.5);
-        const title = this.add
-            .text(centerX, CARD_Y + 130, "MATERI SELESAI", { fontFamily: "Arial Black", fontSize: 26, color: GREEN_HEX })
-            .setOrigin(0.5);
-        const subtitle = this.add
-            .text(centerX, CARD_Y + 168, "Anda telah mempelajari dasar-dasar Oily Water Separator dan MARPOL Annex I.", {
-                fontFamily: "Arial",
-                fontSize: 14,
-                color: BODY_TEXT,
+        const warnY = listTop + rows * rowHeight + 14;
+        const warn = this.add.graphics();
+        warn.fillStyle(0xfceaea, 1);
+        warn.fillRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 54, 12);
+        warn.lineStyle(2, RED, 0.6);
+        warn.strokeRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 54, 12);
+        const warnText = this.add
+            .text(CONTENT_X + 16, warnY + 27, "⚠ Jangan melakukan pembuangan ke laut apabila kondisi sistem atau kadar minyak tidak memenuhi persyaratan.", {
+                fontFamily: FONT,
+                fontSize: 13,
+                fontStyle: "700",
+                color: RED_HEX,
+                wordWrap: { width: CONTENT_WIDTH - 32 },
             })
-            .setOrigin(0.5);
-        this.bodyContainer.add([icon, title, subtitle]);
-
-        const listTop = CARD_Y + 210;
-        const rowHeight = 30;
-        MATERIAL_COMPLETION_CHECKLIST.forEach((item, index) => {
-            const rowY = listTop + index * rowHeight;
-            const check = this.add.text(centerX - 190, rowY, "✓", { fontFamily: "Arial Black", fontSize: 14, color: GREEN_HEX });
-            const label = this.add.text(centerX - 160, rowY, item, { fontFamily: "Arial", fontSize: 14, color: DARK_NAVY });
-            this.bodyContainer.add([check, label]);
-        });
-
-        const buttonWidth = 260;
-        const buttonHeight = 52;
-        const buttonY = listTop + MATERIAL_COMPLETION_CHECKLIST.length * rowHeight + 26;
-        const button = new Button(this, {
-            x: centerX,
-            y: buttonY,
-            width: buttonWidth,
-            height: buttonHeight,
-            text: "PILIH AKTIVITAS →",
-            fontSize: 15,
-            borderRadius: 14,
-            fillColor: PRIMARY_BLUE,
-            strokeAlpha: 0,
-            textColor: "#ffffff",
-        });
-        button.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            setMaterialCompleted();
-            this.goTo("PilihAktivitasOws");
-        });
-        this.bodyContainer.add(button.view);
+            .setOrigin(0, 0.5);
+        this.boardContainer.add([warn, warnText]);
     }
 
-    // ---- Layout -------------------------------------------------------------------
+    // ---- Step 5: Batas buangan -------------------------------------------------------------
+
+    private buildStep5() {
+        this.addBoardChrome();
+        const title = this.addBoardTitle("Batas Kandungan Minyak");
+
+        const rowTop = title.y + title.height + 20;
+        const bigNumberWidth = 220;
+
+        const bigNumber = this.add.text(CONTENT_X, rowTop, "≤ 15", { fontFamily: FONT, fontSize: 44, fontStyle: "800", color: GREEN_HEX });
+        const bigNumberUnit = this.add.text(CONTENT_X + 4, rowTop + 54, "PPM", { fontFamily: FONT, fontSize: 16, fontStyle: "700", color: GREEN_HEX });
+        this.boardContainer.add([bigNumber, bigNumberUnit]);
+
+        // Scale bar: 0 → 45 PPM, green up to 15, red beyond.
+        const barX = CONTENT_X + bigNumberWidth;
+        const barWidth = CONTENT_WIDTH - bigNumberWidth;
+        const barY = rowTop + 22;
+        const barHeight = 14;
+        const safeRatio = 15 / 45;
+
+        const barBg = this.add.graphics();
+        barBg.fillStyle(GREEN, 1);
+        barBg.fillRoundedRect(barX, barY, barWidth * safeRatio, barHeight, { tl: 7, bl: 7, tr: 0, br: 0 });
+        barBg.fillStyle(RED, 1);
+        barBg.fillRoundedRect(barX + barWidth * safeRatio, barY, barWidth * (1 - safeRatio), barHeight, { tr: 7, br: 7, tl: 0, bl: 0 });
+        this.boardContainer.add(barBg);
+
+        [0, 15, 30, 45].forEach((value) => {
+            const x = barX + (value / 45) * barWidth;
+            const tick = this.add.rectangle(x, barY + barHeight / 2, 2, barHeight + 10, 0x8fa3c7, 1);
+            const label = this.add.text(x, barY + barHeight + 14, String(value), { fontFamily: FONT, fontSize: 12, fontStyle: "700", color: DARK_NAVY }).setOrigin(0.5, 0);
+            this.boardContainer.add([tick, label]);
+        });
+
+        const safeLabel = this.add
+            .text(barX + (barWidth * safeRatio) / 2, barY - 10, "AMAN", { fontFamily: FONT, fontSize: 11, fontStyle: "800", color: GREEN_HEX })
+            .setOrigin(0.5, 1);
+        const unsafeLabel = this.add
+            .text(barX + barWidth * safeRatio + (barWidth * (1 - safeRatio)) / 2, barY - 10, "TIDAK MEMENUHI", { fontFamily: FONT, fontSize: 11, fontStyle: "800", color: RED_HEX })
+            .setOrigin(0.5, 1);
+        this.boardContainer.add([safeLabel, unsafeLabel]);
+
+        const ocmNoteY = barY + 56;
+        const ocmNote = this.add.text(
+            CONTENT_X,
+            ocmNoteY,
+            "Oil Content Monitor (OCM) digunakan untuk memantau kandungan minyak pada air buangan.",
+            { fontFamily: FONT, fontSize: 13, color: BODY_TEXT, lineSpacing: 4, wordWrap: { width: CONTENT_WIDTH } },
+        );
+        this.boardContainer.add(ocmNote);
+
+        const chipsY = ocmNote.y + ocmNote.height + 18;
+        const chipGap = 16;
+        const chipWidth = (CONTENT_WIDTH - chipGap * (OWS_PPM_SAMPLES.length - 1)) / OWS_PPM_SAMPLES.length;
+        const chipHeight = 56;
+
+        OWS_PPM_SAMPLES.forEach((sample, index) => {
+            const x = CONTENT_X + index * (chipWidth + chipGap);
+            const isOk = sample.verdict === "MEMENUHI";
+            const isBorder = sample.verdict === "BATAS";
+            const color = isOk ? GREEN : isBorder ? AMBER : RED;
+            const colorHex = isOk ? GREEN_HEX : isBorder ? AMBER_HEX : RED_HEX;
+
+            const chip = this.add.graphics();
+            chip.fillStyle(0xf7faff, 1);
+            chip.fillRoundedRect(x, chipsY, chipWidth, chipHeight, 10);
+            chip.lineStyle(2, color, 0.7);
+            chip.strokeRoundedRect(x, chipsY, chipWidth, chipHeight, 10);
+            const ppmText = this.add
+                .text(x + chipWidth / 2, chipsY + 18, `${sample.ppm} PPM`, { fontFamily: FONT, fontSize: 14, fontStyle: "800", color: DARK_NAVY })
+                .setOrigin(0.5);
+            const verdictText = this.add
+                .text(x + chipWidth / 2, chipsY + 40, sample.verdict, { fontFamily: FONT, fontSize: 10, fontStyle: "800", color: colorHex })
+                .setOrigin(0.5);
+            this.boardContainer.add([chip, ppmText, verdictText]);
+        });
+    }
+
+    // ---- Step 6: Kewajiban pencatatan ------------------------------------------------------
+
+    private buildStep6() {
+        this.addBoardChrome();
+
+        if (this.recordBookExampleOpen) {
+            this.buildRecordBookExample();
+            return;
+        }
+
+        const title = this.addBoardTitle("Pencatatan Operasi");
+        const rowTop = title.y + title.height + 14;
+
+        const paraWidth = 560;
+        const para = this.add.text(
+            CONTENT_X,
+            rowTop,
+            "Aktivitas terkait operasi dan penanganan minyak di kapal harus dicatat sesuai ketentuan yang berlaku pada kapal.",
+            { fontFamily: FONT, fontSize: 14, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: paraWidth } },
+        );
+        this.boardContainer.add(para);
+
+        const bookY = rowTop + para.height + 20;
+        const bookWidth = 150;
+        const bookHeight = 100;
+        const book = this.add.graphics();
+        book.fillStyle(PRIMARY_BLUE, 1);
+        book.fillRoundedRect(CONTENT_X, bookY, bookWidth, bookHeight, 8);
+        book.fillStyle(0xffffff, 1);
+        book.fillRect(CONTENT_X + 10, bookY + 10, bookWidth - 20, bookHeight - 20);
+        book.lineStyle(2, PRIMARY_BLUE, 1);
+        for (let i = 1; i <= 3; i++) {
+            book.lineBetween(CONTENT_X + 20, bookY + 10 + i * 16, CONTENT_X + bookWidth - 20, bookY + 10 + i * 16);
+        }
+        const bookLabel = this.add
+            .text(CONTENT_X + bookWidth / 2, bookY + bookHeight + 14, "OIL RECORD BOOK", { fontFamily: FONT, fontSize: 12, fontStyle: "800", color: DARK_NAVY, align: "center" })
+            .setOrigin(0.5, 0);
+        this.boardContainer.add([book, bookLabel]);
+
+        const exampleButtonY = bookLabel.y + bookLabel.height + 14;
+        const exampleButton = new Button(this, {
+            x: CONTENT_X + bookWidth / 2,
+            y: exampleButtonY + 20,
+            width: bookWidth + 40,
+            height: 40,
+            text: "Lihat Contoh →",
+            fontFamily: FONT,
+            fontSize: 12,
+            fontStyle: "700",
+            borderRadius: 10,
+            fillColor: 0xffffff,
+            strokeColor: PRIMARY_BLUE,
+            strokeAlpha: 1,
+            textColor: PRIMARY_BLUE_HEX,
+        });
+        exampleButton.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.recordBookExampleOpen = true;
+            this.renderBoard();
+        });
+        this.boardContainer.add(exampleButton.view);
+
+        const fieldsX = CONTENT_X + paraWidth + 40;
+        const fieldsWidth = CONTENT_WIDTH - paraWidth - 40;
+        const fieldsHeading = this.add.text(fieldsX, rowTop, "Kategori informasi yang dicatat:", {
+            fontFamily: FONT,
+            fontSize: 12,
+            fontStyle: "800",
+            color: PRIMARY_BLUE_HEX,
+        });
+        this.boardContainer.add(fieldsHeading);
+
+        const fieldRowTop = fieldsHeading.y + fieldsHeading.height + 10;
+        const fieldCols = 2;
+        const fieldRows = Math.ceil(OWS_RECORD_BOOK_FIELDS.length / fieldCols);
+        const fieldColWidth = (fieldsWidth - 20) / fieldCols;
+        const fieldRowHeight = 38;
+
+        OWS_RECORD_BOOK_FIELDS.forEach((field, index) => {
+            const col = Math.floor(index / fieldRows);
+            const row = index % fieldRows;
+            const x = fieldsX + col * (fieldColWidth + 20);
+            const y = fieldRowTop + row * fieldRowHeight;
+            const dot = this.add.circle(x + 5, y + 8, 4, PRIMARY_BLUE, 1);
+            const label = this.add.text(x + 18, y, field, {
+                fontFamily: FONT,
+                fontSize: 12,
+                color: DARK_NAVY,
+                wordWrap: { width: fieldColWidth - 18 },
+            });
+            this.boardContainer.add([dot, label]);
+        });
+    }
+
+    private buildRecordBookExample() {
+        const title = this.addBoardTitle("Contoh Oil Record Book (Ilustrasi)");
+
+        const closeButton = new Button(this, {
+            x: BOARD_X + BOARD_WIDTH - 60,
+            y: BOARD_Y + BOARD_PAD + 10,
+            width: 90,
+            height: 32,
+            text: "✕ Tutup",
+            fontFamily: FONT,
+            fontSize: 12,
+            fontStyle: "700",
+            borderRadius: 10,
+            fillColor: 0xffffff,
+            strokeColor: PRIMARY_BLUE,
+            strokeAlpha: 1,
+            textColor: PRIMARY_BLUE_HEX,
+        });
+        closeButton.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.recordBookExampleOpen = false;
+            this.renderBoard();
+        });
+        this.boardContainer.add(closeButton.view);
+
+        const note = this.add.text(CONTENT_X, title.y + title.height + 10, "Data di bawah ini contoh ilustratif, bukan data kapal nyata.", {
+            fontFamily: FONT,
+            fontSize: 12,
+            fontStyle: "600",
+            color: BODY_TEXT,
+        });
+        this.boardContainer.add(note);
+
+        const tableTop = note.y + note.height + 12;
+        const colWidths = [190, CONTENT_WIDTH - 190 - 360 - 190, 200, 160];
+        const headers = ["Tanggal / Waktu", "Jenis Operasi", "Jumlah / Kondisi", "Petugas"];
+
+        let colX = CONTENT_X;
+        headers.forEach((header, index) => {
+            const headerText = this.add.text(colX, tableTop, header, { fontFamily: FONT, fontSize: 11, fontStyle: "800", color: PRIMARY_BLUE_HEX });
+            this.boardContainer.add(headerText);
+            colX += colWidths[index];
+        });
+
+        const headerLine = this.add.rectangle(CONTENT_X + CONTENT_WIDTH / 2, tableTop + 22, CONTENT_WIDTH, 2, 0xdce6f5);
+        this.boardContainer.add(headerLine);
+
+        let rowY = tableTop + 34;
+        OWS_RECORD_BOOK_EXAMPLE.forEach((row) => {
+            colX = CONTENT_X;
+            const values = [row.tanggal, row.operasi, row.jumlah, row.petugas];
+            values.forEach((value, index) => {
+                const cell = this.add.text(colX, rowY, value, {
+                    fontFamily: FONT,
+                    fontSize: 12,
+                    color: DARK_NAVY,
+                    lineSpacing: 3,
+                    wordWrap: { width: colWidths[index] - 12 },
+                });
+                this.boardContainer.add(cell);
+                colX += colWidths[index];
+            });
+            rowY += 56;
+        });
+    }
+
+    // ---- Step 7: MARPOL Annex I --------------------------------------------------------------
+
+    private buildStep7() {
+        this.addBoardChrome();
+        const title = this.addBoardTitle("MARPOL Annex I");
+
+        const rowTop = title.y + title.height + 16;
+        const cardGap = 20;
+        const cardWidth = (CONTENT_WIDTH - cardGap * (OWS_SUMMARY_CARDS.length - 1)) / OWS_SUMMARY_CARDS.length;
+        const cardHeight = 120;
+
+        OWS_SUMMARY_CARDS.forEach((item, index) => {
+            const x = CONTENT_X + index * (cardWidth + cardGap);
+            const card = this.add.graphics();
+            card.fillStyle(0xf7faff, 1);
+            card.fillRoundedRect(x, rowTop, cardWidth, cardHeight, 12);
+            card.lineStyle(2, PRIMARY_BLUE, 0.5);
+            card.strokeRoundedRect(x, rowTop, cardWidth, cardHeight, 12);
+            const titleText = this.add.text(x + 18, rowTop + 16, item.title, { fontFamily: FONT, fontSize: 14, fontStyle: "800", color: PRIMARY_BLUE_HEX });
+            const bodyText = this.add.text(x + 18, rowTop + 46, item.body, {
+                fontFamily: FONT,
+                fontSize: 13,
+                color: DARK_NAVY,
+                lineSpacing: 4,
+                wordWrap: { width: cardWidth - 36 },
+            });
+            this.boardContainer.add([card, titleText, bodyText]);
+        });
+
+        const warnY = rowTop + cardHeight + 18;
+        const warn = this.add.graphics();
+        warn.fillStyle(0xfdf3e7, 1);
+        warn.fillRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 76, 12);
+        warn.lineStyle(2, AMBER, 0.6);
+        warn.strokeRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 76, 12);
+        const warnTitle = this.add.text(CONTENT_X + 18, warnY + 14, "INGAT!", { fontFamily: FONT, fontSize: 13, fontStyle: "800", color: AMBER_HEX });
+        const warnBody = this.add.text(
+            CONTENT_X + 18,
+            warnY + 36,
+            "Operasikan OWS sesuai prosedur, pantau OCM, dan jangan melakukan pembuangan yang tidak memenuhi ketentuan.",
+            { fontFamily: FONT, fontSize: 13, color: DARK_NAVY, wordWrap: { width: CONTENT_WIDTH - 36 } },
+        );
+        this.boardContainer.add([warn, warnTitle, warnBody]);
+    }
+
+    // ---- Layout -------------------------------------------------------------------------
 
     private layout(width: number, height: number) {
         this.background.setPosition(width / 2, height / 2);

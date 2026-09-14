@@ -21,6 +21,8 @@ export class MainMenu extends Scene {
     private background!: GameObjects.Image;
     private logo!: GameObjects.Image;
     private welcomeCard!: GameObjects.Graphics;
+    private welcomeIconBg!: GameObjects.Graphics;
+    private welcomeIcon!: GameObjects.Text;
     private welcomeTitle!: GameObjects.Text;
     private welcomeSubtitle!: GameObjects.Text;
 
@@ -53,8 +55,13 @@ export class MainMenu extends Scene {
 
         this.welcomeCard = this.add.graphics();
 
+        this.welcomeIconBg = this.add.graphics();
+        this.welcomeIcon = this.add
+            .text(0, 0, "🛡️", { fontFamily: "Arial", fontSize: 22 })
+            .setOrigin(0.5);
+
         this.welcomeTitle = this.add
-            .text(0, 0, "Selamat Datang, Taruna!", {
+            .text(0, 0, "Selamat Datang, Penjaga Laut!", {
                 fontFamily: "Arial Black",
                 fontSize: 34,
                 color: "#143a84",
@@ -65,7 +72,7 @@ export class MainMenu extends Scene {
             .text(
                 0,
                 0,
-                "Pilih modul untuk memulai pembelajaran interaktifmu.",
+                "Pilih modul untuk memulai pembelajaran interaktifmu menjaga laut dari pencemaran.",
                 {
                     fontFamily: "Arial",
                     fontSize: 18,
@@ -222,6 +229,8 @@ export class MainMenu extends Scene {
         // Welcome card + text: slides down from above.
         const headerItems: Array<GameObjects.GameObject & { alpha: number; y: number }> = [
             this.welcomeCard,
+            this.welcomeIconBg,
+            this.welcomeIcon,
             this.welcomeTitle,
             this.welcomeSubtitle,
         ];
@@ -305,6 +314,8 @@ export class MainMenu extends Scene {
         const headerItems: Array<GameObjects.GameObject & { x: number; y: number; alpha: number }> = [
             this.logo,
             this.welcomeCard,
+            this.welcomeIconBg,
+            this.welcomeIcon,
             this.welcomeTitle,
             this.welcomeSubtitle,
         ];
@@ -480,17 +491,22 @@ export class MainMenu extends Scene {
             this.welcomeTitle.width,
             this.welcomeSubtitle.width,
         );
-        // Just wide enough for the text, but never wider than the menu grid
-        // it's centered over.
+        const welcomeIconSize = Math.max(38, 46 * cardScale);
+        const welcomeIconGap = Math.max(12, 14 * cardScale);
+
+        // Just wide enough for the icon + text, but never wider than the
+        // menu grid it's centered over.
         const welcomeCardWidth = Math.min(
-            welcomeContentWidth + welcomeCardPaddingX * 2,
+            welcomeIconSize + welcomeIconGap + welcomeContentWidth + welcomeCardPaddingX * 2,
             cardsBlockWidth,
         );
-        const welcomeCardHeight =
+        const welcomeCardHeight = Math.max(
+            welcomeIconSize + welcomeCardPaddingY * 1.4,
             welcomeCardPaddingY * 2 +
-            this.welcomeTitle.height +
-            welcomeTextGap +
-            this.welcomeSubtitle.height;
+                this.welcomeTitle.height +
+                welcomeTextGap +
+                this.welcomeSubtitle.height,
+        );
         const welcomeCardX = cardsBlockCenterX - welcomeCardWidth / 2;
 
         this.welcomeCard.clear();
@@ -511,7 +527,16 @@ export class MainMenu extends Scene {
             welcomeCardRadius,
         );
 
-        const welcomeTextX = welcomeCardX + welcomeCardPaddingX;
+        const welcomeCardCenterY = welcomeCardTop + welcomeCardHeight / 2;
+        const welcomeIconCenterX = welcomeCardX + welcomeCardPaddingX + welcomeIconSize / 2;
+
+        this.welcomeIconBg.clear();
+        this.welcomeIconBg.fillStyle(0x2f68d8, 1);
+        this.welcomeIconBg.fillCircle(welcomeIconCenterX, welcomeCardCenterY, welcomeIconSize / 2);
+        this.welcomeIcon.setFontSize(Math.max(18, 22 * cardScale));
+        this.welcomeIcon.setPosition(welcomeIconCenterX, welcomeCardCenterY);
+
+        const welcomeTextX = welcomeCardX + welcomeCardPaddingX + welcomeIconSize + welcomeIconGap;
 
         this.welcomeTitle.setPosition(
             welcomeTextX,
@@ -546,14 +571,14 @@ export class MainMenu extends Scene {
             rightColumnWidth - rightColumnMargin - 160,
         );
 
-        const taglineWidth = Math.min(width * 0.35, 640);
-        const taglineHeight = Math.max(40, height * 0.18);
+        const taglineWidth = Math.min(width * 0.26, 480);
+        const taglineHeight = Math.max(32, height * 0.13);
         this.tagline.setPosition(width * 0.47, height - 60);
         this.tagline.setSize(taglineWidth, taglineHeight);
 
-        const bottomButtonScale = Math.max(0.82, cardScale * 0.92);
-        const bottomButtonWidth = 350 * bottomButtonScale;
-        const bottomButtonHeight = 90 * bottomButtonScale;
+        const bottomButtonScale = Math.max(0.68, cardScale * 0.74);
+        const bottomButtonWidth = 300 * bottomButtonScale;
+        const bottomButtonHeight = 78 * bottomButtonScale;
 
         // Flush against the true right edge (a small fixed margin, not a
         // percentage of the character column) so it never drifts into the
