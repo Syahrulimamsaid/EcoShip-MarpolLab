@@ -1,10 +1,8 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
-import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
-import { createStepDots } from "../../../component/StepDots/StepDots";
 import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { shuffleQuestions } from "../../QuizShuffle";
@@ -12,17 +10,21 @@ import { getOwsModuleProgress, setQuizResult } from "../../OwsModuleState";
 import { NILAI_BAIK_THRESHOLD, SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
 import { OWS_QUIZ_QUESTIONS } from "./OwsQuizData";
 
-const DESIGN_WIDTH = 1536;
-const DESIGN_HEIGHT = 980;
-const MARGIN = 40;
+const DESIGN_WIDTH = 1920;
+const DESIGN_HEIGHT = 1080;
+const MARGIN = 32;
 const TOTAL_QUESTIONS = OWS_QUIZ_QUESTIONS.length;
 
-const CARD_WIDTH = 900;
-const CARD_Y = 290;
-// A floor, not a fixed height — the card is redrawn to fit whatever content
+const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
+
+const CARD_WIDTH = 1100;
+const CARD_Y = 170;
+const CARD_HEADER_HEIGHT = 76;
+const CARD_RADIUS = 20;
+// A floor, not a fixed height — the body is redrawn to fit whatever content
 // (pembahasan panel, result checklist, the optional CTA) is actually on
 // screen each render, so a button can never end up hanging outside it.
-const MIN_CARD_HEIGHT = 520;
+const MIN_BODY_HEIGHT = 480;
 const MAX_CARD_BOTTOM = DESIGN_HEIGHT - 40;
 const CARD_X = (DESIGN_WIDTH - CARD_WIDTH) / 2;
 const CONTENT_X = CARD_X + 40;
@@ -36,17 +38,18 @@ const RED_HEX = "#c0392b";
  * StabilitasQuiz, not the generic QuizScene): picking an option immediately
  * reveals correct/incorrect plus a pembahasan panel, and the result screen
  * has a per-question review checklist plus a cross-link to whichever OWS
- * activity isn't done yet.
+ * activity isn't done yet. Chrome matches the rest of the OWS module: a
+ * compact Kembali pill + breadcrumb row above a card whose own header bar
+ * carries the quiz title and "Soal n/5" progress.
  */
 export class OwsQuiz extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
     private bodyContainer!: GameObjects.Container;
-    private cardBg!: GameObjects.Graphics;
+    private cardBodyBg!: GameObjects.Graphics;
     private transitionGroups: GameObjects.GameObject[][] = [];
 
-    private stepLabelText!: GameObjects.Text;
-    private stepDotsGroup!: GameObjects.Container;
+    private stepIndicatorGroup!: GameObjects.Container;
 
     private questions = OWS_QUIZ_QUESTIONS;
     private questionIndex = 0;
@@ -72,7 +75,6 @@ export class OwsQuiz extends Scene {
 
         const groups: GameObjects.GameObject[][] = [];
         trackGroup(this.root, groups, () => this.buildHeader());
-        trackGroup(this.root, groups, () => this.buildStepIndicator());
         trackGroup(this.root, groups, () => this.buildCardChrome());
 
         this.bodyContainer = this.add.container(0, 0);
@@ -103,62 +105,118 @@ export class OwsQuiz extends Scene {
         playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey));
     }
 
-    // ---- Header / chrome ------------------------------------------------------
+    // ---- Header (Kembali pill + breadcrumb row) ----------------------------------------
 
     private buildHeader() {
-        const header = new ModuleHeader(this, {
-            x: MARGIN,
-            badgeLabel: "MODUL SIMULATOR OWS",
-            breadcrumbLabel: "Kuis MARPOL Annex I",
-            heading: "KUIS MARPOL ANNEX I",
-            subtitle: "Jawab 5 soal untuk menguji pemahamanmu tentang pencegahan pencemaran minyak dari kapal.",
-            onBack: () => this.goTo("PilihAktivitasOws"),
+        const backWidth = 140;
+        const backHeight = backWidth * (558 / 1780);
+        const backY = MARGIN + backHeight / 2;
+        const backButton = this.add
+            .image(MARGIN + backWidth / 2, backY, "ows.btnKembali")
+            .setDisplaySize(backWidth, backHeight)
+            .setInteractive({ useHandCursor: true });
+        backButton.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            this.goTo("PilihAktivitasOws");
         });
-        this.root.add(header.view);
+
+        const crumbTop = MARGIN + backHeight + 14;
+        const crumbHeight = 40;
+        const crumbCenterY = crumbTop + crumbHeight / 2;
+
+        const badgeText = this.add.text(0, 0, "MODUL SIMULATOR OWS", { fontFamily: FONT, fontSize: 14, fontStyle: "800", color: "#ffffff" });
+        const badgeWidth = badgeText.width + 32;
+        const badgeBg = this.add.graphics();
+        badgeBg.fillStyle(PRIMARY_BLUE, 1);
+        badgeBg.fillRoundedRect(MARGIN, crumbTop, badgeWidth, crumbHeight, crumbHeight / 2);
+        badgeText.setPosition(MARGIN + 16, crumbCenterY - badgeText.height / 2);
+
+        const chevron = this.add
+            .text(MARGIN + badgeWidth + 14, crumbCenterY, "›", { fontFamily: FONT, fontSize: 20, fontStyle: "800", color: PRIMARY_BLUE_HEX })
+            .setOrigin(0, 0.5);
+
+        const crumbLabel = this.add
+            .text(MARGIN + badgeWidth + 34, crumbCenterY, "Kuis MARPOL Annex I", { fontFamily: FONT, fontSize: 15, fontStyle: "700", color: PRIMARY_BLUE_HEX })
+            .setOrigin(0, 0.5);
+
+        this.root.add([backButton, badgeBg, badgeText, chevron, crumbLabel]);
     }
 
-    private buildStepIndicator() {
-        this.stepLabelText = this.add.text(MARGIN, 262, `SOAL 1 / ${TOTAL_QUESTIONS}`, {
-            fontFamily: "Arial Black",
-            fontSize: 15,
-            color: PRIMARY_BLUE_HEX,
-        });
-        this.stepDotsGroup = this.add.container(0, 0);
-        this.root.add([this.stepLabelText, this.stepDotsGroup]);
+    // ---- Card chrome (blue header bar + white body) --------------------------------------
+
+    private buildCardChrome() {
+        const headerBg = this.add.graphics();
+        headerBg.fillStyle(PRIMARY_BLUE, 1);
+        headerBg.fillRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, CARD_HEADER_HEIGHT, { tl: CARD_RADIUS, tr: CARD_RADIUS, bl: 0, br: 0 });
+
+        const iconSize = 44;
+        const iconX = CARD_X + 28;
+        const iconY = CARD_Y + CARD_HEADER_HEIGHT / 2;
+        const iconBg = this.add.graphics();
+        iconBg.fillStyle(0xffffff, 0.18);
+        iconBg.fillRoundedRect(iconX, iconY - iconSize / 2, iconSize, iconSize, 12);
+        const icon = this.add.text(iconX + iconSize / 2, iconY, "📋", { fontFamily: FONT, fontSize: 22 }).setOrigin(0.5);
+
+        const title = this.add
+            .text(iconX + iconSize + 16, iconY, "KUIS MARPOL ANNEX I", { fontFamily: FONT, fontSize: 20, fontStyle: "800", color: "#ffffff" })
+            .setOrigin(0, 0.5);
+
+        this.cardBodyBg = this.add.graphics();
+
+        this.stepIndicatorGroup = this.add.container(0, 0);
+
+        this.root.add([this.cardBodyBg, headerBg, iconBg, icon, title, this.stepIndicatorGroup]);
+        this.updateStepIndicator();
+        this.redrawCard(CARD_Y + CARD_HEADER_HEIGHT + MIN_BODY_HEIGHT);
     }
 
     private updateStepIndicator() {
+        this.stepIndicatorGroup.removeAll(true);
+
         const onResult = this.questionIndex >= TOTAL_QUESTIONS;
-        this.stepLabelText.setVisible(!onResult);
-        this.stepDotsGroup.setVisible(!onResult);
         if (onResult) return;
 
-        this.stepLabelText.setText(`SOAL ${this.questionIndex + 1} / ${TOTAL_QUESTIONS}`);
-        this.stepDotsGroup.removeAll(true);
-        this.stepDotsGroup.add(createStepDots(this, MARGIN + 130, 269, TOTAL_QUESTIONS, this.questionIndex + 1));
+        const rightEdge = CARD_X + CARD_WIDTH - 28;
+        const headerCenterY = CARD_Y + CARD_HEADER_HEIGHT / 2;
+
+        const soalText = this.add
+            .text(rightEdge, headerCenterY - 12, `Soal ${this.questionIndex + 1} / ${TOTAL_QUESTIONS}`, {
+                fontFamily: FONT,
+                fontSize: 14,
+                fontStyle: "700",
+                color: "#ffffff",
+            })
+            .setOrigin(1, 0.5);
+
+        const dotRadius = 5;
+        const dotGap = 16;
+        const dotsY = headerCenterY + 12;
+        const items: GameObjects.GameObject[] = [soalText];
+        for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+            const dotX = rightEdge - (TOTAL_QUESTIONS - 1 - i) * dotGap;
+            const filled = i <= this.questionIndex;
+            items.push(this.add.circle(dotX, dotsY, dotRadius, 0xffffff, filled ? 1 : 0.35));
+        }
+
+        this.stepIndicatorGroup.add(items);
     }
 
-    private buildCardChrome() {
-        // Left empty — redrawCard() fills it in once each render knows its
-        // own content height.
-        this.cardBg = this.add.graphics();
-        this.root.add(this.cardBg);
-        this.redrawCard(CARD_Y + MIN_CARD_HEIGHT);
-    }
-
-    /** Redraws the card background so its bottom edge sits just past
-     * `contentBottom` — called at the end of every render once the actual
-     * height of that render's content (pembahasan panel, result checklist,
-     * optional CTA, ...) is known, so nothing ever hangs outside the card. */
+    /** Redraws the card BODY (below the fixed-height header bar) so its
+     * bottom edge sits just past `contentBottom` — called at the end of
+     * every render once the actual height of that render's content
+     * (pembahasan panel, result checklist, optional CTA, ...) is known, so
+     * nothing ever hangs outside the card. */
     private redrawCard(contentBottom: number) {
-        const bottom = Math.min(Math.max(contentBottom + 30, CARD_Y + MIN_CARD_HEIGHT), MAX_CARD_BOTTOM);
-        const height = bottom - CARD_Y;
+        const minBottom = CARD_Y + CARD_HEADER_HEIGHT + MIN_BODY_HEIGHT;
+        const bottom = Math.min(Math.max(contentBottom + 30, minBottom), MAX_CARD_BOTTOM);
+        const bodyTop = CARD_Y + CARD_HEADER_HEIGHT;
+        const bodyHeight = bottom - bodyTop;
 
-        this.cardBg.clear();
-        this.cardBg.fillStyle(0xffffff, 1);
-        this.cardBg.fillRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, height, 20);
-        this.cardBg.lineStyle(2, BORDER_BLUE, 1);
-        this.cardBg.strokeRoundedRect(CARD_X, CARD_Y, CARD_WIDTH, height, 20);
+        this.cardBodyBg.clear();
+        this.cardBodyBg.fillStyle(0xffffff, 1);
+        this.cardBodyBg.fillRoundedRect(CARD_X, bodyTop, CARD_WIDTH, bodyHeight, { tl: 0, tr: 0, bl: CARD_RADIUS, br: CARD_RADIUS });
+        this.cardBodyBg.lineStyle(2, BORDER_BLUE, 1);
+        this.cardBodyBg.strokeRoundedRect(CARD_X, bodyTop, CARD_WIDTH, bodyHeight, { tl: 0, tr: 0, bl: CARD_RADIUS, br: CARD_RADIUS });
     }
 
     // ---- Question -----------------------------------------------------------------
@@ -168,20 +226,21 @@ export class OwsQuiz extends Scene {
         this.updateStepIndicator();
 
         const question = this.questions[this.questionIndex];
-        const top = CARD_Y + 30;
+        const top = CARD_Y + CARD_HEADER_HEIGHT + 32;
 
         const questionText = this.add.text(CONTENT_X, top, question.question, {
-            fontFamily: "Arial Black",
-            fontSize: 17,
+            fontFamily: FONT,
+            fontSize: 19,
+            fontStyle: "800",
             color: DARK_NAVY,
-            lineSpacing: 5,
+            lineSpacing: 6,
             wordWrap: { width: CONTENT_WIDTH },
         });
         this.bodyContainer.add(questionText);
 
-        const optionsTop = questionText.y + questionText.height + 22;
-        const rowHeight = 48;
-        const rowGap = 12;
+        const optionsTop = questionText.y + questionText.height + 24;
+        const rowHeight = 54;
+        const rowGap = 14;
 
         question.options.forEach((option, index) => {
             const rowY = optionsTop + index * (rowHeight + rowGap);
@@ -191,7 +250,9 @@ export class OwsQuiz extends Scene {
             // Picking a row both selects and checks it in the same click
             // (see selectAndCheck), so "picked" and "checked" are always in
             // sync — there's no separate selected-but-unconfirmed look.
-            let fillColor = 0xffffff;
+            // Letter badges are solid blue from the start (not outline-only
+            // until picked), matching the reference design.
+            let fillColor = 0xf7faff;
             let borderColor = BORDER_BLUE;
             let accentColor = PRIMARY_BLUE;
             if (this.checked && isCorrectRow) {
@@ -209,23 +270,22 @@ export class OwsQuiz extends Scene {
                 .setOrigin(0, 0)
                 .setStrokeStyle(2, borderColor, 1);
 
-            const highlight = isPicked || (this.checked && isCorrectRow);
-            const letterBg = this.add
-                .circle(CONTENT_X + 28, rowY + rowHeight / 2, 15, accentColor, highlight ? 1 : 0.1)
-                .setStrokeStyle(1.5, accentColor, 1);
+            const letterBg = this.add.circle(CONTENT_X + 30, rowY + rowHeight / 2, 16, accentColor, 1);
             const letterText = this.add
-                .text(CONTENT_X + 28, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
-                    fontFamily: "Arial Black",
-                    fontSize: 13,
-                    color: highlight ? "#ffffff" : PRIMARY_BLUE_HEX,
+                .text(CONTENT_X + 30, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
+                    fontFamily: FONT,
+                    fontSize: 14,
+                    fontStyle: "800",
+                    color: "#ffffff",
                 })
                 .setOrigin(0.5);
             const optionText = this.add
-                .text(CONTENT_X + 56, rowY + rowHeight / 2, option, {
-                    fontFamily: "Arial",
-                    fontSize: 14,
+                .text(CONTENT_X + 62, rowY + rowHeight / 2, option, {
+                    fontFamily: FONT,
+                    fontSize: 15,
+                    fontStyle: "600",
                     color: DARK_NAVY,
-                    wordWrap: { width: CONTENT_WIDTH - 76 },
+                    wordWrap: { width: CONTENT_WIDTH - 82 },
                 })
                 .setOrigin(0, 0.5);
 
@@ -247,20 +307,22 @@ export class OwsQuiz extends Scene {
         const isCorrect = this.selectedIndex === question.correctIndex;
         const bannerY = optionsBottom + 18;
         const banner = this.add.text(CONTENT_X, bannerY, isCorrect ? "✓ JAWABAN TEPAT" : "✕ JAWABAN BELUM TEPAT", {
-            fontFamily: "Arial Black",
+            fontFamily: FONT,
             fontSize: 15,
+            fontStyle: "800",
             color: isCorrect ? GREEN_HEX : RED_HEX,
         });
         this.bodyContainer.add(banner);
 
         const panelY = banner.y + banner.height + 12;
         const panelHeader = this.add.text(CONTENT_X + 16, panelY + 12, "PEMBAHASAN", {
-            fontFamily: "Arial Black",
+            fontFamily: FONT,
             fontSize: 12,
+            fontStyle: "800",
             color: PRIMARY_BLUE_HEX,
         });
         const panelBody = this.add.text(CONTENT_X + 16, panelHeader.y + panelHeader.height + 6, question.pembahasan, {
-            fontFamily: "Arial",
+            fontFamily: FONT,
             fontSize: 12,
             color: BODY_TEXT,
             lineSpacing: 4,
@@ -284,8 +346,8 @@ export class OwsQuiz extends Scene {
     private buildActionButton(y: number): number {
         const isLast = this.questionIndex === TOTAL_QUESTIONS - 1;
 
-        const buttonWidth = 240;
-        const buttonHeight = 48;
+        const buttonWidth = 220;
+        const buttonHeight = 52;
         const buttonX = CARD_X + CARD_WIDTH - 36 - buttonWidth;
 
         const button = new Button(this, {
@@ -293,9 +355,11 @@ export class OwsQuiz extends Scene {
             y: y + buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            text: isLast ? "LIHAT HASIL →" : "SOAL BERIKUTNYA →",
-            fontSize: 14,
-            borderRadius: 12,
+            text: isLast ? "Lihat Hasil ›" : "Selanjutnya ›",
+            fontFamily: FONT,
+            fontSize: 15,
+            fontStyle: "700",
+            borderRadius: buttonHeight / 2,
             fillColor: PRIMARY_BLUE,
             strokeAlpha: 0,
             textColor: "#ffffff",
@@ -356,29 +420,32 @@ export class OwsQuiz extends Scene {
         playVoiceSfx(this, score >= NILAI_BAIK_THRESHOLD ? SFX_KEYS.nilaiBaik : SFX_KEYS.nilaiKurang);
 
         const centerX = CARD_X + CARD_WIDTH / 2;
+        const top = CARD_Y + CARD_HEADER_HEIGHT + 30;
         const scoreText = this.add
-            .text(centerX, CARD_Y + 50, `${score} / 100`, { fontFamily: "Arial Black", fontSize: 40, color: PRIMARY_BLUE_HEX })
+            .text(centerX, top + 20, `${score} / 100`, { fontFamily: FONT, fontSize: 40, fontStyle: "800", color: PRIMARY_BLUE_HEX })
             .setOrigin(0.5);
         const correctText = this.add
-            .text(centerX, CARD_Y + 100, `${correctCount} / ${TOTAL_QUESTIONS} JAWABAN BENAR`, {
-                fontFamily: "Arial Black",
+            .text(centerX, top + 70, `${correctCount} / ${TOTAL_QUESTIONS} JAWABAN BENAR`, {
+                fontFamily: FONT,
                 fontSize: 15,
+                fontStyle: "800",
                 color: DARK_NAVY,
             })
             .setOrigin(0.5);
         this.bodyContainer.add([scoreText, correctText]);
 
-        const listTop = CARD_Y + 150;
+        const listTop = top + 120;
         const rowHeight = 30;
         this.correctFlags.forEach((isCorrect, index) => {
             const rowY = listTop + index * rowHeight;
             const mark = this.add.text(centerX - 120, rowY, isCorrect ? "✓" : "✕", {
-                fontFamily: "Arial Black",
+                fontFamily: FONT,
                 fontSize: 14,
+                fontStyle: "800",
                 color: isCorrect ? GREEN_HEX : RED_HEX,
             });
             const label = this.add.text(centerX - 90, rowY, `Soal ${index + 1}`, {
-                fontFamily: "Arial",
+                fontFamily: FONT,
                 fontSize: 14,
                 color: DARK_NAVY,
             });
@@ -398,8 +465,9 @@ export class OwsQuiz extends Scene {
             const successY = contentBottom + 20;
             const successBanner = this.add
                 .text(centerX, successY, "🔓 Katup buang otomatis terbuka — air terbuang dengan aman ke laut.", {
-                    fontFamily: "Arial Black",
+                    fontFamily: FONT,
                     fontSize: 13,
+                    fontStyle: "700",
                     color: GREEN_HEX,
                     align: "center",
                     wordWrap: { width: CONTENT_WIDTH },
@@ -410,7 +478,7 @@ export class OwsQuiz extends Scene {
         }
 
         const buttonWidth = 220;
-        const buttonHeight = 48;
+        const buttonHeight = 52;
         const buttonsTop = contentBottom + 30;
         const gap = 16;
         // The two-button row spans [centerX - buttonWidth - gap/2, centerX + buttonWidth + gap/2]
@@ -422,9 +490,11 @@ export class OwsQuiz extends Scene {
             y: buttonsTop + buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            text: "ULANGI KUIS",
+            text: "Ulangi Kuis",
+            fontFamily: FONT,
             fontSize: 14,
-            borderRadius: 12,
+            fontStyle: "700",
+            borderRadius: buttonHeight / 2,
             fillColor: 0xffffff,
             strokeColor: PRIMARY_BLUE,
             strokeAlpha: 1,
@@ -437,9 +507,11 @@ export class OwsQuiz extends Scene {
             y: buttonsTop + buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            text: "KEMBALI KE PILIH AKTIVITAS",
+            text: "Kembali ke Pilih Aktivitas",
+            fontFamily: FONT,
             fontSize: 12,
-            borderRadius: 12,
+            fontStyle: "700",
+            borderRadius: buttonHeight / 2,
             fillColor: PRIMARY_BLUE,
             strokeAlpha: 0,
             textColor: "#ffffff",
@@ -461,9 +533,11 @@ export class OwsQuiz extends Scene {
                 y: ctaY + buttonHeight / 2,
                 width: rowSpan,
                 height: buttonHeight,
-                text: "LANJUT KE SIMULATOR →",
+                text: "Lanjut ke Simulator ›",
+                fontFamily: FONT,
                 fontSize: 14,
-                borderRadius: 12,
+                fontStyle: "700",
+                borderRadius: buttonHeight / 2,
                 fillColor: 0x1f8d52,
                 strokeAlpha: 0,
                 textColor: "#ffffff",

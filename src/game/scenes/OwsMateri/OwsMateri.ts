@@ -128,12 +128,18 @@ export class OwsMateri extends Scene {
         const iconSize = 52;
         const y = 24 + iconSize / 2;
 
-        const backBtn = this.buildIconButton(24 + iconSize / 2, y, iconSize, "‹", () => {
+        const backWidth = 140;
+        const backHeight = backWidth * (558 / 1780);
+        const backBtn = this.add
+            .image(24 + backWidth / 2, y, "ows.btnKembali")
+            .setDisplaySize(backWidth, backHeight)
+            .setInteractive({ useHandCursor: true });
+        backBtn.on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
             this.goTo("MainMenu");
         });
 
-        const badgeX = 24 + iconSize + 14;
+        const badgeX = 24 + backWidth + 14;
         const dropletBg = this.add.graphics();
         dropletBg.fillStyle(PRIMARY_BLUE, 1);
         dropletBg.fillRoundedRect(badgeX, y - iconSize / 2, iconSize, iconSize, 14);
@@ -144,18 +150,6 @@ export class OwsMateri extends Scene {
         const subtitle = this.add.text(labelX, y + 4, "MARPOL Annex I", { fontFamily: FONT, fontSize: 12, color: "#dce9ff" });
 
         this.root.add([backBtn, dropletBg, droplet, title, subtitle]);
-    }
-
-    private buildIconButton(x: number, y: number, size: number, glyph: string, onClick: () => void): GameObjects.Container {
-        const bg = this.add.graphics();
-        bg.fillStyle(0xffffff, 1);
-        bg.fillRoundedRect(-size / 2, -size / 2, size, size, 14);
-        bg.lineStyle(2, BORDER_BLUE, 1);
-        bg.strokeRoundedRect(-size / 2, -size / 2, size, size, 14);
-        const label = this.add.text(0, -2, glyph, { fontFamily: FONT, fontSize: 22, fontStyle: "700", color: PRIMARY_BLUE_HEX }).setOrigin(0.5);
-        const hit = this.add.rectangle(0, 0, size, size, 0xffffff, 0).setInteractive({ useHandCursor: true });
-        hit.on("pointerdown", onClick);
-        return this.add.container(x, y, [bg, label, hit]);
     }
 
     // ---- Sidebar ---------------------------------------------------------------------
