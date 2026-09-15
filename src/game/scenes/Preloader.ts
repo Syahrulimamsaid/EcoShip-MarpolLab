@@ -132,6 +132,7 @@ export class Preloader extends Scene {
         this.load.image("home.btn.power", "assets/home/btn_power.png");
         this.load.image("home.btn.mulai", "assets/home/btn-mulai_modul.png");
         this.load.image("home.btn.exit", "assets/home/btn_exit.png");
+        this.load.image("home.bottom.banner", "assets/bottom_banner.png");
 
         // Shared backdrop for every module content scene (materi/hub/quiz/
         // result screens across all modules, not anatomi-specific despite
@@ -145,6 +146,11 @@ export class Preloader extends Scene {
             "ows.background",
             "assets/ows/bg.png",
         );
+        this.load.image("ows.btnKembali", "assets/ows/btn_kembali.png");
+        this.load.image("ows.cardSimulator", "assets/ows/card_menu_simulasi_ows.png");
+        this.load.image("ows.cardKuis", "assets/ows/card_menu_kuis_marpol.png");
+        this.load.image("ows.deskripsiMenu", "assets/ows/deskripsi_menu.png");
+        this.load.image("ows.component", "assets/ows/component_ows.png");
 
         this.load.image(
             "pilah_sampah.background",

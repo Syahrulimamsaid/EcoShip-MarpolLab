@@ -2,7 +2,6 @@ import { GameObjects, Scale, Scene } from "phaser";
 import { BgmToggleButton } from "../../../component/Button/BgmToggleButton";
 import { ExitButton } from "../../../component/Button/ExitButton";
 import { TentangButton } from "../../../component/Button/TentangButton";
-import { TaglineBar } from "../../../component/TaglineBar/TaglineBar";
 import { initBgm, isBgmEnabled, toggleBgm } from "../../BgmManager";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
@@ -28,7 +27,7 @@ export class MainMenu extends Scene {
 
     private menuCards: MenuCard[] = [];
     private characterPanel!: CharacterPanel;
-    private tagline!: TaglineBar;
+    private tagline!: GameObjects.Image;
     private exitModal!: ModalExit;
     private exitButton!: ExitButton;
     private bgmToggleButton!: BgmToggleButton;
@@ -113,7 +112,7 @@ export class MainMenu extends Scene {
 
         this.characterPanel = new CharacterPanel(this);
 
-        this.tagline = new TaglineBar(this, 0, 0, 640, 90);
+        this.tagline = this.add.image(0, 0, "home.bottom.banner");
 
         this.exitButton = new ExitButton(this, {
             size: 40,
@@ -259,7 +258,7 @@ export class MainMenu extends Scene {
 
         // Bottom bar, the Tentang button, and the top-right controls rise
         // in last, after the main content is in place.
-        this.introSlideUp(this.tagline.view, 560);
+        this.introSlideUp(this.tagline, 560);
         this.introSlideUp(this.tentangButton.view, 620);
         this.introFadeScale(this.exitButton.view, 200);
         this.introFadeScale(this.bgmToggleButton.view, 260);
@@ -323,7 +322,7 @@ export class MainMenu extends Scene {
             maxEnd = Math.max(maxEnd, this.exitFade(item, -20, 0));
         });
 
-        maxEnd = Math.max(maxEnd, this.exitFade(this.tagline.view, 20, 0));
+        maxEnd = Math.max(maxEnd, this.exitFade(this.tagline, 20, 0));
         maxEnd = Math.max(maxEnd, this.exitFade(this.tentangButton.view, 20, 0));
         maxEnd = Math.max(maxEnd, this.exitFade(this.exitButton.view, 0, 0));
         maxEnd = Math.max(maxEnd, this.exitFade(this.bgmToggleButton.view, 0, 0));
@@ -571,10 +570,14 @@ export class MainMenu extends Scene {
             rightColumnWidth - rightColumnMargin - 160,
         );
 
+        // Sized by width only, height derived from the real asset's own
+        // aspect ratio — stretching a photographic/illustrated PNG
+        // non-proportionally (unlike the old hand-drawn TaglineBar) would
+        // visibly distort it.
         const taglineWidth = Math.min(width * 0.26, 480);
-        const taglineHeight = Math.max(32, height * 0.13);
+        const taglineHeight = taglineWidth * (this.tagline.height / this.tagline.width);
         this.tagline.setPosition(width * 0.47, height - 60);
-        this.tagline.setSize(taglineWidth, taglineHeight);
+        this.tagline.setDisplaySize(taglineWidth, taglineHeight);
 
         const bottomButtonScale = Math.max(0.68, cardScale * 0.74);
         const bottomButtonWidth = 300 * bottomButtonScale;

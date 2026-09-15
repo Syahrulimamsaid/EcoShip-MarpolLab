@@ -210,13 +210,15 @@ export class OwsMateri extends Scene {
             // Number circles stay solid blue regardless of lock state (matching
             // the reference design) — the unlock gate is enforced on the click
             // handler below, not communicated through a dimmed circle/label.
-            // The whole circle+label group is centered as a unit within the
-            // row (not left-anchored), matching the reference chip look.
+            // Left-aligned at a fixed X (not centered as a group), with the
+            // circle vertically centered against the label's full block.
             const circleRadius = 18;
             const groupGap = 14;
-            const rowCenterY = rowY + 18;
+            const contentCenterY = rowY + 18;
+            const circleX = SIDEBAR_X + 42;
+            const labelX = circleX + circleRadius + groupGap;
 
-            const label = this.add.text(0, 0, item.title, {
+            const label = this.add.text(labelX, 0, item.title, {
                 fontFamily: FONT,
                 fontSize: 15,
                 fontStyle: "700",
@@ -225,21 +227,16 @@ export class OwsMateri extends Scene {
                 lineSpacing: 3,
             });
 
-            const groupWidth = circleRadius * 2 + groupGap + label.width;
-            const groupStartX = SIDEBAR_X + (SIDEBAR_WIDTH - groupWidth) / 2;
-            const circleX = groupStartX + circleRadius;
-            const labelX = groupStartX + circleRadius * 2 + groupGap;
-
-            const circle = this.add.circle(circleX, rowCenterY, circleRadius, PRIMARY_BLUE, 1);
+            const circle = this.add.circle(circleX, contentCenterY, circleRadius, PRIMARY_BLUE, 1);
             const numberText = this.add
-                .text(circleX, rowCenterY, String(item.id), {
+                .text(circleX, contentCenterY, String(item.id), {
                     fontFamily: FONT,
                     fontSize: 15,
                     fontStyle: "700",
                     color: "#ffffff",
                 })
                 .setOrigin(0.5);
-            label.setPosition(labelX, rowCenterY - label.height / 2);
+            label.setY(contentCenterY - label.height / 2);
 
             this.sidebarContainer.add([circle, numberText, label]);
 
@@ -843,10 +840,11 @@ export class OwsMateri extends Scene {
         this.boardContainer.add([book, bookLabel]);
 
         const exampleButtonY = bookLabel.y + bookLabel.height + 14;
+        const exampleButtonWidth = bookWidth + 40;
         const exampleButton = new Button(this, {
-            x: CONTENT_X + bookWidth / 2,
+            x: CONTENT_X + exampleButtonWidth / 2,
             y: exampleButtonY + 20,
-            width: bookWidth + 40,
+            width: exampleButtonWidth,
             height: 40,
             text: "Lihat Contoh →",
             fontFamily: FONT,

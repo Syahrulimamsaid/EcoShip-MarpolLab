@@ -87,9 +87,11 @@ export class ModuleHeader {
 }
 
 /**
- * The solid blue "← Kembali" pill used by ModuleHeader — also usable
- * standalone by scenes that want the same back button without the rest of
- * ModuleHeader's badge/heading/subtitle block (e.g. Tentang).
+ * The "← Kembali" pill used by ModuleHeader — also usable standalone by
+ * scenes that want the same back button without the rest of ModuleHeader's
+ * badge/heading/subtitle block (e.g. Tentang). Uses the shared
+ * `ows.btnKembali` illustration asset rather than drawn graphics, so every
+ * back button in the app looks identical.
  */
 export function createBackButton(scene: Scene, x: number, y: number, onBack: () => void): GameObjects.Container {
     const width = 172;
@@ -97,42 +99,14 @@ export function createBackButton(scene: Scene, x: number, y: number, onBack: () 
     const centerX = x + width / 2;
     const centerY = y + height / 2;
 
-    const bg = scene.add.graphics();
-    bg.fillStyle(PRIMARY_BLUE, 1);
-    bg.fillRoundedRect(-width / 2, -height / 2, width, height, height / 2);
-
-    // A drawn arrow icon reads much cleaner at this size than a text
-    // "←" glyph.
-    const arrowTipX = -width / 2 + 20;
-    const arrow = scene.add.graphics();
-    arrow.fillStyle(0xffffff, 1);
-    arrow.beginPath();
-    arrow.moveTo(arrowTipX, 0);
-    arrow.lineTo(arrowTipX + 12, -11);
-    arrow.lineTo(arrowTipX + 12, -3);
-    arrow.lineTo(arrowTipX + 28, -3);
-    arrow.lineTo(arrowTipX + 28, 3);
-    arrow.lineTo(arrowTipX + 12, 3);
-    arrow.lineTo(arrowTipX + 12, 11);
-    arrow.closePath();
-    arrow.fillPath();
-
-    const label = scene.add
-        .text(-width / 2 + 66, 0, "Kembali", {
-            fontFamily: "Arial Black",
-            fontSize: 19,
-            color: "#ffffff",
-        })
-        .setOrigin(0, 0.5);
+    const image = scene.add.image(0, 0, "ows.btnKembali").setDisplaySize(width, height);
 
     const hitArea = scene.add
         .rectangle(0, 0, width, height, 0xffffff, 0)
         .setInteractive({ useHandCursor: true });
 
     const container = scene.add.container(centerX, centerY, [
-        bg,
-        arrow,
-        label,
+        image,
         hitArea,
     ]);
 

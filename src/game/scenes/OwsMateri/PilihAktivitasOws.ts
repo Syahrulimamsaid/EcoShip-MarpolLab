@@ -1,13 +1,5 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
-import { Button } from "../../../component/Button/Button";
-import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
-import {
-    BODY_TEXT,
-    BORDER_BLUE,
-    DARK_NAVY,
-    PRIMARY_BLUE,
-} from "../../../component/ModulePanel/ModulePanel";
 import {
     playSceneEnter,
     playSceneExit,
@@ -15,28 +7,23 @@ import {
 } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
-import { getOwsModuleProgress } from "../../OwsModuleState";
 
 const DESIGN_WIDTH = 1536;
 const DESIGN_HEIGHT = 980;
 const MARGIN = 40;
 
-const CARD_Y = 300;
-const CARD_HEIGHT = 560;
-const CARD_GAP = 32;
-const CARD_WIDTH = (DESIGN_WIDTH - MARGIN * 2 - CARD_GAP) / 2;
-
-const GREEN_HEX = "#1f8d52";
+// Every visual on this screen (back button, header banner, both activity
+// cards) is a fully pre-composed illustration asset — no hand-drawn
+// chrome/text — so layout here is just placement + an invisible hit area
+// per interactive image, matching the codebase's MenuCard.ts convention.
+const BACK_BUTTON_WIDTH = 170;
+const DESKRIPSI_WIDTH = 400;
+const CARD_GAP = 28;
+const CARD_WIDTH = ((DESIGN_WIDTH - MARGIN * 2 - CARD_GAP) / 2) * 0.8;
 
 interface ActivityCardConfig {
     x: number;
-    icon: string;
-    title: string;
-    description: string;
-    infoPill: string;
-    statusLabel: string;
-    statusColor: string;
-    buttonLabel: string;
+    texture: string;
     hoverSfxKey: string;
     onStart: () => void;
 }
@@ -45,7 +32,7 @@ interface ActivityCardConfig {
  * The non-linear activity picker between Materi OWS and its two downstream
  * activities (Simulator OWS / Kuis MARPOL Annex I) — a hub, reached after
  * finishing the material and returned to after either activity's result
- * screen. Structurally a twin of PilihAktivitasStabilitas.
+ * screen.
  */
 export class PilihAktivitasOws extends Scene {
     private background!: GameObjects.Image;
@@ -86,37 +73,38 @@ export class PilihAktivitasOws extends Scene {
         );
     }
 
-    // ---- Header ---------------------------------------------------------------
+    // ---- Header (back button + "Pilih Aktivitas" banner, both pre-composed images) ----
 
     private buildHeader() {
-        const header = new ModuleHeader(this, {
-            x: MARGIN,
-            badgeLabel: "MODUL SIMULATOR OWS",
-            breadcrumbLabel: "Pilih Aktivitas",
-            heading: "PILIH AKTIVITAS",
-            subtitle: "Terapkan pemahamanmu melalui simulasi atau kuis.",
-            onBack: () => this.goTo("MainMenu"),
-        });
-        this.root.add(header.view);
+        const backHeight = BACK_BUTTON_WIDTH * (558 / 1780);
+        const backButton = this.buildImageButton(
+            "ows.btnKembali",
+            MARGIN + BACK_BUTTON_WIDTH / 2,
+            MARGIN + backHeight / 2,
+            BACK_BUTTON_WIDTH,
+            backHeight,
+            () => {
+                playSfx(this, SFX_KEYS.click);
+                this.goTo("MainMenu");
+            },
+        );
+
+        const deskripsiHeight = DESKRIPSI_WIDTH * (400 / 1450);
+        const deskripsiTop = MARGIN + backHeight + 14;
+        const deskripsi = this.add
+            .image(MARGIN, deskripsiTop, "ows.deskripsiMenu")
+            .setOrigin(0, 0)
+            .setDisplaySize(DESKRIPSI_WIDTH, deskripsiHeight);
+
+        this.root.add([deskripsi, backButton]);
     }
 
-    // ---- Cards ------------------------------------------------------------------
+    // ---- Cards (fully pre-composed illustration assets) ------------------------------
 
     private buildCards() {
-        const progress = getOwsModuleProgress();
-
         this.buildActivityCard({
-            x: MARGIN,
-            icon: "🛢️",
-            title: "SIMULATOR OWS",
-            description:
-                "Operasikan katup Oily Water Separator untuk menurunkan kadar minyak sebelum batas waktu habis.",
-            infoPill: "TIME ATTACK",
-            statusLabel: progress.simulatorCompleted
-                ? "✓ SELESAI"
-                : "BELUM DIKERJAKAN",
-            statusColor: progress.simulatorCompleted ? GREEN_HEX : BODY_TEXT,
-            buttonLabel: "MULAI SIMULATOR",
+            x: MARGIN * 5,
+            texture: "ows.cardSimulator",
             hoverSfxKey: SFX_KEYS.menuAnatomi,
             onStart: () => {
                 playSfx(this, SFX_KEYS.click);
@@ -125,17 +113,8 @@ export class PilihAktivitasOws extends Scene {
         });
 
         this.buildActivityCard({
-            x: MARGIN + CARD_WIDTH + CARD_GAP,
-            icon: "📝",
-            title: "KUIS MARPOL ANNEX I",
-            description:
-                "Uji pemahaman konsep pencegahan pencemaran minyak dari kapal (MARPOL Annex I).",
-            infoPill: "5 SOAL",
-            statusLabel: progress.quizCompleted
-                ? `✓ SELESAI · Skor: ${progress.quizScore}`
-                : "BELUM DIKERJAKAN",
-            statusColor: progress.quizCompleted ? GREEN_HEX : BODY_TEXT,
-            buttonLabel: "MULAI KUIS",
+            x: (MARGIN * 5) + CARD_WIDTH + CARD_GAP,
+            texture: "ows.cardKuis",
             hoverSfxKey: SFX_KEYS.menuKuis,
             onStart: () => {
                 playSfx(this, SFX_KEYS.click);
@@ -145,98 +124,86 @@ export class PilihAktivitasOws extends Scene {
     }
 
     private buildActivityCard(cfg: ActivityCardConfig) {
-        const { x } = cfg;
-        const paddingX = 36;
-        const centerX = x + CARD_WIDTH / 2;
+        const texture = this.textures.get(cfg.texture).getSourceImage();
+        const cardHeight = CARD_WIDTH * (texture.height / texture.width);
+        const centerX = cfg.x + CARD_WIDTH / 2;
+        const centerY = DESIGN_HEIGHT / 2;
 
-        const card = this.add.graphics();
-        card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(x, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
-        card.lineStyle(2, BORDER_BLUE, 1);
-        card.strokeRoundedRect(x, CARD_Y, CARD_WIDTH, CARD_HEIGHT, 20);
+        const card = this.add
+            .image(centerX, centerY, cfg.texture)
+            .setDisplaySize(CARD_WIDTH, cardHeight)
+            .setInteractive({ useHandCursor: true });
+        card.setData("baseX", centerX);
+        card.setData("baseY", centerY);
+
+        let hoverTween: Phaser.Tweens.Tween | null = null;
+        card.on("pointerover", () => {
+            playVoiceSfx(this, cfg.hoverSfxKey);
+            hoverTween?.stop();
+            hoverTween = this.tweens.add({
+                targets: card,
+                scaleX: card.scaleX * 1.03,
+                scaleY: card.scaleY * 1.03,
+                y: centerY - 6,
+                duration: 160,
+                ease: "Quad.Out",
+            });
+        });
+        card.on("pointerout", () => {
+            hoverTween?.stop();
+            hoverTween = this.tweens.add({
+                targets: card,
+                scaleX: CARD_WIDTH / texture.width,
+                scaleY: cardHeight / texture.height,
+                y: centerY,
+                duration: 160,
+                ease: "Quad.Out",
+            });
+        });
+        card.on("pointerdown", cfg.onStart);
+
         this.root.add(card);
+    }
 
-        const icon = this.add
-            .text(centerX, CARD_Y + 70, cfg.icon, {
-                fontFamily: "Arial",
-                fontSize: 48,
-            })
-            .setOrigin(0.5);
+    /** A fully pre-composed image acting as a button — an invisible hit
+     * area sized to the image plus a small hover lift, mirroring MenuCard's
+     * whole-image-is-the-button convention. */
+    private buildImageButton(
+        texture: string,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        onClick: () => void,
+    ): GameObjects.Image {
+        const image = this.add
+            .image(x, y, texture)
+            .setDisplaySize(width, height)
+            .setInteractive({ useHandCursor: true });
+        image.setData("baseY", y);
 
-        const title = this.add
-            .text(centerX, CARD_Y + 140, cfg.title, {
-                fontFamily: "Arial Black",
-                fontSize: 22,
-                color: DARK_NAVY,
-            })
-            .setOrigin(0.5);
-
-        const description = this.add
-            .text(x + paddingX, CARD_Y + 190, cfg.description, {
-                fontFamily: "Arial",
-                fontSize: 14,
-                color: BODY_TEXT,
-                align: "center",
-                lineSpacing: 6,
-                wordWrap: { width: CARD_WIDTH - paddingX * 2 },
-            })
-            .setOrigin(0, 0);
-        description.setX(centerX - description.width / 2);
-
-        const pillY = CARD_Y + 270;
-        const pillText = this.add.text(0, 0, cfg.infoPill, {
-            fontFamily: "Arial Black",
-            fontSize: 13,
-            color: "#ffffff",
+        let hoverTween: Phaser.Tweens.Tween | null = null;
+        image.on("pointerover", () => {
+            hoverTween?.stop();
+            hoverTween = this.tweens.add({
+                targets: image,
+                y: y - 3,
+                duration: 140,
+                ease: "Quad.Out",
+            });
         });
-        const pillWidth = pillText.width + 36;
-        const pillBg = this.add.graphics();
-        pillBg.fillStyle(PRIMARY_BLUE, 1);
-        pillBg.fillRoundedRect(
-            centerX - pillWidth / 2,
-            pillY - 17,
-            pillWidth,
-            34,
-            17,
-        );
-        pillText.setPosition(centerX, pillY);
-        pillText.setOrigin(0.5);
-
-        const statusText = this.add
-            .text(centerX, CARD_Y + 330, cfg.statusLabel, {
-                fontFamily: "Arial Black",
-                fontSize: 14,
-                color: cfg.statusColor,
-            })
-            .setOrigin(0.5);
-
-        const buttonWidth = 240;
-        const buttonHeight = 54;
-        const buttonY = CARD_Y + CARD_HEIGHT - 70;
-        const button = new Button(this, {
-            x: centerX,
-            y: buttonY,
-            width: buttonWidth,
-            height: buttonHeight,
-            text: cfg.buttonLabel,
-            fontSize: 15,
-            borderRadius: 14,
-            fillColor: PRIMARY_BLUE,
-            strokeAlpha: 0,
-            textColor: "#ffffff",
+        image.on("pointerout", () => {
+            hoverTween?.stop();
+            hoverTween = this.tweens.add({
+                targets: image,
+                y,
+                duration: 140,
+                ease: "Quad.Out",
+            });
         });
-        button.on("pointerdown", cfg.onStart);
-        button.on("pointerover", () => playVoiceSfx(this, cfg.hoverSfxKey));
+        image.on("pointerdown", onClick);
 
-        this.root.add([
-            icon,
-            title,
-            description,
-            pillBg,
-            pillText,
-            statusText,
-            button.view,
-        ]);
+        return image;
     }
 
     // ---- Layout -------------------------------------------------------------------
