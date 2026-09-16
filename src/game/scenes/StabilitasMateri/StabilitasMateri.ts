@@ -131,7 +131,8 @@ export class StabilitasMateri extends Scene {
 
     private buildStepIndicator() {
         this.stepLabelText = this.add.text(MARGIN, 262, "MATERI 1 / 6", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 15,
             color: PRIMARY_BLUE_HEX,
         });
@@ -264,7 +265,8 @@ export class StabilitasMateri extends Scene {
 
     private addStepTitle(text: string): GameObjects.Text {
         const title = this.add.text(CONTENT_X, CONTENT_TOP, text, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 22,
             color: DARK_NAVY,
         });
@@ -313,7 +315,8 @@ export class StabilitasMateri extends Scene {
             title.y + title.height + 20,
             "Stabilitas kapal adalah kemampuan kapal untuk kembali ke posisi tegak setelah miring akibat gaya dari luar seperti angin dan gelombang maupun dari dalam seperti pergeseran muatan.",
             {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 15,
                 color: BODY_TEXT,
                 lineSpacing: 6,
@@ -330,12 +333,14 @@ export class StabilitasMateri extends Scene {
         callout.lineStyle(2, PRIMARY_BLUE, 0.5);
         callout.strokeRoundedRect(CONTENT_X, calloutY, TEXT_COL_WIDTH, calloutHeight, 14);
         const calloutTitle = this.add.text(CONTENT_X + 18, calloutY + 16, "Tujuan stabilitas:", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: PRIMARY_BLUE_HEX,
         });
         const calloutBody = this.add.text(CONTENT_X + 18, calloutY + 38, "Kapal mampu kembali menuju posisi keseimbangannya.", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: DARK_NAVY,
             wordWrap: { width: TEXT_COL_WIDTH - 36 },
@@ -357,7 +362,8 @@ export class StabilitasMateri extends Scene {
         const title = this.addStepTitle("EMPAT TITIK UTAMA STABILITAS");
 
         const instruction = this.add.text(CONTENT_X, title.y + title.height + 18, "Klik salah satu titik pada diagram untuk melihat penjelasannya.", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: BODY_TEXT,
             wordWrap: { width: TEXT_COL_WIDTH },
@@ -365,9 +371,10 @@ export class StabilitasMateri extends Scene {
         this.bodyContainer.add(instruction);
 
         const descTop = instruction.y + instruction.height + 24;
-        this.step2DescTitle = this.add.text(CONTENT_X, descTop, "", { fontFamily: "Arial Black", fontSize: 16, color: PRIMARY_BLUE_HEX });
+        this.step2DescTitle = this.add.text(CONTENT_X, descTop, "", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 16, color: PRIMARY_BLUE_HEX });
         this.step2DescBody = this.add.text(CONTENT_X, descTop + 30, "", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: DARK_NAVY,
             lineSpacing: 5,
@@ -391,7 +398,7 @@ export class StabilitasMateri extends Scene {
                 .setStrokeStyle(2, 0xffffff, 1)
                 .setInteractive({ useHandCursor: true });
             const label = this.add
-                .text(anchorX + 20, y, point.key, { fontFamily: "Arial Black", fontSize: 14, color: DARK_NAVY })
+                .text(anchorX + 20, y, point.key, { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 14, color: DARK_NAVY })
                 .setOrigin(0, 0.5);
             dot.on("pointerdown", () => this.selectStabilityPoint(point.key));
             this.bodyContainer.add([dot, label]);
@@ -449,23 +456,27 @@ export class StabilitasMateri extends Scene {
 
         // GM card
         const gmHeader = this.add.text(leftX + 20, cardsTop + 18, "TINGGI METASENTRIS — GM", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: PRIMARY_BLUE_HEX,
             wordWrap: { width: cardWidth - 40 },
         });
         const gmFormula1 = this.add.text(leftX + 20, gmHeader.y + gmHeader.height + 14, "GM = KM − KG", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 20,
             color: DARK_NAVY,
         });
         const gmFormula2 = this.add.text(leftX + 20, gmFormula1.y + gmFormula1.height + 8, "KM = KB + BM", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 16,
             color: DARK_NAVY,
         });
         const gmDesc = this.add.text(leftX + 20, gmFormula2.y + gmFormula2.height + 14, "GM adalah jarak vertikal antara titik G dan titik M.", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: BODY_TEXT,
             lineSpacing: 5,
@@ -475,7 +486,8 @@ export class StabilitasMateri extends Scene {
         const calcY = gmDesc.y + gmDesc.height + 22;
         const calcLines = ["KM = 7,80 m", "KG = 6,50 m", "GM = KM − KG", "GM = 7,80 − 6,50", "GM = 1,30 m"];
         const calcText = this.add.text(leftX + 20, calcY, calcLines.join("\n"), {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: DARK_NAVY,
             lineSpacing: 6,
@@ -491,7 +503,8 @@ export class StabilitasMateri extends Scene {
         badgeBg.strokeRoundedRect(leftX + 20, badgeY, badgeWidth, badgeHeight, 10);
         const badgeText = this.add
             .text(leftX + 20 + badgeWidth / 2, badgeY + badgeHeight / 2, "✓ GM > 0  —  STABILITAS POSITIF", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 13,
                 color: GREEN_HEX,
             })
@@ -501,18 +514,21 @@ export class StabilitasMateri extends Scene {
 
         // GZ card
         const gzHeader = this.add.text(rightX + 20, cardsTop + 18, "LENGAN PENEGAK — GZ", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: PRIMARY_BLUE_HEX,
             wordWrap: { width: cardWidth - 40 },
         });
         const gzFormula = this.add.text(rightX + 20, gzHeader.y + gzHeader.height + 14, "GZ = GM × sin θ", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 20,
             color: DARK_NAVY,
         });
         const gzNote = this.add.text(rightX + 20, gzFormula.y + gzFormula.height + 10, "θ = sudut kemiringan kapal.", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: BODY_TEXT,
         });
@@ -521,7 +537,8 @@ export class StabilitasMateri extends Scene {
             gzNote.y + gzNote.height + 12,
             "GZ adalah jarak horizontal antara garis kerja gaya berat dan gaya apung saat kapal miring.",
             {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 13,
                 color: BODY_TEXT,
                 lineSpacing: 5,
@@ -563,13 +580,13 @@ export class StabilitasMateri extends Scene {
         const gDot = this.add.circle(gX, gY, 6, 0xc0392b, 1);
         const bDot = this.add.circle(tiltEndX, tiltEndY, 5, 0x22b8d8, 1);
 
-        const mLabel = this.add.text(mX - 24, mY - 7, "M", { fontFamily: "Arial Black", fontSize: 13, color: "#1659a7" });
-        const gLabel = this.add.text(gX - 24, gY - 7, "G", { fontFamily: "Arial Black", fontSize: 13, color: RED_HEX });
-        const bLabel = this.add.text(tiltEndX + 8, tiltEndY - 7, "B", { fontFamily: "Arial Black", fontSize: 13, color: "#22b8d8" });
+        const mLabel = this.add.text(mX - 24, mY - 7, "M", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 13, color: "#1659a7" });
+        const gLabel = this.add.text(gX - 24, gY - 7, "G", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 13, color: RED_HEX });
+        const bLabel = this.add.text(tiltEndX + 8, tiltEndY - 7, "B", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 13, color: "#22b8d8" });
         const gzLabel = this.add
-            .text((gX + tiltEndX) / 2, gY + 8, "GZ", { fontFamily: "Arial Black", fontSize: 12, color: RED_HEX })
+            .text((gX + tiltEndX) / 2, gY + 8, "GZ", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 12, color: RED_HEX })
             .setOrigin(0.5, 0);
-        const thetaLabel = this.add.text(mX + 14, mY + 22, "θ", { fontFamily: "Arial Black", fontSize: 13, color: DARK_NAVY });
+        const thetaLabel = this.add.text(mX + 14, mY + 22, "θ", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 13, color: DARK_NAVY });
 
         this.bodyContainer.add([g, mDot, gDot, bDot, mLabel, gLabel, bLabel, gzLabel, thetaLabel]);
     }
@@ -580,7 +597,8 @@ export class StabilitasMateri extends Scene {
         const title = this.addStepTitle("TIGA KEADAAN KESEIMBANGAN KAPAL");
 
         const hint = this.add.text(CONTENT_X, title.y + title.height + 14, "Klik salah satu kartu untuk melihat demonstrasi kemiringan kapal.", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 12,
             color: BODY_TEXT,
             wordWrap: { width: TEXT_COL_WIDTH },
@@ -628,23 +646,27 @@ export class StabilitasMateri extends Scene {
         const diagCenterY = y + height / 2;
 
         const cardTitle = this.add.text(x + paddingX, y + 10, info.title, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 12,
             color: info.accentHex,
             wordWrap: { width: textWidth },
         });
         const gmLabel = this.add.text(x + paddingX, cardTitle.y + cardTitle.height + 3, info.gmLabel, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: DARK_NAVY,
         });
         const statusLabel = this.add.text(x + paddingX, gmLabel.y + gmLabel.height + 3, info.statusLabel, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 11,
             color: info.accentHex,
         });
         const bodyText = this.add.text(x + paddingX, statusLabel.y + statusLabel.height + 3, info.body, {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 10,
             color: BODY_TEXT,
             lineSpacing: 3,
@@ -656,7 +678,7 @@ export class StabilitasMateri extends Scene {
         if (info.id === "netral") {
             const dot = this.add.circle(diagCenterX, diagCenterY, 7, 0x6c4fd1, 1);
             const label = this.add
-                .text(diagCenterX, diagCenterY + 16, "M/G", { fontFamily: "Arial Black", fontSize: 11, color: DARK_NAVY })
+                .text(diagCenterX, diagCenterY + 16, "M/G", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 11, color: DARK_NAVY })
                 .setOrigin(0.5, 0);
             diagram.push(dot, label);
         } else {
@@ -669,10 +691,10 @@ export class StabilitasMateri extends Scene {
             const topDot = this.add.circle(diagCenterX, topY, 6, topKey === "M" ? 0x1659a7 : 0xc0392b, 1);
             const bottomDot = this.add.circle(diagCenterX, bottomY, 6, bottomKey === "M" ? 0x1659a7 : 0xc0392b, 1);
             const topLabel = this.add
-                .text(diagCenterX + 12, topY, topKey, { fontFamily: "Arial Black", fontSize: 11, color: DARK_NAVY })
+                .text(diagCenterX + 12, topY, topKey, { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 11, color: DARK_NAVY })
                 .setOrigin(0, 0.5);
             const bottomLabel = this.add
-                .text(diagCenterX + 12, bottomY, bottomKey, { fontFamily: "Arial Black", fontSize: 11, color: DARK_NAVY })
+                .text(diagCenterX + 12, bottomY, bottomKey, { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 11, color: DARK_NAVY })
                 .setOrigin(0, 0.5);
             diagram.push(line, topDot, bottomDot, topLabel, bottomLabel);
         }
@@ -721,10 +743,10 @@ export class StabilitasMateri extends Scene {
             textBottom + 14,
             "GM yang terlalu besar maupun terlalu kecil dapat menghasilkan karakter oleng yang kurang baik.",
             {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 13,
                 color: BODY_TEXT,
-                fontStyle: "italic",
                 wordWrap: { width: CONTENT_WIDTH },
             },
         );
@@ -748,21 +770,24 @@ export class StabilitasMateri extends Scene {
         width: number,
         cfg: { heading: string; subheading: string; body: string; oleng: string; accentHex: string },
     ): number {
-        const heading = this.add.text(x, y, cfg.heading, { fontFamily: "Arial Black", fontSize: 16, color: DARK_NAVY });
+        const heading = this.add.text(x, y, cfg.heading, { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 16, color: DARK_NAVY });
         const subheading = this.add.text(x, heading.y + heading.height + 2, cfg.subheading, {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 11,
             color: BODY_TEXT,
         });
         const body = this.add.text(x, subheading.y + subheading.height + 10, cfg.body, {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 12,
             color: BODY_TEXT,
             lineSpacing: 4,
             wordWrap: { width: width - 20 },
         });
         const olengLabel = this.add.text(x, body.y + body.height + 10, `Karakter oleng: ${cfg.oleng}`, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 12,
             color: cfg.accentHex,
             wordWrap: { width: width - 20 },
@@ -784,10 +809,10 @@ export class StabilitasMateri extends Scene {
     private buildStep6() {
         const title = this.addStepTitle("EFEK PERMUKAAN BEBAS");
         const subtitle = this.add.text(CONTENT_X, title.y + title.height + 4, "Free Surface Effect", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: BODY_TEXT,
-            fontStyle: "italic",
         });
         this.bodyContainer.add(subtitle);
 
@@ -796,16 +821,17 @@ export class StabilitasMateri extends Scene {
             CONTENT_X,
             textTop,
             "Pada tangki yang terisi sebagian (slack tank), cairan dapat berpindah ketika kapal miring.",
-            { fontFamily: "Arial", fontSize: 13, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: TEXT_COL_WIDTH } },
+            { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 13, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: TEXT_COL_WIDTH } },
         );
         const explanation2 = this.add.text(
             CONTENT_X,
             explanation1.y + explanation1.height + 12,
             "Pergerakan cairan menyebabkan kenaikan semu titik G menjadi G₁.",
-            { fontFamily: "Arial", fontSize: 13, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: TEXT_COL_WIDTH } },
+            { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 13, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: TEXT_COL_WIDTH } },
         );
         const impactLabel = this.add.text(CONTENT_X, explanation2.y + explanation2.height + 16, "Akibat:  G ↑   GM ↓   STABILITAS ↓", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: RED_HEX,
             wordWrap: { width: TEXT_COL_WIDTH },
@@ -830,19 +856,22 @@ export class StabilitasMateri extends Scene {
         this.bodyContainer.add([this.step6TankGraphics, this.step6ArrowGraphics]);
 
         const gLabel = this.add.text(tankX + tankWidth + 16, tankY + tankHeight / 2 - 20, "G", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: RED_HEX,
         });
         const g1Label = this.add.text(tankX + tankWidth + 16, tankY + tankHeight / 2 + 12, "G₁", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: "#e0792e",
         });
         this.bodyContainer.add([gLabel, g1Label]);
 
         const caption = this.add.text(tankX, tankY + tankHeight + 16, "Penampang tangki cairan terisi sebagian", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 11,
             color: BODY_TEXT,
             wordWrap: { width: tankWidth },
@@ -867,7 +896,8 @@ export class StabilitasMateri extends Scene {
             bg.fillRoundedRect(x, rowY, width, rowHeight, 8);
             const text = this.add
                 .text(x + width / 2, rowY + rowHeight / 2, item, {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 12,
                     color: isHeader ? "#ffffff" : PRIMARY_BLUE_HEX,
                 })
@@ -936,13 +966,14 @@ export class StabilitasMateri extends Scene {
 
     private buildCompletion() {
         const centerX = CARD_X + CARD_WIDTH / 2;
-        const icon = this.add.text(centerX, CARD_Y + 60, "✓", { fontFamily: "Arial Black", fontSize: 52, color: GREEN_HEX }).setOrigin(0.5);
+        const icon = this.add.text(centerX, CARD_Y + 60, "✓", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 52, color: GREEN_HEX }).setOrigin(0.5);
         const title = this.add
-            .text(centerX, CARD_Y + 130, "MATERI SELESAI", { fontFamily: "Arial Black", fontSize: 26, color: GREEN_HEX })
+            .text(centerX, CARD_Y + 130, "MATERI SELESAI", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 26, color: GREEN_HEX })
             .setOrigin(0.5);
         const subtitle = this.add
             .text(centerX, CARD_Y + 168, "Anda telah mempelajari konsep dasar stabilitas kapal.", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: BODY_TEXT,
             })
@@ -953,8 +984,8 @@ export class StabilitasMateri extends Scene {
         const rowHeight = 30;
         MATERIAL_COMPLETION_CHECKLIST.forEach((item, index) => {
             const rowY = listTop + index * rowHeight;
-            const check = this.add.text(centerX - 170, rowY, "✓", { fontFamily: "Arial Black", fontSize: 14, color: GREEN_HEX });
-            const label = this.add.text(centerX - 140, rowY, item, { fontFamily: "Arial", fontSize: 14, color: DARK_NAVY });
+            const check = this.add.text(centerX - 170, rowY, "✓", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 14, color: GREEN_HEX });
+            const label = this.add.text(centerX - 140, rowY, item, { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 14, color: DARK_NAVY });
             this.bodyContainer.add([check, label]);
         });
 

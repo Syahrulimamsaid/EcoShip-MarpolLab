@@ -36,12 +36,14 @@ export class SceneProgressFooter {
         card.strokeRoundedRect(x, y, width, height, radius);
 
         const sceneLabel = scene.add.text(x + 28, y + 34, config.sceneLabel, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: PRIMARY_BLUE_HEX,
         });
         const sceneTitle = scene.add.text(x + 28, y + 58, config.sceneTitle, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 18,
             color: DARK_NAVY,
         });
@@ -52,7 +54,8 @@ export class SceneProgressFooter {
             y + 29,
             config.progressLabel,
             {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 13,
                 color: PRIMARY_BLUE_HEX,
             },
@@ -63,7 +66,8 @@ export class SceneProgressFooter {
 
         this.progressFraction = scene.add
             .text(progressX + 452, y + 62, "", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 17,
                 color: DARK_NAVY,
             })

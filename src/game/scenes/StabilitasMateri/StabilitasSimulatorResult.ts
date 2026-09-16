@@ -83,13 +83,14 @@ export class StabilitasSimulatorResult extends Scene {
         card.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 20);
         this.root.add(card);
 
-        const icon = this.add.text(centerX, cardY + 70, "✓", { fontFamily: "Arial Black", fontSize: 52, color: GREEN_HEX }).setOrigin(0.5);
+        const icon = this.add.text(centerX, cardY + 70, "✓", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 52, color: GREEN_HEX }).setOrigin(0.5);
         const title = this.add
-            .text(centerX, cardY + 140, "3/3 CASE BERHASIL DISELESAIKAN", { fontFamily: "Arial Black", fontSize: 24, color: GREEN_HEX })
+            .text(centerX, cardY + 140, "3/3 CASE BERHASIL DISELESAIKAN", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 24, color: GREEN_HEX })
             .setOrigin(0.5);
         const subtitle = this.add
             .text(centerX, cardY + 178, "Kapal berhasil dikembalikan ke kondisi stabil pada setiap studi kasus.", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: BODY_TEXT,
             })

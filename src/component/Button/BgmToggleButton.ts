@@ -53,7 +53,8 @@ export class BgmToggleButton {
 
         this.noteIcon = scene.add
             .text(0, 0, "♪", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: Math.round(this.trackHeight * 0.5),
                 color: "#ffffff",
             })

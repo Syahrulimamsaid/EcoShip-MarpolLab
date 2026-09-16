@@ -29,7 +29,8 @@ export function createFloatingTabCard(
     card.strokeRoundedRect(x, y, width, height, radius);
 
     const tabText = scene.add.text(0, 0, tabLabel, {
-        fontFamily: "Arial Black",
+        fontFamily: "Plus Jakarta Sans",
+        fontStyle: "600",
         fontSize: 14,
         color: "#ffffff",
     });
@@ -89,7 +90,8 @@ export function createHeaderBarCard(
 
     const headerText = scene.add
         .text(x + width / 2, y + headerHeight / 2, headerLabel, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 15,
             color: "#ffffff",
         })

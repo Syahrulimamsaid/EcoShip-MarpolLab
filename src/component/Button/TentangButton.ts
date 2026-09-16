@@ -41,7 +41,8 @@ export class TentangButton {
         this.badge = scene.add.graphics();
         this.label = scene.add
             .text(0, 0, "Tentang", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 color: TEXT_COLOR,
             })
             .setOrigin(0, 0.5);

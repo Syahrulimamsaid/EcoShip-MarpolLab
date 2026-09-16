@@ -121,7 +121,8 @@ export class StabilitasQuiz extends Scene {
 
     private buildStepIndicator() {
         this.stepLabelText = this.add.text(MARGIN, 262, `SOAL 1 / ${TOTAL_QUESTIONS}`, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 15,
             color: PRIMARY_BLUE_HEX,
         });
@@ -173,7 +174,8 @@ export class StabilitasQuiz extends Scene {
         const top = CARD_Y + 30;
 
         const questionText = this.add.text(CONTENT_X, top, question.question, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 17,
             color: DARK_NAVY,
             lineSpacing: 5,
@@ -217,14 +219,16 @@ export class StabilitasQuiz extends Scene {
                 .setStrokeStyle(1.5, accentColor, 1);
             const letterText = this.add
                 .text(CONTENT_X + 28, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 13,
                     color: highlight ? "#ffffff" : PRIMARY_BLUE_HEX,
                 })
                 .setOrigin(0.5);
             const optionText = this.add
                 .text(CONTENT_X + 56, rowY + rowHeight / 2, option, {
-                    fontFamily: "Arial",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 14,
                     color: DARK_NAVY,
                     wordWrap: { width: CONTENT_WIDTH - 76 },
@@ -249,7 +253,8 @@ export class StabilitasQuiz extends Scene {
         const isCorrect = this.selectedIndex === question.correctIndex;
         const bannerY = optionsBottom + 18;
         const banner = this.add.text(CONTENT_X, bannerY, isCorrect ? "✓ JAWABAN TEPAT" : "✕ JAWABAN BELUM TEPAT", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 15,
             color: isCorrect ? GREEN_HEX : RED_HEX,
         });
@@ -257,12 +262,14 @@ export class StabilitasQuiz extends Scene {
 
         const panelY = banner.y + banner.height + 12;
         const panelHeader = this.add.text(CONTENT_X + 16, panelY + 12, "PEMBAHASAN", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 12,
             color: PRIMARY_BLUE_HEX,
         });
         const panelBody = this.add.text(CONTENT_X + 16, panelHeader.y + panelHeader.height + 6, question.pembahasan, {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 12,
             color: BODY_TEXT,
             lineSpacing: 4,
@@ -359,11 +366,12 @@ export class StabilitasQuiz extends Scene {
 
         const centerX = CARD_X + CARD_WIDTH / 2;
         const scoreText = this.add
-            .text(centerX, CARD_Y + 50, `${score} / 100`, { fontFamily: "Arial Black", fontSize: 40, color: PRIMARY_BLUE_HEX })
+            .text(centerX, CARD_Y + 50, `${score} / 100`, { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 40, color: PRIMARY_BLUE_HEX })
             .setOrigin(0.5);
         const correctText = this.add
             .text(centerX, CARD_Y + 100, `${correctCount} / ${TOTAL_QUESTIONS} JAWABAN BENAR`, {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 15,
                 color: DARK_NAVY,
             })
@@ -375,12 +383,14 @@ export class StabilitasQuiz extends Scene {
         this.correctFlags.forEach((isCorrect, index) => {
             const rowY = listTop + index * rowHeight;
             const mark = this.add.text(centerX - 120, rowY, isCorrect ? "✓" : "✕", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: isCorrect ? GREEN_HEX : RED_HEX,
             });
             const label = this.add.text(centerX - 90, rowY, `Soal ${index + 1}`, {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: DARK_NAVY,
             });

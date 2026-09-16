@@ -42,14 +42,16 @@ export function createContainerToken(
 
     const weightText = scene.add
         .text(0, -3, String(weight), {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: Math.max(12, Math.min(20, height * 0.42)),
             color: "#ffffff",
         })
         .setOrigin(0.5, 1);
     const tonText = scene.add
         .text(0, 2, "TON", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: Math.max(8, Math.min(11, height * 0.22)),
             color: "#ffffff",
         })

@@ -19,6 +19,13 @@ export class Boot extends Scene {
     }
 
     create() {
-        this.scene.start("Preloader");
+        // Canvas text must be measured after the local font has loaded.
+        document.fonts.load('600 16px "Plus Jakarta Sans"').then(
+            () => this.scene.start("Preloader"),
+            (error) => {
+                console.error("Failed to load Plus Jakarta Sans", error);
+                this.scene.start("Preloader");
+            },
+        );
     }
 }

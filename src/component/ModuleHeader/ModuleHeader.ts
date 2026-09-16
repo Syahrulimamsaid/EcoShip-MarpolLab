@@ -33,7 +33,8 @@ export class ModuleHeader {
 
         const breadcrumbY = 148;
         const badgeText = scene.add.text(0, 0, config.badgeLabel, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: "#ffffff",
         });
@@ -46,7 +47,8 @@ export class ModuleHeader {
 
         const chevron = scene.add
             .text(x + badgeWidth + 16, breadcrumbY, "›", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 20,
                 color: PRIMARY_BLUE_HEX,
             })
@@ -54,20 +56,23 @@ export class ModuleHeader {
 
         const breadcrumbLabel = scene.add
             .text(x + badgeWidth + 40, breadcrumbY, config.breadcrumbLabel, {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 15,
                 color: PRIMARY_BLUE_HEX,
             })
             .setOrigin(0, 0.5);
 
         const heading = scene.add.text(x, 190, config.heading, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 30,
             color: DARK_NAVY,
         });
 
         const subtitle = scene.add.text(x, 240, config.subtitle, {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 15,
             color: BODY_TEXT,
             lineSpacing: 6,

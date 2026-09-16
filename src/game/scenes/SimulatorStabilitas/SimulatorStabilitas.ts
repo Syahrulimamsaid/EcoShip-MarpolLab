@@ -121,7 +121,8 @@ export class SimulatorStabilitas extends Scene {
 
     private buildCaseProgress() {
         this.caseText = this.add.text(MARGIN, 262, "CASE 1/3", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 15,
             color: PRIMARY_BLUE_HEX,
         });
@@ -152,13 +153,15 @@ export class SimulatorStabilitas extends Scene {
         this.root.add(boardG);
 
         const portLabel = this.add.text(MARGIN + 60, BOARD_Y + 92, "PORT / KIRI", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: DARK_NAVY,
         });
         const starboardLabel = this.add
             .text(MARGIN + LEFT_COLUMN_WIDTH - 60, BOARD_Y + 92, "STARBOARD / KANAN", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 13,
                 color: DARK_NAVY,
             })

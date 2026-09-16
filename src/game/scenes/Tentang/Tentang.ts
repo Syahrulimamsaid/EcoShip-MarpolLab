@@ -62,7 +62,8 @@ export class Tentang extends Scene {
 
         const title = this.add
             .text(DESIGN_WIDTH / 2, 67, "TENTANG", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 32,
                 color: DARK_NAVY,
             })
@@ -110,7 +111,8 @@ export class Tentang extends Scene {
 
     private buildProfilPengembang(x: number, y: number, width: number, container: GameObjects.Container): number {
         const header = this.add.text(x, y, "Profil Pengembang :", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 17,
             color: PRIMARY_BLUE_HEX,
         });
@@ -129,17 +131,20 @@ export class Tentang extends Scene {
 
         rows.forEach(([label, value]) => {
             const labelText = this.add.text(x, rowY, label, {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: DARK_NAVY,
             });
             const colonText = this.add.text(x + labelWidth, rowY, ":", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: DARK_NAVY,
             });
             const valueText = this.add.text(x + labelWidth + 16, rowY, value, {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: BODY_TEXT,
                 lineSpacing: 4,
@@ -154,13 +159,15 @@ export class Tentang extends Scene {
 
     private buildLabeledParagraph(x: number, y: number, width: number, label: string, body: string, container: GameObjects.Container): number {
         const header = this.add.text(x, y, `${label} :`, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 17,
             color: PRIMARY_BLUE_HEX,
         });
 
         const bodyText = this.add.text(x, y + header.height + 10, body, {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: BODY_TEXT,
             lineSpacing: 4,
@@ -173,7 +180,8 @@ export class Tentang extends Scene {
 
     private buildDaftarPustaka(x: number, y: number, width: number, container: GameObjects.Container): number {
         const header = this.add.text(x, y, "Daftar Pustaka", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 17,
             color: PRIMARY_BLUE_HEX,
         });
@@ -183,7 +191,8 @@ export class Tentang extends Scene {
             y + header.height + 10,
             "Referensi materi mengacu pada standar International Maritime Organization (IMO), Biro Klasifikasi Indonesia (BKI), dan sumber pembelajaran maritim terbuka lainnya.",
             {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: BODY_TEXT,
                 lineSpacing: 4,

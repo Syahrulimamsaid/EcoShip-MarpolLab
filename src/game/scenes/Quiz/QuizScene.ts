@@ -155,14 +155,16 @@ export class QuizScene extends Scene {
 
         const countdownText = this.add
             .text(centerX, centerY - 20, "3", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 130,
                 color: PRIMARY_BLUE_HEX,
             })
             .setOrigin(0.5);
         const hint = this.add
             .text(centerX, centerY + 90, "Kuis akan segera dimulai...", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 15,
                 color: BODY_TEXT,
             })
@@ -218,14 +220,16 @@ export class QuizScene extends Scene {
                 BODY_TOP + 28,
                 `SOAL ${this.questionIndex + 1} DARI ${total}`,
                 {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 13,
                     color: PRIMARY_BLUE_HEX,
                 },
             );
 
             questionText = this.add.text(CONTENT_X, BODY_TOP + 54, question.question, {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 19,
                 color: DARK_NAVY,
                 wordWrap: { width: CONTENT_WIDTH },
@@ -273,7 +277,8 @@ export class QuizScene extends Scene {
 
                 const letterText = this.add
                     .text(CONTENT_X + 30, rowY + rowHeight / 2, String.fromCharCode(65 + index), {
-                        fontFamily: "Arial Black",
+                        fontFamily: "Plus Jakarta Sans",
+                        fontStyle: "600",
                         fontSize: 14,
                         color: this.answered && (isCorrectRow || isPickedRow) ? "#ffffff" : PRIMARY_BLUE_HEX,
                     })
@@ -281,7 +286,8 @@ export class QuizScene extends Scene {
 
                 const optionText = this.add
                     .text(CONTENT_X + 60, rowY + rowHeight / 2, option, {
-                        fontFamily: "Arial",
+                        fontFamily: "Plus Jakarta Sans",
+                        fontStyle: "600",
                         fontSize: 15,
                         color: DARK_NAVY,
                         wordWrap: { width: CONTENT_WIDTH - 80 },
@@ -431,7 +437,8 @@ export class QuizScene extends Scene {
         trackGroup(this.bodyContainer, localGroups, () => {
             const scoreNumber = this.add
                 .text(centerX, BODY_TOP + 30, `${scoreValue} / 100`, {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 32,
                     color: PRIMARY_BLUE_HEX,
                 })
@@ -443,7 +450,8 @@ export class QuizScene extends Scene {
         trackGroup(this.bodyContainer, localGroups, () => {
             const icon = this.add
                 .text(centerX, BODY_TOP + 90, passed ? "✅" : "⚠️", {
-                    fontFamily: "Arial",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 40,
                 })
                 .setOrigin(0.5);
@@ -454,7 +462,8 @@ export class QuizScene extends Scene {
         trackGroup(this.bodyContainer, localGroups, () => {
             const title = this.add
                 .text(centerX, BODY_TOP + 158, passed ? "Selamat!" : "Belum Berhasil", {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 24,
                     color: passed ? "#1f8d52" : "#c0392b",
                 })
@@ -462,7 +471,8 @@ export class QuizScene extends Scene {
 
             const scoreText = this.add
                 .text(centerX, BODY_TOP + 198, `Anda menjawab ${this.correctCount} dari ${total} soal dengan benar.`, {
-                    fontFamily: "Arial",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 15,
                     color: BODY_TEXT,
                     align: "center",
@@ -482,7 +492,8 @@ export class QuizScene extends Scene {
             trackGroup(this.bodyContainer, localGroups, () => {
                 const badgeLine = this.add
                     .text(centerX, BODY_TOP + 238, `Lencana "${config.badgeName}" berhasil diklaim!`, {
-                        fontFamily: "Arial Black",
+                        fontFamily: "Plus Jakarta Sans",
+                        fontStyle: "600",
                         fontSize: 15,
                         color: PRIMARY_BLUE_HEX,
                         align: "center",
@@ -518,7 +529,8 @@ export class QuizScene extends Scene {
                         BODY_TOP + 238,
                         `Diperlukan minimal ${config.passScore} dari ${total} jawaban benar untuk klaim lencana.`,
                         {
-                            fontFamily: "Arial",
+                            fontFamily: "Plus Jakarta Sans",
+                            fontStyle: "600",
                             fontSize: 14,
                             color: BODY_TEXT,
                             align: "center",
@@ -591,7 +603,7 @@ export class QuizScene extends Scene {
 
         trackGroup(this.bodyContainer, localGroups, () => {
             const icon = this.add
-                .text(centerX, centerY - 150, "🏆", { fontFamily: "Arial", fontSize: 64 })
+                .text(centerX, centerY - 150, "🏆", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 64 })
                 .setOrigin(0.5);
             this.bodyContainer.add(icon);
         });
@@ -600,7 +612,8 @@ export class QuizScene extends Scene {
         trackGroup(this.bodyContainer, localGroups, () => {
             const text = this.add
                 .text(centerX, centerY - 60, message, {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 22,
                     color: "#1f8d52",
                     align: "center",
@@ -611,7 +624,8 @@ export class QuizScene extends Scene {
 
             const badgeLine = this.add
                 .text(centerX, centerY + 30, `Lencana "${config.badgeName}" berhasil diklaim!`, {
-                    fontFamily: "Arial Black",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 15,
                     color: PRIMARY_BLUE_HEX,
                     align: "center",

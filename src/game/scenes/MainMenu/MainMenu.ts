@@ -56,12 +56,13 @@ export class MainMenu extends Scene {
 
         this.welcomeIconBg = this.add.graphics();
         this.welcomeIcon = this.add
-            .text(0, 0, "🛡️", { fontFamily: "Arial", fontSize: 22 })
+            .text(0, 0, "🛡️", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 22 })
             .setOrigin(0.5);
 
         this.welcomeTitle = this.add
             .text(0, 0, "Selamat Datang, Penjaga Laut!", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 34,
                 color: "#143a84",
             })
@@ -73,7 +74,8 @@ export class MainMenu extends Scene {
                 0,
                 "Pilih modul untuk memulai pembelajaran interaktifmu menjaga laut dari pencemaran.",
                 {
-                    fontFamily: "Arial",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 18,
                     color: "#244f89",
                 },
@@ -96,7 +98,7 @@ export class MainMenu extends Scene {
                 onHover: () => playVoiceSfx(this, SFX_KEYS.menuSimulator),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.playExitAnimation(() => this.scene.start("StabilitasMateri"));
+                    this.playExitAnimation(() => this.scene.start("PilahSampah"));
                 },
             }),
             new MenuCard(this, {

@@ -20,14 +20,16 @@ export class ModalExit {
             .setOrigin(0.5);
         const title = scene.add
             .text(0, -54, "Konfirmasi Keluar", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 24,
                 color: "#143a84",
             })
             .setOrigin(0.5);
         const message = scene.add
             .text(0, -6, "Apakah Anda yakin ingin keluar?", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 18,
                 color: "#28466d",
                 align: "center",

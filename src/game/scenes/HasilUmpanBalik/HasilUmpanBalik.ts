@@ -93,7 +93,7 @@ export class HasilUmpanBalik extends Scene {
     private buildIcon() {
         const centerX = CARD_X + CARD_WIDTH / 2;
         const bodyTop = CARD_Y + HEADER_HEIGHT + 36;
-        const icon = this.add.text(centerX, bodyTop, "🏁", { fontFamily: "Arial", fontSize: 56 }).setOrigin(0.5, 0);
+        const icon = this.add.text(centerX, bodyTop, "🏁", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 56 }).setOrigin(0.5, 0);
         this.root.add(icon);
     }
 
@@ -104,7 +104,8 @@ export class HasilUmpanBalik extends Scene {
 
         const title = this.add
             .text(centerX, bodyTop + 88, "Evaluasi Akhir: Semua Materi", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 24,
                 color: DARK_NAVY,
                 align: "center",
@@ -117,7 +118,8 @@ export class HasilUmpanBalik extends Scene {
                 bodyTop + 138,
                 'Kuis ini terdiri dari 10 soal yang merangkum seluruh materi — mulai dari struktur dasar berganda kapal dan SOP darurat kebocoran, hingga simulasi distribusi muatan & stabilitas kapal.\n\nUrutan soal dan pilihan jawaban diacak setiap kali kamu memulai. Jawablah seluruh soal dengan benar untuk mengklaim lencana "Master of Maritime Safety" dan menyelesaikan modul ini sepenuhnya.',
                 {
-                    fontFamily: "Arial",
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "600",
                     fontSize: 15,
                     color: BODY_TEXT,
                     align: "center",

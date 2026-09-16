@@ -89,7 +89,8 @@ export class StabilityHUD {
         this.bannerBg = scene.add.graphics();
         this.bannerText = scene.add
             .text(config.bannerX + config.bannerWidth / 2, config.bannerY + 20, "", {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 16,
                 color: "#ffffff",
             })
@@ -97,8 +98,8 @@ export class StabilityHUD {
         this.view.push(this.bannerBg, this.bannerText);
 
         // ---- Moment / status panel -----------------------------------------
-        const panelLabelStyle = { fontFamily: "Arial Black", fontSize: 11, color: PRIMARY_BLUE_HEX };
-        const panelValueStyle = { fontFamily: "Arial Black", fontSize: 15, color: DARK_NAVY };
+        const panelLabelStyle = { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 11, color: PRIMARY_BLUE_HEX };
+        const panelValueStyle = { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 15, color: DARK_NAVY };
 
         const panelBg = scene.add.graphics();
         panelBg.fillStyle(0xffffff, 1);
@@ -123,7 +124,8 @@ export class StabilityHUD {
 
         // ---- Right rail: palette + button + feedback -----------------------
         const paletteLabel = scene.add.text(config.railX, config.railY, "PILIHAN MUATAN", {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 14,
             color: DARK_NAVY,
         });
@@ -131,7 +133,8 @@ export class StabilityHUD {
         this.view.push(paletteLabel, this.paletteContainer);
 
         this.feedbackText = scene.add.text(config.railX, config.feedbackY, "", {
-            fontFamily: "Arial",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: BODY_TEXT,
             wordWrap: { width: config.railWidth },

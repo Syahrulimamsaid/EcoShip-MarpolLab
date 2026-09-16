@@ -159,14 +159,16 @@ export class PilihAktivitasStabilitas extends Scene {
 
         const icon = this.add
             .text(centerX, CARD_Y + 70, cfg.icon, {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 48,
             })
             .setOrigin(0.5);
 
         const title = this.add
             .text(centerX, CARD_Y + 140, cfg.title, {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 22,
                 color: DARK_NAVY,
             })
@@ -174,7 +176,8 @@ export class PilihAktivitasStabilitas extends Scene {
 
         const description = this.add
             .text(x + paddingX, CARD_Y + 190, cfg.description, {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: BODY_TEXT,
                 align: "center",
@@ -186,7 +189,8 @@ export class PilihAktivitasStabilitas extends Scene {
 
         const pillY = CARD_Y + 270;
         const pillText = this.add.text(0, 0, cfg.infoPill, {
-            fontFamily: "Arial Black",
+            fontFamily: "Plus Jakarta Sans",
+            fontStyle: "600",
             fontSize: 13,
             color: "#ffffff",
         });
@@ -205,7 +209,8 @@ export class PilihAktivitasStabilitas extends Scene {
 
         const statusText = this.add
             .text(centerX, CARD_Y + 330, cfg.statusLabel, {
-                fontFamily: "Arial Black",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 14,
                 color: cfg.statusColor,
             })

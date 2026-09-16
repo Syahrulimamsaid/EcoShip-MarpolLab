@@ -37,10 +37,10 @@ export class Preloader extends Scene {
 
         this.progressText = this.add
             .text(0, 0, "0% Memuat Konten", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 28,
                 color: "#d4f0ff",
-                fontStyle: "bold",
             })
             .setOrigin(0.5);
 
@@ -51,7 +51,8 @@ export class Preloader extends Scene {
 
         this.continueText = this.add
             .text(0, 0, "Klik di mana saja untuk lanjut", {
-                fontFamily: "Arial",
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "600",
                 fontSize: 22,
                 color: "#0b4f7a",
             })
@@ -151,11 +152,24 @@ export class Preloader extends Scene {
         this.load.image("ows.cardKuis", "assets/ows/card_menu_kuis_marpol.png");
         this.load.image("ows.deskripsiMenu", "assets/ows/deskripsi_menu.png");
         this.load.image("ows.component", "assets/ows/component_ows.png");
+        this.load.image("ows.cardIndikator", "assets/ows/card_indikator_simulasi.png");
+        this.load.image("ows.cardInstruksi", "assets/ows/card_intruksi_simulasi.png");
 
-        this.load.image(
-            "pilah_sampah.background",
-            "assets/pilah_sapah/bg.png",
-        );
+        this.load.image("pilah_sampah.background", "assets/pilah_sampah/bg.png");
+        this.load.image("pilah_sampah.btnKembali", "assets/btn_kembali.png");
+        this.load.image("pilah_sampah.instruksi", "assets/pilah_sampah/intruksi.png");
+        this.load.svg("pilah_sampah.icon.incinerator", "assets/pilah_sampah/icons/incinerator.svg", { width: 128, height: 128 });
+        this.load.svg("pilah_sampah.icon.comminutor", "assets/pilah_sampah/icons/comminutor.svg", { width: 128, height: 128 });
+        this.load.svg("pilah_sampah.icon.recycling", "assets/pilah_sampah/icons/recycling.svg", { width: 128, height: 128 });
+        this.load.image("pilah_sampah.waste.plastik", "assets/pilah_sampah/sampah/01_plastik_botol.png");
+        this.load.image("pilah_sampah.waste.kalengMerah", "assets/pilah_sampah/sampah/02_kaleng_merah.png");
+        this.load.image("pilah_sampah.waste.organik", "assets/pilah_sampah/sampah/03_organik_kulit_pisang.png");
+        this.load.image("pilah_sampah.waste.kertas", "assets/pilah_sampah/sampah/04_kertas.png");
+        this.load.image("pilah_sampah.waste.kardus", "assets/pilah_sampah/sampah/05_kardus.png");
+        this.load.image("pilah_sampah.waste.logam", "assets/pilah_sampah/sampah/06_kaleng_logam.png");
+        this.load.image("pilah_sampah.waste.styrofoam", "assets/pilah_sampah/sampah/07_styrofoam.png");
+        this.load.image("pilah_sampah.waste.kaca", "assets/pilah_sampah/sampah/08_botol_kaca.png");
+        this.load.image("pilah_sampah.waste.taliJaring", "assets/pilah_sampah/sampah/09_tali_jaring.png");
     }
 
     create() {
