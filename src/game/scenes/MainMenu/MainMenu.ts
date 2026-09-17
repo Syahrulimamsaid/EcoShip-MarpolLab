@@ -98,7 +98,7 @@ export class MainMenu extends Scene {
                 onHover: () => playVoiceSfx(this, SFX_KEYS.menuSimulator),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.playExitAnimation(() => this.scene.start("PilahSampah"));
+                    this.playExitAnimation(() => this.scene.start("PilahSampahMateri"));
                 },
             }),
             new MenuCard(this, {
@@ -107,7 +107,7 @@ export class MainMenu extends Scene {
                 onHover: () => playVoiceSfx(this, SFX_KEYS.menuEvaluasi),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.playExitAnimation(() => this.scene.start("HasilUmpanBalik"));
+                    this.playExitAnimation(() => this.scene.start("SopepMateri"));
                 },
             }),
         ];

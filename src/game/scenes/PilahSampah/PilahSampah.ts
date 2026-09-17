@@ -1,7 +1,9 @@
 import { GameObjects, Math as PhaserMath, Scale, Scene } from "phaser";
 
+import { Button } from "../../../component/Button/Button";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
+import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { shuffled } from "../../QuizShuffle";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 
@@ -16,8 +18,6 @@ type BinId = "incinerator" | "comminutor" | "plastic";
 interface WasteItemConfig {
     texture: string;
     bin: BinId;
-    x: number;
-    y: number;
 }
 
 const BIN_ZONES: Record<BinId, { x: number; y: number; width: number; height: number }> = {
@@ -26,17 +26,27 @@ const BIN_ZONES: Record<BinId, { x: number; y: number; width: number; height: nu
     plastic: { x: 1318, y: 566, width: 250, height: 210 },
 };
 
-const WASTE_ITEMS: WasteItemConfig[] = [
-    { texture: "pilah_sampah.waste.plastik", bin: "plastic", x: 470, y: 760 },
-    { texture: "pilah_sampah.waste.kalengMerah", bin: "plastic", x: 590, y: 760 },
-    { texture: "pilah_sampah.waste.organik", bin: "comminutor", x: 710, y: 760 },
-    { texture: "pilah_sampah.waste.kertas", bin: "incinerator", x: 830, y: 760 },
-    { texture: "pilah_sampah.waste.kardus", bin: "incinerator", x: 950, y: 760 },
-    { texture: "pilah_sampah.waste.logam", bin: "plastic", x: 1070, y: 760 },
-    { texture: "pilah_sampah.waste.styrofoam", bin: "plastic", x: 1190, y: 760 },
-    { texture: "pilah_sampah.waste.kaca", bin: "plastic", x: 1310, y: 760 },
-    { texture: "pilah_sampah.waste.taliJaring", bin: "plastic", x: 1430, y: 760 },
+/** Full pool of waste types the lesson can draw from. Each round only shows
+ * ITEMS_PER_ROUND of these, chosen at random. */
+const WASTE_POOL: WasteItemConfig[] = [
+    { texture: "pilah_sampah.waste.plastik", bin: "plastic" },
+    { texture: "pilah_sampah.waste.kalengMerah", bin: "plastic" },
+    { texture: "pilah_sampah.waste.organik", bin: "comminutor" },
+    { texture: "pilah_sampah.waste.kertas", bin: "incinerator" },
+    { texture: "pilah_sampah.waste.kardus", bin: "incinerator" },
+    { texture: "pilah_sampah.waste.logam", bin: "plastic" },
+    { texture: "pilah_sampah.waste.styrofoam", bin: "plastic" },
+    { texture: "pilah_sampah.waste.kaca", bin: "plastic" },
+    { texture: "pilah_sampah.waste.taliJaring", bin: "plastic" },
+    { texture: "pilah_sampah.waste.daun", bin: "comminutor" },
+    { texture: "pilah_sampah.waste.kue", bin: "comminutor" },
+    { texture: "pilah_sampah.waste.paperBag", bin: "incinerator" },
 ];
+
+const ITEMS_PER_ROUND = 8;
+
+/** Conveyor slot positions, one per item shown in a round. */
+const SLOT_POSITIONS: { x: number; y: number }[] = [530, 650, 770, 890, 1010, 1130, 1250, 1370].map((x) => ({ x, y: 760 }));
 
 /** A drag-and-drop MARPOL Annex V activity. The background already contains
  * the three waste receptacles and conveyor; this scene only adds the lesson
@@ -53,7 +63,7 @@ export class PilahSampah extends Scene {
     private feedbackText!: GameObjects.Text;
     private feedbackBackground!: GameObjects.Graphics;
     private lives = MAX_LIVES;
-    private remainingItems = WASTE_ITEMS.length;
+    private remainingItems = ITEMS_PER_ROUND;
     private restarting = false;
     private itemOrder: WasteItemConfig[] = [];
 
@@ -61,13 +71,18 @@ export class PilahSampah extends Scene {
         super("PilahSampah");
     }
 
+    /** Picks ITEMS_PER_ROUND random waste types out of the full pool. */
+    private pickRoundItems(): WasteItemConfig[] {
+        return shuffled(WASTE_POOL).slice(0, ITEMS_PER_ROUND);
+    }
+
     create() {
         this.background = this.add.image(0, 0, "pilah_sampah.background");
         this.root = this.add.container(0, 0);
         this.lives = MAX_LIVES;
-        this.remainingItems = WASTE_ITEMS.length;
+        this.itemOrder = this.pickRoundItems();
+        this.remainingItems = this.itemOrder.length;
         this.restarting = false;
-        this.itemOrder = [...WASTE_ITEMS];
 
         const groups: GameObjects.GameObject[][] = [];
         trackGroup(this.root, groups, () => this.buildHeader());
@@ -178,7 +193,7 @@ export class PilahSampah extends Scene {
 
     private buildWasteItems() {
         this.itemOrder.forEach((config, index) => {
-            const slot = WASTE_ITEMS[index];
+            const slot = SLOT_POSITIONS[index];
             const item = this.add
                 .image(slot.x, slot.y, config.texture)
                 .setInteractive({ useHandCursor: true, draggable: true });
@@ -221,7 +236,8 @@ export class PilahSampah extends Scene {
         if (isCorrect) {
             playSfx(this, SFX_KEYS.click);
             this.remainingItems--;
-            this.setFeedback(this.remainingItems === 0 ? "Semua sampah berhasil dipilah!" : "Benar! Sampah masuk ke wadah yang sesuai.", "#1f8d52");
+            const justFinished = this.remainingItems === 0;
+            this.setFeedback(justFinished ? "Semua sampah berhasil dipilah!" : "Benar! Sampah masuk ke wadah yang sesuai.", "#1f8d52");
             this.tweens.add({
                 targets: item,
                 x: zone.x,
@@ -231,7 +247,12 @@ export class PilahSampah extends Scene {
                 alpha: 0,
                 duration: 220,
                 ease: "Back.In",
-                onComplete: () => item.destroy(),
+                onComplete: () => {
+                    item.destroy();
+                    if (justFinished) {
+                        this.time.delayedCall(500, () => this.showSuccessModal());
+                    }
+                },
             });
             return;
         }
@@ -312,18 +333,82 @@ export class PilahSampah extends Scene {
     private restartRound() {
         this.wasteLayer.list.forEach((child) => this.tweens.killTweensOf(child));
         this.wasteLayer.removeAll(true);
-        const nextOrder = shuffled(this.itemOrder);
-        // Even an identical random permutation must visibly change the order.
-        if (nextOrder.every((item, index) => item === this.itemOrder[index])) {
-            nextOrder.push(nextOrder.shift()!);
-        }
-        this.itemOrder = nextOrder;
+        this.itemOrder = this.pickRoundItems();
         this.lives = MAX_LIVES;
-        this.remainingItems = WASTE_ITEMS.length;
+        this.remainingItems = this.itemOrder.length;
         this.restarting = false;
         this.buildWasteItems();
         this.updateLives();
         this.setFeedback("Coba lagi! Posisi sampah sudah diacak.");
+    }
+
+    /** Shown once every waste item has been sorted correctly. Unlocks the
+     * next module in the MainMenu chain and hands the player back to
+     * MainMenu — this scene has no quiz of its own, so finishing the
+     * drag-and-drop activity is the module's sole completion signal. */
+    private showSuccessModal() {
+        const centerX = DESIGN_WIDTH / 2;
+        const centerY = DESIGN_HEIGHT / 2;
+
+        const overlay = this.add
+            .rectangle(centerX, centerY, DESIGN_WIDTH, DESIGN_HEIGHT, 0x081a33, 0.5)
+            .setInteractive({ useHandCursor: false });
+        overlay.on(
+            "pointerdown",
+            (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+            },
+        );
+
+        const panelWidth = 560;
+        const panelHeight = 340;
+        const panel = this.add.graphics();
+        panel.fillStyle(0xffffff, 1);
+        panel.fillRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 24);
+        panel.lineStyle(3, 0x1f8d52, 0.6);
+        panel.strokeRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 24);
+
+        const badgeRadius = 44;
+        const badgeY = centerY - panelHeight / 2 + 20 + badgeRadius;
+        const badge = this.add.circle(centerX, badgeY, badgeRadius, 0x1f8d52, 1);
+        const check = this.add.text(centerX, badgeY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 44, color: "#ffffff" }).setOrigin(0.5);
+
+        const title = this.add
+            .text(centerX, badgeY + badgeRadius + 26, "Berhasil!", { fontFamily: FONT, fontStyle: "700", fontSize: 28, color: "#143a84" })
+            .setOrigin(0.5);
+
+        const message = this.add
+            .text(centerX, title.y + title.height / 2 + 16, "Kamu berhasil menyelesaikan Simulasi Pemilahan Sampah dengan benar.", {
+                fontFamily: FONT, fontStyle: "600", fontSize: 16, color: "#4a5b78", align: "center",
+                wordWrap: { width: panelWidth - 64 },
+            })
+            .setOrigin(0.5, 0);
+
+        const button = new Button(this, {
+            x: centerX,
+            y: centerY + panelHeight / 2 - 50,
+            width: 280,
+            height: 54,
+            text: "Kembali ke Menu",
+            fontFamily: FONT,
+            fontStyle: "600",
+            fontSize: 16,
+            borderRadius: 27,
+            fillColor: PRIMARY_BLUE,
+            strokeAlpha: 0,
+            textColor: "#ffffff",
+        });
+        button.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            unlockNextModuleAfter("simulator-stabilitas");
+            this.goTo("MainMenu");
+        });
+
+        const modal = this.add.container(0, 0, [overlay, panel, badge, check, title, message, button.view]).setDepth(200);
+        this.root.add(modal);
+        modal.setAlpha(0);
+        modal.setScale(0.92);
+        this.tweens.add({ targets: modal, alpha: 1, scaleX: 1, scaleY: 1, duration: 220, ease: "Back.Out" });
     }
 
     private toDesignX(screenX: number) {

@@ -7,6 +7,7 @@ import { AUTO, Game, Scale } from "phaser";
 import { OwsMateri } from "./scenes/OwsMateri/OwsMateri";
 import { OwsQuiz } from "./scenes/OwsMateri/OwsQuiz";
 import { PilahSampah } from "./scenes/PilahSampah/PilahSampah";
+import { PilahSampahMateri } from "./scenes/PilahSampahMateri/PilahSampahMateri";
 import { Preloader } from "./scenes/Preloader";
 import { PilihAktivitasStabilitas } from "./scenes/StabilitasMateri/PilihAktivitasStabilitas";
 import { QuizScene } from "./scenes/Quiz/QuizScene";
@@ -15,6 +16,9 @@ import { StabilitasQuiz } from "./scenes/StabilitasMateri/StabilitasQuiz";
 import { StabilitasSimulatorResult } from "./scenes/StabilitasMateri/StabilitasSimulatorResult";
 import { SimulatorOws } from "./scenes/SimulatorOws/SimulatorOws";
 import { SimulatorStabilitas } from "./scenes/SimulatorStabilitas/SimulatorStabilitas";
+import { SopepMateri } from "./scenes/SopepMateri/SopepMateri";
+import { SopepHasilUmpanBalik } from "./scenes/SopepSimulator/SopepHasilUmpanBalik";
+import { SopepSimulator } from "./scenes/SopepSimulator/SopepSimulator";
 import { Tentang } from "./scenes/Tentang/Tentang";
 
 //  Find out more information about the Game Config at:
@@ -40,6 +44,7 @@ const config: Phaser.Types.Core.GameConfig = {
         OwsMateri,
         SimulatorOws,
         OwsQuiz,
+        PilahSampahMateri,
         PilahSampah,
         QuizScene,
         StabilitasMateri,
@@ -47,6 +52,9 @@ const config: Phaser.Types.Core.GameConfig = {
         StabilitasQuiz,
         SimulatorStabilitas,
         StabilitasSimulatorResult,
+        SopepMateri,
+        SopepSimulator,
+        SopepHasilUmpanBalik,
         HasilUmpanBalik,
         Tentang,
         MainGame,

@@ -147,6 +147,11 @@ export class Preloader extends Scene {
             "ows.background",
             "assets/ows/bg.png",
         );
+
+        this.load.image(
+            "soped.background",
+            "assets/soped/bg.png",
+        );
         this.load.image("ows.btnKembali", "assets/ows/btn_kembali.png");
         this.load.image("ows.cardSimulator", "assets/ows/card_menu_simulasi_ows.png");
         this.load.image("ows.cardKuis", "assets/ows/card_menu_kuis_marpol.png");
@@ -170,6 +175,9 @@ export class Preloader extends Scene {
         this.load.image("pilah_sampah.waste.styrofoam", "assets/pilah_sampah/sampah/07_styrofoam.png");
         this.load.image("pilah_sampah.waste.kaca", "assets/pilah_sampah/sampah/08_botol_kaca.png");
         this.load.image("pilah_sampah.waste.taliJaring", "assets/pilah_sampah/sampah/09_tali_jaring.png");
+        this.load.image("pilah_sampah.waste.daun", "assets/pilah_sampah/sampah/10_daun.png");
+        this.load.image("pilah_sampah.waste.kue", "assets/pilah_sampah/sampah/11_kue.png");
+        this.load.image("pilah_sampah.waste.paperBag", "assets/pilah_sampah/sampah/12_paper_bag.png");
     }
 
     create() {

@@ -36,7 +36,7 @@ export class HasilUmpanBalik extends Scene {
     }
 
     create() {
-        this.background = this.add.image(0, 0, "AnatomiStructure.background");
+        this.background = this.add.image(0, 0, "soped.background");
         this.root = this.add.container(0, 0);
 
         const groups: GameObjects.GameObject[][] = [];
