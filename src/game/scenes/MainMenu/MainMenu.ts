@@ -24,7 +24,6 @@ export class MainMenu extends Scene {
     private welcomeIcon!: GameObjects.Text;
     private welcomeTitle!: GameObjects.Text;
     private welcomeSubtitle!: GameObjects.Text;
-
     private menuCards: MenuCard[] = [];
     private characterPanel!: CharacterPanel;
     private tagline!: GameObjects.Image;

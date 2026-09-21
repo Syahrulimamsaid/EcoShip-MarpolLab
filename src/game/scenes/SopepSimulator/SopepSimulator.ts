@@ -1,6 +1,7 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
@@ -137,23 +138,15 @@ export class SopepSimulator extends Scene {
     // ---- Header ---------------------------------------------------------------------
 
     private buildHeader() {
-        const homeWidth = 150;
-        const homeBg = this.add.graphics();
-        homeBg.fillStyle(0xffffff, 1);
-        homeBg.fillRoundedRect(32, HEADER_Y, homeWidth, HEADER_HEIGHT, HEADER_HEIGHT / 2);
-        homeBg.lineStyle(2, BORDER_BLUE, 1);
-        homeBg.strokeRoundedRect(32, HEADER_Y, homeWidth, HEADER_HEIGHT, HEADER_HEIGHT / 2);
-        const homeIcon = this.add.text(32 + 26, HEADER_Y + HEADER_HEIGHT / 2, "🏠", { fontFamily: FONT, fontSize: 18 }).setOrigin(0.5);
-        const homeLabel = this.add
-            .text(32 + 48, HEADER_Y + HEADER_HEIGHT / 2, "Beranda", { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: PRIMARY_BLUE_HEX })
-            .setOrigin(0, 0.5);
-        const homeHit = this.add.rectangle(32 + homeWidth / 2, HEADER_Y + HEADER_HEIGHT / 2, homeWidth, HEADER_HEIGHT, 0xffffff, 0).setInteractive({ useHandCursor: true });
-        homeHit.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
+        const navButtons = new HomeBackButtons(this, {
+            x: 32,
+            y: HEADER_Y,
+            size: HEADER_HEIGHT,
+            onHome: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("SopepMateri"),
         });
 
-        const crumbX = 32 + homeWidth + 16;
+        const crumbX = 32 + navButtons.width + 16;
         const centerY = HEADER_Y + HEADER_HEIGHT / 2;
         const badgeText = this.add.text(0, 0, "MODUL SOPEP", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: "#ffffff" });
         const blueWidth = badgeText.width + 44;
@@ -184,7 +177,7 @@ export class SopepSimulator extends Scene {
         this.caseBadgeText = caseText;
         this.caseBadgeBg = caseBg;
 
-        this.root.add([homeBg, homeIcon, homeLabel, homeHit, breadcrumb, badgeText, chevron, label, caseBg, caseText]);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label, caseBg, caseText]);
     }
 
     private caseBadgeText!: GameObjects.Text;

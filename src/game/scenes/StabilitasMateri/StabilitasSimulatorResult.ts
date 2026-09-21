@@ -63,6 +63,7 @@ export class StabilitasSimulatorResult extends Scene {
             breadcrumbLabel: "Hasil Simulator",
             heading: "HASIL SIMULATOR",
             subtitle: "Ringkasan hasil simulasi distribusi muatan yang telah kamu selesaikan.",
+            onHome: () => this.goTo("MainMenu"),
             onBack: () => this.goTo("PilihAktivitasStabilitas"),
         });
         this.root.add(header.view);

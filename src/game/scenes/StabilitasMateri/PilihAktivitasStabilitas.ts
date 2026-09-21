@@ -95,7 +95,8 @@ export class PilihAktivitasStabilitas extends Scene {
             breadcrumbLabel: "Pilih Aktivitas",
             heading: "PILIH AKTIVITAS",
             subtitle: "Terapkan pemahamanmu melalui kuis atau simulasi.",
-            onBack: () => this.goTo("MainMenu"),
+            onHome: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("StabilitasMateri"),
         });
         this.root.add(header.view);
     }

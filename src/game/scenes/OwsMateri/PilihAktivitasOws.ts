@@ -16,7 +16,6 @@ const MARGIN = 40;
 // cards) is a fully pre-composed illustration asset — no hand-drawn
 // chrome/text — so layout here is just placement + an invisible hit area
 // per interactive image, matching the codebase's MenuCard.ts convention.
-const BACK_BUTTON_WIDTH = 170;
 const DESKRIPSI_WIDTH = 400;
 const CARD_GAP = 28;
 const CARD_WIDTH = ((DESIGN_WIDTH - MARGIN * 2 - CARD_GAP) / 2) * 0.8;
@@ -76,12 +75,12 @@ export class PilihAktivitasOws extends Scene {
     // ---- Header (back button + "Pilih Aktivitas" banner, both pre-composed images) ----
 
     private buildHeader() {
-        const backHeight = BACK_BUTTON_WIDTH * (558 / 1780);
+        const backHeight = 56;
         const backButton = this.buildImageButton(
-            "ows.btnKembali",
-            MARGIN + BACK_BUTTON_WIDTH / 2,
+            "btn_home",
             MARGIN + backHeight / 2,
-            BACK_BUTTON_WIDTH,
+            MARGIN + backHeight / 2,
+            backHeight,
             backHeight,
             () => {
                 playSfx(this, SFX_KEYS.click);

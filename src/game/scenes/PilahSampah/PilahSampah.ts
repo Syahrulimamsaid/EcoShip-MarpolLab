@@ -1,6 +1,7 @@
 import { GameObjects, Math as PhaserMath, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { unlockNextModuleAfter } from "../../ModuleProgress";
@@ -118,20 +119,17 @@ export class PilahSampah extends Scene {
     }
 
     private buildHeader() {
-        const backWidth = 165;
-        const backHeight = backWidth * (558 / 1780);
         const headerY = 32;
-        const centerY = headerY + backHeight / 2;
-        const backButton = this.add
-            .image(32 + backWidth / 2, centerY, "pilah_sampah.btnKembali")
-            .setDisplaySize(backWidth, backHeight)
-            .setInteractive({ useHandCursor: true });
-        backButton.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
+        const navButtons = new HomeBackButtons(this, {
+            x: 32,
+            y: headerY,
+            onHome: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("PilahSampahMateri"),
         });
+        const backHeight = navButtons.height;
+        const centerY = headerY + backHeight / 2;
 
-        const crumbX = 32 + backWidth + 20;
+        const crumbX = 32 + navButtons.width + 20;
         const badgeText = this.add.text(0, 0, "MODUL PEMILAHAN SAMPAH", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
         const blueWidth = badgeText.width + 48;
         const chevron = this.add.text(0, 0, "›", { fontFamily: FONT, fontStyle: "600", fontSize: 20, color: "#087ff1" });
@@ -148,7 +146,7 @@ export class PilahSampah extends Scene {
         chevron.setPosition(crumbX + blueWidth + 22, centerY).setOrigin(0, 0.5);
         label.setPosition(chevron.x + chevron.width + 10, centerY).setOrigin(0, 0.5);
 
-        this.root.add([backButton, breadcrumb, badgeText, chevron, label]);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label]);
     }
 
     private buildInstructions() {

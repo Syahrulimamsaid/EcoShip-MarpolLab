@@ -114,6 +114,7 @@ export class StabilitasQuiz extends Scene {
             breadcrumbLabel: "Kuis Stabilitas",
             heading: "KUIS STABILITAS",
             subtitle: "Jawab 5 soal untuk menguji pemahamanmu tentang stabilitas kapal.",
+            onHome: () => this.goTo("MainMenu"),
             onBack: () => this.goTo("PilihAktivitasStabilitas"),
         });
         this.root.add(header.view);

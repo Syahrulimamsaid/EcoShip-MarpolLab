@@ -1,6 +1,7 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
@@ -117,21 +118,11 @@ export class PilahSampahMateri extends Scene {
     // ---- Header ---------------------------------------------------------------------
 
     private buildHeader() {
-        const backWidth = 165;
-        const backHeight = backWidth * (558 / 1780);
-        const y = 32 + backHeight / 2;
-        const backBtn = this.add
-            .image(32 + backWidth / 2, y, "pilah_sampah.btnKembali")
-            .setDisplaySize(backWidth, backHeight)
-            .setInteractive({ useHandCursor: true });
-        backBtn.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
-        });
+        const navButtons = new HomeBackButtons(this, { x: 32, y: 32, onHome: () => this.goTo("MainMenu") });
 
-        const crumbX = 32 + backWidth + 20;
-        const crumbY = 32;
-        const crumbHeight = backHeight;
+        const crumbX = 32 + navButtons.width + 20;
+        const crumbY = 38;
+        const crumbHeight = navButtons.height - 10;
         const centerY = crumbY + crumbHeight / 2;
         const badgeText = this.add.text(0, 0, "MODUL PEMILAHAN SAMPAH", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
         const blueWidth = badgeText.width + 48;
@@ -148,9 +139,9 @@ export class PilahSampahMateri extends Scene {
         breadcrumb.strokeRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
 
         badgeText.setPosition(crumbX + blueWidth / 2, centerY).setOrigin(0.5);
-        chevron.setPosition(crumbX + blueWidth + 22, centerY).setOrigin(0, 0.5);
+        chevron.setPosition(crumbX + blueWidth + 22, centerY - 2).setOrigin(0, 0.5);
         label.setPosition(chevron.x + chevron.width + 10, centerY).setOrigin(0, 0.5);
-        this.root.add([backBtn, breadcrumb, badgeText, chevron, label]);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label]);
     }
 
     // ---- Sidebar ---------------------------------------------------------------------
@@ -173,20 +164,18 @@ export class PilahSampahMateri extends Scene {
         header.fillRoundedRect(SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, headerHeight, { tl: cardRadius, tr: cardRadius, bl: 0, br: 0 });
         this.sidebarContainer.add(header);
 
-        const bookIcon = this.add.text(SIDEBAR_X + 24, SIDEBAR_Y + headerHeight / 2, "📖", { fontFamily: FONT, fontStyle: "600", fontSize: 20 }).setOrigin(0.5);
         const heading = this.add
-            .text(SIDEBAR_X + 48, SIDEBAR_Y + headerHeight / 2, "Materi", {
+            .text(SIDEBAR_X + 24, SIDEBAR_Y + headerHeight / 2, "Daftar Materi", {
                 fontFamily: FONT,
                 fontStyle: "600",
                 fontSize: 17,
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
-        this.sidebarContainer.add([bookIcon, heading]);
+        this.sidebarContainer.add(heading);
 
-        const footerBadgeHeight = 76;
         const rowTop = SIDEBAR_Y + headerHeight + 16;
-        const rowsBottom = SIDEBAR_Y + SIDEBAR_HEIGHT - footerBadgeHeight - 16;
+        const rowsBottom = SIDEBAR_Y + SIDEBAR_HEIGHT - 16;
         const rowHeight = Math.min(84, (rowsBottom - rowTop) / PILAH_SIDEBAR_STEPS.length);
 
         PILAH_SIDEBAR_STEPS.forEach((item, index) => {
@@ -210,9 +199,9 @@ export class PilahSampahMateri extends Scene {
 
             const label = this.add.text(labelX, 0, item.title, {
                 fontFamily: FONT,
-                fontStyle: active ? "700" : "600",
+                fontStyle: active ? "700" : "500",
                 fontSize: 14,
-                color: DARK_NAVY,
+                color: active ? DARK_NAVY : PRIMARY_BLUE_HEX,
                 wordWrap: { width: SIDEBAR_WIDTH - 70 - 28 },
                 lineSpacing: 3,
             });
@@ -249,22 +238,6 @@ export class PilahSampahMateri extends Scene {
             }
         });
 
-        // Evergreen motivational badge, fixed at the bottom of the sidebar.
-        const badgeY = SIDEBAR_Y + SIDEBAR_HEIGHT - footerBadgeHeight - 12;
-        const badgeX = SIDEBAR_X + 12;
-        const badgeWidth = SIDEBAR_WIDTH - 24;
-        const badge = this.add.graphics();
-        badge.fillStyle(0xe4f7ec, 1);
-        badge.fillRoundedRect(badgeX, badgeY, badgeWidth, footerBadgeHeight, 14);
-        badge.lineStyle(2, GREEN, 0.4);
-        badge.strokeRoundedRect(badgeX, badgeY, badgeWidth, footerBadgeHeight, 14);
-        const badgeIcon = this.add.text(badgeX + 30, badgeY + footerBadgeHeight / 2, "🌊", { fontFamily: FONT, fontStyle: "600", fontSize: 22 }).setOrigin(0.5);
-        const badgeTitle = this.add.text(badgeX + 56, badgeY + 20, "Laut Bersih", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: GREEN_HEX });
-        const badgeSubtitle = this.add.text(badgeX + 56, badgeY + 42, "Masa Depan yang Lebih Baik", {
-            fontFamily: FONT, fontStyle: "600", fontSize: 11, color: GREEN_HEX,
-            wordWrap: { width: badgeWidth - 66 },
-        });
-        this.sidebarContainer.add([badge, badgeIcon, badgeTitle, badgeSubtitle]);
     }
 
     // ---- Footer nav -------------------------------------------------------------------
@@ -285,7 +258,7 @@ export class PilahSampahMateri extends Scene {
             height: buttonHeight,
             text: "← Sebelumnya",
             fontFamily: FONT,
-            fontStyle: "600",
+            fontStyle: "700",
             fontSize: 14,
             borderRadius: buttonHeight / 2,
             disabled: atFirst,
@@ -309,7 +282,7 @@ export class PilahSampahMateri extends Scene {
             height: buttonHeight,
             text: isLast ? "Mulai Simulasi →" : "Selanjutnya →",
             fontFamily: FONT,
-            fontStyle: "600",
+            fontStyle: "700",
             fontSize: 14,
             borderRadius: buttonHeight / 2,
             fillColor: PRIMARY_BLUE,
@@ -325,19 +298,34 @@ export class PilahSampahMateri extends Scene {
             }
         });
 
-        // Round progress dots, centered under the whole page.
-        const dotY = navY + buttonHeight / 2;
-        const dotGap = 22;
-        const dotRadius = 6;
-        const dotsWidth = (TOTAL_STEPS - 1) * dotGap;
-        const dotsStartX = DESIGN_WIDTH / 2 - dotsWidth / 2;
-        const dots: GameObjects.GameObject[] = [];
+        const pillWidth = 420;
+        const pillHeight = 80;
+        const pillX = BOARD_X + BOARD_WIDTH / 2 - pillWidth / 2;
+        const pillY = navY - 14;
+        const pillBg = this.add.graphics();
+        pillBg.fillStyle(0xffffff, 1);
+        pillBg.fillRoundedRect(pillX, pillY, pillWidth, pillHeight, 16);
+        pillBg.lineStyle(2, BORDER_BLUE, 1);
+        pillBg.strokeRoundedRect(pillX, pillY, pillWidth, pillHeight, 16);
+        const stepLabel = this.add
+            .text(BOARD_X + BOARD_WIDTH / 2, navY + buttonHeight / 2 - 12, `STEP ${this.step} / ${TOTAL_STEPS}`, {
+                fontFamily: FONT, fontStyle: "700", fontSize: 14, color: DARK_NAVY,
+            })
+            .setOrigin(0.5);
+        const barY = navY + buttonHeight / 2 + 16;
+        const barWidth = 360;
+        const barX = BOARD_X + BOARD_WIDTH / 2 - barWidth / 2;
+        const segGap = 6;
+        const segWidth = (barWidth - segGap * (TOTAL_STEPS - 1)) / TOTAL_STEPS;
+        const segments: GameObjects.GameObject[] = [];
         for (let i = 0; i < TOTAL_STEPS; i++) {
-            const dot = this.add.circle(dotsStartX + i * dotGap, dotY, dotRadius, i + 1 === this.step ? PRIMARY_BLUE : 0xdce6f5, 1);
-            dots.push(dot);
+            const seg = this.add.graphics();
+            seg.fillStyle(i < this.step ? PRIMARY_BLUE : 0xdce6f5, 1);
+            seg.fillRoundedRect(barX + i * (segWidth + segGap), barY, segWidth, 6, 3);
+            segments.push(seg);
         }
 
-        this.footerContainer.add([prevButton.view, nextButton.view, ...dots]);
+        this.footerContainer.add([prevButton.view, nextButton.view, pillBg, stepLabel, ...segments]);
     }
 
     // ---- Step transitions -------------------------------------------------------------
@@ -369,12 +357,37 @@ export class PilahSampahMateri extends Scene {
     private addBoardTitle(text: string): GameObjects.Text {
         const title = this.add.text(CONTENT_X, BOARD_Y + BOARD_PAD, text, {
             fontFamily: FONT,
-            fontStyle: "600",
-            fontSize: 24,
+            fontStyle: "800",
+            fontSize: 26,
             color: DARK_NAVY,
         });
         this.boardContainer.add(title);
         return title;
+    }
+
+    private buildNoteBox(x: number, y: number, width: number, message: string, accent: number, accentHex: string, bg: number, icon: string): number {
+        const badgeRadius = 16;
+        const paddingX = 24;
+        const iconGap = 16;
+        const textWidth = width - (paddingX + badgeRadius * 2 + iconGap + paddingX);
+        const measure = this.add.text(0, 0, message, { fontFamily: FONT, fontStyle: "500", fontSize: 15, lineSpacing: 4, wordWrap: { width: textWidth } });
+        const height = Math.max(64, measure.height + 28);
+        measure.destroy();
+
+        const box = this.add.graphics();
+        box.fillStyle(bg, 1);
+        box.fillRoundedRect(x, y, width, height, 14);
+        box.lineStyle(2, accent, 1);
+        box.strokeRoundedRect(x, y, width, height, 14);
+        const badgeX = x + paddingX + badgeRadius;
+        const badgeY = y + height / 2;
+        const badge = this.add.circle(badgeX, badgeY, badgeRadius, accent, 1);
+        const badgeIcon = this.add.text(badgeX, badgeY, icon, { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: "#ffffff" }).setOrigin(0.5);
+        const noteText = this.add.text(badgeX + badgeRadius + iconGap, badgeY, message, {
+            fontFamily: FONT, fontStyle: "500", fontSize: 15, color: accentHex, lineSpacing: 4, wordWrap: { width: textWidth },
+        }).setOrigin(0, 0.5);
+        this.boardContainer.add([box, badge, badgeIcon, noteText]);
+        return height;
     }
 
     private addChecklistPanel(x: number, y: number, width: number, title: string, items: string[], accentHex = PRIMARY_BLUE_HEX, accent = PRIMARY_BLUE): number {
@@ -382,9 +395,9 @@ export class PilahSampahMateri extends Scene {
         const height = 46 + items.length * lineHeight + 10;
 
         const card = this.add.graphics();
-        card.fillStyle(0xf7faff, 1);
+        card.fillStyle(SKY, 1);
         card.fillRoundedRect(x, y, width, height, 14);
-        card.lineStyle(2, accent, 0.35);
+        card.lineStyle(2, accent, 1);
         card.strokeRoundedRect(x, y, width, height, 14);
         this.boardContainer.add(card);
 
@@ -396,7 +409,7 @@ export class PilahSampahMateri extends Scene {
             const check = this.add.text(x + 18, itemY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: GREEN_HEX });
             const label = this.add.text(x + 40, itemY, item, {
                 fontFamily: FONT,
-                fontStyle: "600",
+                fontStyle: "500",
                 fontSize: 13,
                 color: DARK_NAVY,
                 wordWrap: { width: width - 58 },
@@ -427,8 +440,8 @@ export class PilahSampahMateri extends Scene {
             const label = this.add
                 .text(centerX, centerY + nodeSize / 2 + 12, node.label, {
                     fontFamily: FONT,
-                    fontStyle: "600",
-                    fontSize: 13,
+                    fontStyle: "700",
+                    fontSize: 14,
                     color: highlight ? GREEN_HEX : DARK_NAVY,
                     align: "center",
                     lineSpacing: 3,
@@ -488,7 +501,7 @@ export class PilahSampahMateri extends Scene {
             CONTENT_X,
             title.y + title.height + 16,
             "MARPOL Annex V mengatur pencegahan pencemaran laut oleh sampah yang berasal dari kegiatan operasional kapal. Sampah harus dikelola, dipilah, disimpan, dan ditangani sesuai dengan jenisnya.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: paraWidth } },
+            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: paraWidth } },
         );
         this.boardContainer.add(para);
 
@@ -520,7 +533,7 @@ export class PilahSampahMateri extends Scene {
             CONTENT_X,
             title.y + title.height + 10,
             "Sampah harus dipisahkan berdasarkan jenisnya sejak dari sumber agar dapat dikelola dengan benar.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT, wordWrap: { width: CONTENT_WIDTH } },
+            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, wordWrap: { width: CONTENT_WIDTH } },
         );
         this.boardContainer.add(desc);
 
@@ -598,7 +611,7 @@ export class PilahSampahMateri extends Scene {
             CONTENT_X,
             illustrationY + 100,
             "Incinerator merupakan peralatan yang digunakan untuk membakar jenis limbah tertentu sehingga volume limbah dapat dikurangi.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT, align: "center", wordWrap: { width: CONTENT_WIDTH } },
+            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, align: "center", wordWrap: { width: CONTENT_WIDTH } },
         ).setOrigin(0.5, 0);
         desc.setX(CONTENT_X + CONTENT_WIDTH / 2);
         this.boardContainer.add(desc);
@@ -607,18 +620,11 @@ export class PilahSampahMateri extends Scene {
         const flowBottom = this.buildFlowChain(INCINERATOR_FLOW, flowTop);
 
         const noteY = flowBottom + 26;
-        const note = this.add.graphics();
-        note.fillStyle(0xfdf3e7, 1);
-        note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 60, 12);
-        note.lineStyle(2, AMBER, 0.6);
-        note.strokeRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 60, 12);
-        const noteIcon = this.add.text(CONTENT_X + 18, noteY + 30, "⚠", { fontFamily: FONT, fontSize: 20, color: AMBER_HEX }).setOrigin(0, 0.5);
-        const noteText = this.add
-            .text(CONTENT_X + 46, noteY + 30, "Tidak semua jenis sampah boleh dibakar. Pengoperasian incinerator harus mengikuti prosedur kapal dan ketentuan yang berlaku.", {
-                fontFamily: FONT, fontStyle: "600", fontSize: 13, color: AMBER_HEX, wordWrap: { width: CONTENT_WIDTH - 64 },
-            })
-            .setOrigin(0, 0.5);
-        this.boardContainer.add([note, noteIcon, noteText]);
+        this.buildNoteBox(
+            CONTENT_X, noteY, CONTENT_WIDTH,
+            "Tidak semua jenis sampah boleh dibakar. Pengoperasian incinerator harus mengikuti prosedur kapal dan ketentuan yang berlaku.",
+            AMBER, AMBER_HEX, 0xfdf3e7, "⚠",
+        );
     }
 
     // ---- Step 4: Comminutor -------------------------------------------------------------
@@ -642,7 +648,7 @@ export class PilahSampahMateri extends Scene {
             CONTENT_X,
             illustrationY + 90,
             "Comminutor digunakan untuk menghancurkan atau menggiling sisa makanan menjadi ukuran partikel yang lebih kecil.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT, align: "center", wordWrap: { width: CONTENT_WIDTH } },
+            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, align: "center", wordWrap: { width: CONTENT_WIDTH } },
         ).setOrigin(0.5, 0);
         desc.setX(CONTENT_X + CONTENT_WIDTH / 2);
         this.boardContainer.add(desc);
@@ -654,10 +660,12 @@ export class PilahSampahMateri extends Scene {
         const note = this.add.graphics();
         note.fillStyle(SKY, 1);
         note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 54, 12);
+        note.lineStyle(2, PRIMARY_BLUE, 1);
+        note.strokeRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 54, 12);
         this.boardContainer.add(note);
         const noteText = this.add
             .text(CONTENT_X + 16, noteY + 27, "Comminutor bukan tempat untuk semua jenis sampah — plastik, logam, dan kaca tidak boleh dimasukkan ke comminutor.", {
-                fontFamily: FONT, fontStyle: "600", fontSize: 13, color: PRIMARY_BLUE_HEX, wordWrap: { width: CONTENT_WIDTH - 32 },
+                fontFamily: FONT, fontStyle: "500", fontSize: 15, color: PRIMARY_BLUE_HEX, lineSpacing: 4, wordWrap: { width: CONTENT_WIDTH - 32 },
             })
             .setOrigin(0, 0.5);
         this.boardContainer.add(noteText);
@@ -673,7 +681,7 @@ export class PilahSampahMateri extends Scene {
             CONTENT_X,
             title.y + title.height + 10,
             "Gudang sampah merupakan area penyimpanan sementara untuk sampah yang telah dipilah sebelum diolah di atas kapal atau diserahkan ke fasilitas penerimaan di pelabuhan.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: CONTENT_WIDTH } },
+            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: CONTENT_WIDTH } },
         );
         this.boardContainer.add(desc);
 
@@ -765,7 +773,7 @@ export class PilahSampahMateri extends Scene {
             const badge = this.add.circle(CONTENT_X + 14, y + 14, 14, PRIMARY_BLUE, 1);
             const num = this.add.text(CONTENT_X + 14, y + 14, String(index + 1), { fontFamily: FONT, fontStyle: "700", fontSize: 13, color: "#ffffff" }).setOrigin(0.5);
             const label = this.add.text(CONTENT_X + 40, y + 3, item, {
-                fontFamily: FONT, fontStyle: "600", fontSize: 15, color: DARK_NAVY,
+                fontFamily: FONT, fontStyle: "500", fontSize: 15, color: DARK_NAVY,
                 wordWrap: { width: CONTENT_WIDTH - 60 },
             });
             this.boardContainer.add([badge, num, label]);

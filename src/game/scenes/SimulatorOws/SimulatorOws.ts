@@ -1,6 +1,7 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
@@ -26,14 +27,39 @@ const RED_HEX = "#c0392b";
 const BODY_TEXT_HEX = "#4a5b78";
 
 const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
+const OPEN_THRESHOLD = 0.8;
+const CLOSED_THRESHOLD = 0.2;
+
+type SimulatorStep =
+    | "READY"
+    | "INLET_OPEN"
+    | "PUMP_RUNNING"
+    | "SEPARATING"
+    | "SAFE_TO_DISCHARGE"
+    | "DISCHARGING"
+    | "SHUTDOWN_CLOSE_OVERBOARD"
+    | "SHUTDOWN_STOP_PUMP"
+    | "SHUTDOWN_CLOSE_VALVES"
+    | "COMPLETE";
 
 interface ValveWidget {
     knob: GameObjects.Arc;
     trackTopY: number;
     trackBottomY: number;
     /** 0 = fully closed (Tutup), 1 = fully open (Buka) — continuously
-     * adjustable, not a binary toggle. */
+    * adjustable, not a binary toggle. */
     openness: number;
+    card: GameObjects.Graphics;
+    cardX: number;
+    cardTopY: number;
+    cardWidth: number;
+    cardHeight: number;
+    scale: number;
+}
+
+interface FlowIndicator {
+    arrow: GameObjects.Text;
+    segment: "inlet" | "processing" | "outlet";
 }
 
 /**
@@ -53,14 +79,29 @@ export class SimulatorOws extends Scene {
 
     private valveA!: ValveWidget;
     private valveB!: ValveWidget;
+    private valveD!: ValveWidget;
     private draggingValve: ValveWidget | null = null;
 
     private ppm = START_PPM;
-    private progressReported = false;
+    private simulatorStep: SimulatorStep = "READY";
+    private pumpOn = false;
+    private operationErrors = 0;
+    private unsafeDischargeAttempts = 0;
+    private simulationStartedAt = 0;
+    private separationTimer: Phaser.Time.TimerEvent | null = null;
+    private dischargeTimer: Phaser.Time.TimerEvent | null = null;
+    private dischargeTicks = 0;
     private ocmValueText!: GameObjects.Text;
-    private flowArrows: GameObjects.Text[] = [];
-    private successInfo!: GameObjects.Container;
-    private safeValueText!: GameObjects.Text;
+    private flowIndicators: FlowIndicator[] = [];
+    private feedbackInfo!: GameObjects.Container;
+    private feedbackBackground!: GameObjects.Graphics;
+    private feedbackTitle!: GameObjects.Text;
+    private feedbackBody!: GameObjects.Text;
+    private feedbackSummary!: GameObjects.Text;
+    private quizButton!: Button;
+    private pumpStatusBackground!: GameObjects.Graphics;
+    private pumpStatusText!: GameObjects.Text;
+    private pumpHighlight!: GameObjects.Arc;
 
     private currentScale = 1;
     private currentRootY = 0;
@@ -74,8 +115,13 @@ export class SimulatorOws extends Scene {
         this.root = this.add.container(0, 0);
 
         this.ppm = START_PPM;
-        this.progressReported = false;
-        this.flowArrows = [];
+        this.simulatorStep = "READY";
+        this.pumpOn = false;
+        this.operationErrors = 0;
+        this.unsafeDischargeAttempts = 0;
+        this.simulationStartedAt = 0;
+        this.dischargeTicks = 0;
+        this.flowIndicators = [];
         this.draggingValve = null;
 
         const groups: GameObjects.GameObject[][] = [];
@@ -87,7 +133,8 @@ export class SimulatorOws extends Scene {
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
         playSceneEnter(this, groups);
 
-        this.refreshOcmDisplay();
+        this.refreshOcmDisplay(false);
+        this.updateSimulatorUi();
 
         this.input.on("pointermove", this.handlePointerMove, this);
         this.input.on("pointerup", this.handlePointerUp, this);
@@ -95,9 +142,13 @@ export class SimulatorOws extends Scene {
         EventBus.emit("current-scene-ready", this);
 
         this.events.once("shutdown", () => {
+            this.stopSeparation();
+            this.stopDischargeTimer();
+            this.tweens.killTweensOf(this.ocmValueText);
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
             this.input.off("pointermove", this.handlePointerMove, this);
             this.input.off("pointerup", this.handlePointerUp, this);
+            this.draggingValve = null;
         });
     }
 
@@ -112,39 +163,35 @@ export class SimulatorOws extends Scene {
     // ---- Header -------------------------------------------------------------------------
 
     private buildHeader() {
-        const backWidth = 165;
-        const backHeight = backWidth * (558 / 1780);
         const headerY = 32;
-        const centerY = headerY + backHeight / 2;
-        const backButton = this.add
-            .image(MARGIN + backWidth / 2, centerY, "ows.btnKembali")
-            .setDisplaySize(backWidth, backHeight)
-            .setInteractive({ useHandCursor: true });
-        backButton.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
+        const navButtons = new HomeBackButtons(this, {
+            x: MARGIN,
+            y: headerY,
+            onHome: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("OwsMateri"),
         });
-
         // Give the simulator the same contextual description as the quiz.
-        const crumbX = MARGIN + backWidth + 20;
-        const crumbHeight = backHeight;
+        const crumbX = MARGIN + navButtons.width + 20;
+        const crumbY = headerY + 6;
+        const crumbHeight = navButtons.height - 10;
+        const centerY = crumbY + crumbHeight / 2;
         const badgeText = this.add.text(0, 0, "MODUL SIMULATOR OWS", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
         const blueWidth = badgeText.width + 48;
         const chevron = this.add.text(0, 0, "›", { fontFamily: FONT, fontStyle: "600", fontSize: 20, color: PRIMARY_BLUE_HEX });
-        const label = this.add.text(0, 0, "Simulator OWS", { fontFamily: FONT, fontStyle: "600", fontSize: 16, color: PRIMARY_BLUE_HEX });
+        const label = this.add.text(0, 0, "Simulator OWS", { fontFamily: FONT, fontStyle: "600", fontSize: 18, color: PRIMARY_BLUE_HEX });
         const whiteWidth = 22 + chevron.width + 10 + label.width + 26;
         const breadcrumb = this.add.graphics();
         breadcrumb.fillStyle(0xffffff, 1);
-        breadcrumb.fillRoundedRect(crumbX, headerY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
+        breadcrumb.fillRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
         breadcrumb.fillStyle(PRIMARY_BLUE, 1);
-        breadcrumb.fillRoundedRect(crumbX, headerY, blueWidth, crumbHeight, { tl: crumbHeight / 2, bl: crumbHeight / 2, tr: 0, br: 0 });
+        breadcrumb.fillRoundedRect(crumbX, crumbY, blueWidth, crumbHeight, { tl: crumbHeight / 2, bl: crumbHeight / 2, tr: 0, br: 0 });
         breadcrumb.lineStyle(2, PRIMARY_BLUE, 1);
-        breadcrumb.strokeRoundedRect(crumbX, headerY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
+        breadcrumb.strokeRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
         badgeText.setPosition(crumbX + blueWidth / 2, centerY).setOrigin(0.5);
         chevron.setPosition(crumbX + blueWidth + 22, centerY).setOrigin(0, 0.5);
         label.setPosition(chevron.x + chevron.width + 10, centerY).setOrigin(0, 0.5);
 
-        this.root.add([backButton, breadcrumb, badgeText, chevron, label]);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label]);
     }
 
     // ---- Main card ---------------------------------------------------------------------
@@ -174,7 +221,7 @@ export class SimulatorOws extends Scene {
         const contentX = cardX + 32 * CARD_SCALE;
         const contentTop = cardY + 28 * CARD_SCALE;
 
-        const title = this.add.text(contentX, contentTop, "AREA SIMULASI OWS", { fontFamily: FONT, fontStyle: "600", fontSize: 24 * CARD_SCALE, color: DARK_NAVY });
+        const title = this.add.text(contentX, contentTop, "AREA SIMULASI OWS", { fontFamily: FONT, fontStyle: "800", fontSize: 24 * CARD_SCALE, color: DARK_NAVY });
         const subtitle = this.add.text(contentX, title.y + title.height + 6, "Atur posisi katup dan amati arah aliran serta nilai kandungan minyak pada OCM.", {
             fontFamily: FONT,
             fontStyle: "600",
@@ -224,15 +271,17 @@ export class SimulatorOws extends Scene {
         const valveBPos = { x: compLeft + compWidth * 0.47, y: compTop + compHeight * 0.18 };
         const ocmPos = { x: compLeft + compWidth * 0.666, y: compTop + compHeight * 0.605 };
         const valveDPos = { x: compLeft + compWidth * 0.835, y: compTop + compHeight * 0.735 };
+        const pumpPos = { x: compLeft + compWidth * 0.19, y: compTop + compHeight * 0.79 };
 
         // Inlet / outlet tags either side of the diagram.
         const inletTag = this.buildFlowTag(compLeft - 150 * scale, valveAPos.y, "Inlet\n(From Bilge)", scale);
         const outletTag = this.buildFlowTag(compLeft + compWidth + 150 * scale, valveDPos.y, "Outlet\n(To Sea)", scale);
         this.root.add([inletTag, outletTag]);
 
-        this.flowArrows.push(
-            this.buildFlowArrow(compLeft - 70 * scale, valveAPos.y, scale),
-            this.buildFlowArrow(compLeft + compWidth + 70 * scale, valveDPos.y, scale),
+        this.flowIndicators.push(
+            { arrow: this.buildFlowArrow(compLeft - 70 * scale, valveAPos.y, scale), segment: "inlet" },
+            { arrow: this.buildFlowArrow(ocmPos.x - 150 * scale, ocmPos.y, scale), segment: "processing" },
+            { arrow: this.buildFlowArrow(compLeft + compWidth + 70 * scale, valveDPos.y, scale), segment: "outlet" },
         );
 
         this.valveA = this.buildValveWidget(valveAPos.x, valveAPos.y, "Valve A", "(Inlet)", scale);
@@ -240,11 +289,29 @@ export class SimulatorOws extends Scene {
         // Valve D (overboard) sits downstream of the OCM in this diagram, so
         // it doesn't feed back into the PPM reading — it's still a fully
         // interactive slider, just not wired to the ppm calculation.
-        this.buildValveWidget(valveDPos.x, valveDPos.y, "Valve D", "(Overboard)", scale);
+        this.valveD = this.buildValveWidget(valveDPos.x, valveDPos.y, "Valve D", "(Overboard)", scale);
+        this.buildPumpInteraction(pumpPos.x, pumpPos.y, scale);
 
         this.buildOcmReadout(ocmPos.x, ocmPos.y, scale);
 
         return compTop + compHeight;
+    }
+
+    private buildPumpInteraction(x: number, y: number, scale: number) {
+        this.pumpHighlight = this.add.circle(x, y, 62 * scale, 0xcfe1ff, 0.7).setStrokeStyle(3 * scale, PRIMARY_BLUE, 0.4);
+        const hit = this.add.rectangle(x, y, 170 * scale, 110 * scale, 0xffffff, 0).setInteractive({ useHandCursor: true });
+        hit.on("pointerdown", () => this.handlePumpInteraction());
+
+        const statusWidth = 104 * scale;
+        const statusHeight = 30 * scale;
+        const statusY = y + 72 * scale;
+        this.pumpStatusBackground = this.add.graphics();
+        this.pumpStatusBackground.setData("x", x);
+        this.pumpStatusBackground.setData("y", statusY);
+        this.pumpStatusBackground.setData("width", statusWidth);
+        this.pumpStatusBackground.setData("height", statusHeight);
+        this.pumpStatusText = this.add.text(x, statusY, "PUMP OFF", { fontFamily: FONT, fontStyle: "700", fontSize: 12 * scale, color: BODY_TEXT_HEX }).setOrigin(0.5);
+        this.root.add([this.pumpHighlight, hit, this.pumpStatusBackground, this.pumpStatusText]);
     }
 
     private buildFlowTag(x: number, y: number, label: string, scale: number): GameObjects.GameObject {
@@ -269,9 +336,9 @@ export class SimulatorOws extends Scene {
      * vertical Buka/Tutup slider, floating above the real valve on the
      * component artwork and joined to it by a thin connector line. */
     private buildValveWidget(x: number, valveY: number, title: string, sublabel: string, scale: number): ValveWidget {
-        const cardWidth = 150 * scale;
-        const cardHeight = 196 * scale;
-        const cardGap = 30 * scale;
+        const cardWidth = 176 * scale;
+        const cardHeight = 220 * scale;
+        const cardGap = 24 * scale;
         const cardTopY = valveY - cardGap - cardHeight;
         const connectorBottomY = valveY - 12 * scale;
         const cardX = x - cardWidth / 2;
@@ -279,25 +346,39 @@ export class SimulatorOws extends Scene {
         const card = this.add.graphics();
         card.fillStyle(0xffffff, 1);
         card.fillRoundedRect(cardX, cardTopY, cardWidth, cardHeight, 14 * scale);
+        card.fillStyle(0xeaf3ff, 1);
+        card.fillRoundedRect(cardX + 2 * scale, cardTopY + 2 * scale, cardWidth - 4 * scale, 58 * scale, { tl: 12 * scale, tr: 12 * scale, bl: 0, br: 0 });
         card.lineStyle(2, BORDER_BLUE, 1);
         card.strokeRoundedRect(cardX, cardTopY, cardWidth, cardHeight, 14 * scale);
 
-        const titleText = this.add.text(x, cardTopY + 16 * scale, title, { fontFamily: FONT, fontStyle: "600", fontSize: 15 * scale, color: DARK_NAVY }).setOrigin(0.5, 0);
-        const subText = this.add.text(x, cardTopY + 36 * scale, sublabel, { fontFamily: FONT, fontStyle: "600", fontSize: 11 * scale, color: BODY_TEXT }).setOrigin(0.5, 0);
+        const titleText = this.add.text(x, cardTopY + 10 * scale, title, { fontFamily: FONT, fontStyle: "700", fontSize: 16 * scale, color: DARK_NAVY }).setOrigin(0.5, 0);
+        const subText = this.add.text(x, cardTopY + 32 * scale, sublabel, { fontFamily: FONT, fontStyle: "600", fontSize: 11 * scale, color: BODY_TEXT }).setOrigin(0.5, 0);
 
-        const openLabel = this.add.text(x, cardTopY + 66 * scale, "Buka", { fontFamily: FONT, fontStyle: "600", fontSize: 13 * scale, color: DARK_NAVY }).setOrigin(0.5, 0.5);
+        const actionPills = this.add.graphics();
+        const actionPillWidth = 94 * scale;
+        const actionPillHeight = 24 * scale;
+        actionPills.fillStyle(0xeaf3ff, 1);
+        actionPills.fillRoundedRect(x - actionPillWidth / 2, cardTopY + 68 * scale, actionPillWidth, actionPillHeight, actionPillHeight / 2);
+        actionPills.fillRoundedRect(x - actionPillWidth / 2, cardTopY + cardHeight - 31 * scale, actionPillWidth, actionPillHeight, actionPillHeight / 2);
+        const openLabel = this.add.text(x, cardTopY + 80 * scale, "Buka", { fontFamily: FONT, fontStyle: "700", fontSize: 13 * scale, color: DARK_NAVY }).setOrigin(0.5);
 
         // A thick pill-shaped track (not a thin line) with a large solid
         // knob riding on it — Buka/Tutup labels sit above and below rather
         // than beside it, matching the reference control's look.
-        const trackWidth = 26 * scale;
-        const trackTopY = cardTopY + 84 * scale;
-        const trackBottomY = cardTopY + cardHeight - 34 * scale;
+        const trackWidth = 28 * scale;
+        const trackTopY = cardTopY + 102 * scale;
+        const trackBottomY = cardTopY + cardHeight - 48 * scale;
         const track = this.add.graphics();
         track.fillStyle(0xd8e3f7, 1);
         track.fillRoundedRect(x - trackWidth / 2, trackTopY, trackWidth, trackBottomY - trackTopY, trackWidth / 2);
+        const tickX = x + 26 * scale;
+        [trackTopY, (trackTopY + trackBottomY) / 2, trackBottomY].forEach((tickY) => track.fillRoundedRect(tickX, tickY - 2 * scale, 16 * scale, 4 * scale, 2 * scale));
+        const tickStyle = { fontFamily: FONT, fontStyle: "600", fontSize: 10 * scale, color: BODY_TEXT };
+        const fullLabel = this.add.text(tickX + 21 * scale, trackTopY, "100%", tickStyle).setOrigin(0, 0.5);
+        const midLabel = this.add.text(tickX + 21 * scale, (trackTopY + trackBottomY) / 2, "50%", tickStyle).setOrigin(0, 0.5);
+        const zeroLabel = this.add.text(tickX + 21 * scale, trackBottomY, "0%", tickStyle).setOrigin(0, 0.5);
 
-        const closedLabel = this.add.text(x, cardTopY + cardHeight - 16 * scale, "Tutup", { fontFamily: FONT, fontStyle: "600", fontSize: 12 * scale, color: BODY_TEXT }).setOrigin(0.5, 0.5);
+        const closedLabel = this.add.text(x, cardTopY + cardHeight - 19 * scale, "Tutup", { fontFamily: FONT, fontStyle: "700", fontSize: 12 * scale, color: BODY_TEXT }).setOrigin(0.5);
 
         const knob = this.add.circle(x, trackBottomY, 16 * scale, PRIMARY_BLUE, 1);
         knob.setStrokeStyle(3 * scale, 0xffffff, 1);
@@ -308,7 +389,7 @@ export class SimulatorOws extends Scene {
             .rectangle(x, cardTopY + cardHeight / 2, cardWidth, cardHeight, 0xffffff, 0)
             .setInteractive({ useHandCursor: true });
 
-        const widget: ValveWidget = { knob, trackTopY, trackBottomY, openness: 0 };
+        const widget: ValveWidget = { knob, trackTopY, trackBottomY, openness: 0, card, cardX, cardTopY, cardWidth, cardHeight, scale };
 
         hit.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
             playSfx(this, SFX_KEYS.click);
@@ -316,7 +397,7 @@ export class SimulatorOws extends Scene {
             this.updateValveFromPointer(widget, pointer);
         });
 
-        this.root.add([card, titleText, subText, track, openLabel, closedLabel, connector, knob, hit]);
+        this.root.add([card, titleText, subText, actionPills, track, fullLabel, midLabel, zeroLabel, openLabel, closedLabel, connector, knob, hit]);
 
         return widget;
     }
@@ -330,7 +411,12 @@ export class SimulatorOws extends Scene {
     }
 
     private handlePointerUp() {
+        const releasedValve = this.draggingValve;
         this.draggingValve = null;
+        if (releasedValve) {
+            this.snapValve(releasedValve);
+            this.evaluateProcedure();
+        }
     }
 
     private pointerToDesignY(pointer: Phaser.Input.Pointer): number {
@@ -342,7 +428,21 @@ export class SimulatorOws extends Scene {
         const clampedY = Math.min(widget.trackBottomY, Math.max(widget.trackTopY, designY));
         widget.knob.y = clampedY;
         widget.openness = 1 - (clampedY - widget.trackTopY) / (widget.trackBottomY - widget.trackTopY);
-        this.recomputePpm();
+    }
+
+    private snapValve(widget: ValveWidget) {
+        if (widget.openness <= CLOSED_THRESHOLD) this.setValveOpenness(widget, 0, true);
+        if (widget.openness >= OPEN_THRESHOLD) this.setValveOpenness(widget, 1, true);
+    }
+
+    private setValveOpenness(widget: ValveWidget, openness: number, animate = false) {
+        const targetY = widget.trackBottomY - openness * (widget.trackBottomY - widget.trackTopY);
+        widget.openness = openness;
+        if (animate) {
+            this.tweens.add({ targets: widget.knob, y: targetY, duration: 160, ease: "Quad.Out" });
+        } else {
+            widget.knob.y = targetY;
+        }
     }
 
     // ---- OCM readout (just the live number — no card/bar/caption) -------------------------
@@ -352,48 +452,192 @@ export class SimulatorOws extends Scene {
         this.root.add(this.ocmValueText);
     }
 
-    private recomputePpm() {
-        const flowFactor = Math.min(this.valveA.openness, this.valveB.openness);
-        this.ppm = START_PPM - (START_PPM - TARGET_FLOOR_PPM) * flowFactor;
-        this.refreshOcmDisplay();
-
-        this.flowArrows.forEach((arrow) => {
-            arrow.setAlpha(0.3 + flowFactor * 0.7);
-            arrow.setColor(flowFactor > 0.05 ? PRIMARY_BLUE_HEX : BODY_TEXT_HEX);
-        });
-
-        if (this.ppm <= 15 && !this.progressReported) {
-            this.progressReported = true;
-            setSimulatorProgress(true);
+    private handlePumpInteraction() {
+        playSfx(this, SFX_KEYS.click);
+        if (!this.pumpOn) {
+            if (this.valveA.openness < OPEN_THRESHOLD) {
+                this.operationErrors++;
+                this.setFeedback("Aliran Masuk Belum Tersedia", "Buka Valve A terlebih dahulu sebelum menjalankan pompa.", "warning");
+                return;
+            }
+            this.pumpOn = true;
+            if (!this.simulationStartedAt) this.simulationStartedAt = this.time.now;
+            this.evaluateProcedure();
+            return;
         }
+
+        this.pumpOn = false;
+        if (this.simulatorStep === "SEPARATING") {
+            this.operationErrors++;
+            this.stopSeparation();
+            this.simulatorStep = "INLET_OPEN";
+            this.setFeedback("Pompa Berhenti", "Proses pemisahan tidak dapat dilanjutkan. Nyalakan kembali pompa untuk melanjutkan.", "warning");
+            this.updateSimulatorUi(true);
+            return;
+        }
+        this.evaluateProcedure();
     }
 
-    // ---- Safe status and quiz action, inside the bottom-right of the whiteboard ---------
+    private conditionsForSeparation() {
+        return this.valveA.openness >= OPEN_THRESHOLD && this.pumpOn && this.valveB.openness >= OPEN_THRESHOLD;
+    }
+
+    private evaluateProcedure() {
+        if (this.simulatorStep === "COMPLETE" || this.simulatorStep === "DISCHARGING") return;
+
+        if (this.simulatorStep === "SHUTDOWN_CLOSE_OVERBOARD") {
+            if (this.valveD.openness <= CLOSED_THRESHOLD) this.simulatorStep = "SHUTDOWN_STOP_PUMP";
+            this.updateSimulatorUi();
+            return;
+        }
+        if (this.simulatorStep === "SHUTDOWN_STOP_PUMP") {
+            if (!this.pumpOn) this.simulatorStep = "SHUTDOWN_CLOSE_VALVES";
+            this.updateSimulatorUi();
+            return;
+        }
+        if (this.simulatorStep === "SHUTDOWN_CLOSE_VALVES") {
+            if (this.valveA.openness <= CLOSED_THRESHOLD && this.valveB.openness <= CLOSED_THRESHOLD) this.completeSimulation();
+            else this.updateSimulatorUi();
+            return;
+        }
+
+        if (this.valveD.openness >= OPEN_THRESHOLD) {
+            if (this.ppm > 15) {
+                this.handleUnsafeDischarge();
+                return;
+            }
+            if (this.simulatorStep === "SAFE_TO_DISCHARGE") this.startDischarge();
+        }
+
+        if (this.simulatorStep === "SAFE_TO_DISCHARGE") {
+            this.updateSimulatorUi();
+            return;
+        }
+
+        if (this.valveA.openness < OPEN_THRESHOLD) {
+            if (this.separationTimer) {
+                this.operationErrors++;
+                this.stopSeparation();
+                this.setFeedback("Aliran OWS Terhenti", "Periksa posisi Valve A dan Valve B sebelum melanjutkan proses.", "warning");
+            }
+            this.simulatorStep = "READY";
+            this.updateSimulatorUi(true);
+            return;
+        }
+        if (!this.pumpOn) {
+            this.simulatorStep = "INLET_OPEN";
+            this.updateSimulatorUi();
+            return;
+        }
+        if (this.valveB.openness < OPEN_THRESHOLD) {
+            if (this.separationTimer) {
+                this.operationErrors++;
+                this.stopSeparation();
+                this.setFeedback("Aliran OWS Terhenti", "Buka Valve B agar aliran dapat menuju proses OWS.", "warning");
+            }
+            this.simulatorStep = "PUMP_RUNNING";
+            this.updateSimulatorUi(true);
+            return;
+        }
+        this.startSeparation();
+    }
+
+    private startSeparation() {
+        if (this.ppm <= 15) {
+            this.simulatorStep = "SAFE_TO_DISCHARGE";
+            this.updateSimulatorUi();
+            return;
+        }
+        this.simulatorStep = "SEPARATING";
+        if (!this.separationTimer) {
+            this.separationTimer = this.time.addEvent({ delay: 550, loop: true, callback: () => {
+                if (!this.conditionsForSeparation()) {
+                    this.stopSeparation();
+                    this.evaluateProcedure();
+                    return;
+                }
+                this.ppm = Math.max(TARGET_FLOOR_PPM, this.ppm - (this.ppm > 18 ? 4 : 2));
+                this.refreshOcmDisplay();
+                if (this.ppm <= 15) {
+                    this.stopSeparation();
+                    this.simulatorStep = "SAFE_TO_DISCHARGE";
+                    this.updateSimulatorUi();
+                }
+            }});
+        }
+        this.updateSimulatorUi();
+    }
+
+    private stopSeparation() {
+        this.separationTimer?.remove(false);
+        this.separationTimer = null;
+    }
+
+    private handleUnsafeDischarge() {
+        this.operationErrors++;
+        this.unsafeDischargeAttempts++;
+        this.setFeedback("Pembuangan Tidak Aman", `Nilai OCM masih ${Math.round(this.ppm)} ppm. Valve overboard tidak boleh dibuka.`, "error");
+        this.setValveOpenness(this.valveD, 0, true);
+        playSfx(this, SFX_KEYS.quizWrong);
+        this.updateFlowVisualization();
+    }
+
+    private startDischarge() {
+        if (this.dischargeTimer) return;
+        this.simulatorStep = "DISCHARGING";
+        this.dischargeTicks = 0;
+        this.updateSimulatorUi();
+        this.dischargeTimer = this.time.addEvent({ delay: 550, loop: true, callback: () => {
+            this.dischargeTicks++;
+            this.ppm = Math.max(TARGET_FLOOR_PPM, this.ppm - 2);
+            this.refreshOcmDisplay();
+            if (this.dischargeTicks >= 5) {
+                this.stopDischargeTimer();
+                this.simulatorStep = "SHUTDOWN_CLOSE_OVERBOARD";
+                this.updateSimulatorUi();
+            }
+        }});
+    }
+
+    private stopDischargeTimer() {
+        this.dischargeTimer?.remove(false);
+        this.dischargeTimer = null;
+        this.dischargeTicks = 0;
+    }
+
+    private completeSimulation() {
+        this.stopSeparation();
+        this.stopDischargeTimer();
+        this.simulatorStep = "COMPLETE";
+        setSimulatorProgress(true);
+        playSfx(this, SFX_KEYS.quizCorrect);
+        this.updateSimulatorUi();
+    }
+
+    // ---- Reusable contextual feedback, inside the existing bottom-right area ---------
 
     private buildSuccessInfo(right: number, bottom: number) {
         const width = 520;
-        const height = 210;
+        const height = 270;
         const background = this.add.graphics();
-        background.fillStyle(0xeaf7ef, 1);
-        background.fillRoundedRect(0, 0, width, height, 20);
-        background.lineStyle(2, GREEN, 0.25);
-        background.strokeRoundedRect(0, 0, width, height, 20);
+        this.feedbackBackground = background;
 
-        const title = this.add.text(24, 22, "Batas Aman Tercapai!", {
+        this.feedbackTitle = this.add.text(24, 22, "", {
             fontFamily: FONT,
             fontStyle: "600",
             fontSize: 24,
             color: GREEN_HEX,
         });
-        this.safeValueText = this.add.text(24, 62, "", {
+        this.feedbackBody = this.add.text(24, 62, "", {
             fontFamily: FONT,
             fontStyle: "600",
             fontSize: 18,
             color: BODY_TEXT,
-            wordWrap: { width: width - 48 },
+            wordWrap: { width: width - 48 }, lineSpacing: 4,
         });
+        this.feedbackSummary = this.add.text(24, 132, "", { fontFamily: FONT, fontStyle: "500", fontSize: 14, color: BODY_TEXT, wordWrap: { width: width - 48 }, lineSpacing: 3 });
 
-        const quizButton = new Button(this, {
+        this.quizButton = new Button(this, {
             x: width - 24 - 220 / 2,
             y: height - 24 - 56 / 2,
             width: 220,
@@ -407,24 +651,144 @@ export class SimulatorOws extends Scene {
             strokeAlpha: 0,
             textColor: "#ffffff",
         });
-        quizButton.on("pointerdown", () => {
-            if (this.ppm > 15) return;
+        this.quizButton.on("pointerdown", () => {
+            if (this.simulatorStep !== "COMPLETE") return;
             this.draggingValve = null;
             playSfx(this, SFX_KEYS.click);
             this.goTo("OwsQuiz");
         });
 
-        this.successInfo = this.add.container(right - width, bottom - height, [background, title, this.safeValueText, quizButton.view]);
-        this.successInfo.setVisible(false);
-        this.root.add(this.successInfo);
+        this.feedbackInfo = this.add.container(right - width, bottom - height, [background, this.feedbackTitle, this.feedbackBody, this.feedbackSummary, this.quizButton.view]);
+        this.root.add(this.feedbackInfo);
     }
 
-    private refreshOcmDisplay() {
+    private refreshOcmDisplay(animate = true) {
         const colorHex = this.ppm <= 15 ? GREEN_HEX : this.ppm <= 30 ? YELLOW_HEX : this.ppm <= 100 ? AMBER_HEX : RED_HEX;
         this.ocmValueText.setText(`${Math.round(this.ppm)} ppm`);
         this.ocmValueText.setColor(colorHex);
-        this.successInfo.setVisible(this.ppm <= 15);
-        this.safeValueText.setText(`Nilai OCM ${Math.round(this.ppm)} ppm sudah memenuhi batas aman simulasi (maksimal 15 ppm).`);
+        if (animate) {
+            this.tweens.killTweensOf(this.ocmValueText);
+            this.tweens.add({ targets: this.ocmValueText, scaleX: 1.08, scaleY: 1.08, duration: 110, yoyo: true, ease: "Quad.Out" });
+        }
+    }
+
+    private updateSimulatorUi(preserveFeedback = false) {
+        this.updatePumpStatus();
+        this.updateFlowVisualization();
+        this.updateControlHighlights();
+        if (preserveFeedback) return;
+
+        switch (this.simulatorStep) {
+            case "INLET_OPEN":
+                this.setFeedback("Inlet Siap", "Aktifkan Bilge Pump untuk mulai mengalirkan bilge water.", "neutral");
+                break;
+            case "PUMP_RUNNING":
+                this.setFeedback("Pompa Aktif", "Buka Valve B untuk mengalirkan fluida menuju proses OWS.", "neutral");
+                break;
+            case "SEPARATING":
+                this.setFeedback("Proses Pemisahan", "Amati nilai kandungan minyak pada OCM. Proses berjalan bertahap.", "neutral");
+                break;
+            case "SAFE_TO_DISCHARGE":
+                this.setFeedback("Batas Aman Tercapai", `Nilai OCM ${Math.round(this.ppm)} ppm telah memenuhi batas ≤ 15 ppm. Buka Valve D (Overboard).`, "success");
+                break;
+            case "DISCHARGING":
+                this.setFeedback("Overboard Discharge Active", `OCM: ${Math.round(this.ppm)} ppm. Air hasil pemisahan sedang dialirkan menuju outlet.`, "success");
+                break;
+            case "SHUTDOWN_CLOSE_OVERBOARD":
+                this.setFeedback("Proses Pembuangan Selesai", "Tutup Valve D (Overboard) untuk melanjutkan shutdown.", "neutral");
+                break;
+            case "SHUTDOWN_STOP_PUMP":
+                this.setFeedback("Valve Overboard Telah Ditutup", "Matikan Bilge Pump.", "neutral");
+                break;
+            case "SHUTDOWN_CLOSE_VALVES":
+                this.setFeedback("Pompa Telah Dimatikan", "Tutup Valve A dan Valve B untuk mengembalikan sistem ke kondisi aman.", "neutral");
+                break;
+            case "COMPLETE":
+                this.setFeedback(
+                    "OWS Shutdown Complete",
+                    "Prosedur pengoperasian OWS berhasil diselesaikan. Sistem telah dikembalikan ke kondisi aman.",
+                    "success",
+                    `OCM akhir: ${Math.round(this.ppm)} ppm   •   Overboard: Closed\nPump: OFF   •   Valve A: Closed   •   Valve B: Closed`,
+                );
+                break;
+            case "READY":
+            default:
+                this.setFeedback("Mulai Prosedur", "Buka Valve A (Inlet) untuk memulai aliran dari bilge.", "neutral");
+                break;
+        }
+    }
+
+    private setFeedback(title: string, body: string, tone: "neutral" | "success" | "warning" | "error", summary = "") {
+        const style = tone === "success"
+            ? { fill: 0xeaf7ef, line: GREEN, text: GREEN_HEX }
+            : tone === "warning"
+                ? { fill: 0xfdf3e7, line: 0xb5651d, text: AMBER_HEX }
+                : tone === "error"
+                    ? { fill: 0xfceaea, line: 0xc0392b, text: RED_HEX }
+                    : { fill: 0xf7faff, line: PRIMARY_BLUE, text: PRIMARY_BLUE_HEX };
+        const width = 520;
+        const height = 270;
+        this.feedbackBackground.clear();
+        this.feedbackBackground.fillStyle(style.fill, 1);
+        this.feedbackBackground.fillRoundedRect(0, 0, width, height, 20);
+        this.feedbackBackground.lineStyle(2, style.line, 0.6);
+        this.feedbackBackground.strokeRoundedRect(0, 0, width, height, 20);
+        this.feedbackTitle.setText(title).setColor(style.text);
+        this.feedbackBody.setText(body);
+        this.feedbackSummary.setText(summary);
+        this.quizButton.view.setVisible(this.simulatorStep === "COMPLETE");
+    }
+
+    private updatePumpStatus() {
+        const x = this.pumpStatusBackground.getData("x") as number;
+        const y = this.pumpStatusBackground.getData("y") as number;
+        const width = this.pumpStatusBackground.getData("width") as number;
+        const height = this.pumpStatusBackground.getData("height") as number;
+        const color = this.pumpOn ? GREEN : 0xdce6f5;
+        this.pumpStatusBackground.clear();
+        this.pumpStatusBackground.fillStyle(this.pumpOn ? 0xe3f7ec : 0xf7faff, 1);
+        this.pumpStatusBackground.fillRoundedRect(x - width / 2, y - height / 2, width, height, height / 2);
+        this.pumpStatusBackground.lineStyle(2, color, 1);
+        this.pumpStatusBackground.strokeRoundedRect(x - width / 2, y - height / 2, width, height, height / 2);
+        this.pumpStatusText.setText(this.pumpOn ? "PUMP ON" : "PUMP OFF").setColor(this.pumpOn ? GREEN_HEX : BODY_TEXT_HEX);
+    }
+
+    private updateFlowVisualization() {
+        const inletActive = this.valveA.openness >= OPEN_THRESHOLD;
+        const processingActive = this.valveA.openness >= OPEN_THRESHOLD && this.pumpOn;
+        const outletActive = this.simulatorStep === "DISCHARGING";
+        this.flowIndicators.forEach(({ arrow, segment }) => {
+            const active = segment === "inlet" ? inletActive : segment === "processing" ? processingActive : outletActive;
+            arrow.setAlpha(active ? 1 : 0.3);
+            arrow.setColor(active && segment === "outlet" ? GREEN_HEX : active ? PRIMARY_BLUE_HEX : BODY_TEXT_HEX);
+        });
+    }
+
+    private updateControlHighlights() {
+        const highlightedValve = this.simulatorStep === "READY" ? this.valveA
+            : this.simulatorStep === "PUMP_RUNNING" ? this.valveB
+                : this.simulatorStep === "SAFE_TO_DISCHARGE" || this.simulatorStep === "SHUTDOWN_CLOSE_OVERBOARD" ? this.valveD
+                    : this.simulatorStep === "SHUTDOWN_CLOSE_VALVES" ? null : null;
+        [this.valveA, this.valveB, this.valveD].forEach((valve) => this.redrawValveCard(valve, valve === highlightedValve));
+        const highlightPump = this.simulatorStep === "INLET_OPEN" || this.simulatorStep === "SHUTDOWN_STOP_PUMP";
+        this.pumpHighlight.setFillStyle(0xcfe1ff, 0.7);
+        this.pumpHighlight.setStrokeStyle(3, PRIMARY_BLUE, this.pumpOn || highlightPump ? 0.9 : 0.65);
+    }
+
+    private redrawValveCard(widget: ValveWidget, highlighted: boolean) {
+        widget.card.clear();
+        widget.card.fillStyle(0xffffff, 1);
+        widget.card.fillRoundedRect(widget.cardX, widget.cardTopY, widget.cardWidth, widget.cardHeight, 14 * widget.scale);
+        widget.card.fillStyle(0xeaf3ff, 1);
+        widget.card.fillRoundedRect(
+            widget.cardX + 2 * widget.scale,
+            widget.cardTopY + 2 * widget.scale,
+            widget.cardWidth - 4 * widget.scale,
+            58 * widget.scale,
+            { tl: 12 * widget.scale, tr: 12 * widget.scale, bl: 0, br: 0 },
+        );
+        widget.card.lineStyle(highlighted ? 3 : 2, highlighted ? PRIMARY_BLUE : BORDER_BLUE, 1);
+        widget.card.strokeRoundedRect(widget.cardX, widget.cardTopY, widget.cardWidth, widget.cardHeight, 14 * widget.scale);
     }
 
     // ---- Instructions (card_intruksi_simulasi.png) ---------------------------------------

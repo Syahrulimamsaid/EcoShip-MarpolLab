@@ -1,6 +1,7 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { startQuizBgm, stopQuizBgm } from "../../BgmManager";
@@ -113,27 +114,22 @@ export class OwsQuiz extends Scene {
     // ---- Header (Kembali pill + breadcrumb row) ----------------------------------------
 
     private buildHeader() {
-        const backWidth = 165;
-        const backHeight = backWidth * (558 / 1780);
-        const backY = MARGIN + backHeight / 2;
-        const backButton = this.add
-            .image(MARGIN + backWidth / 2, backY, "ows.btnKembali")
-            .setDisplaySize(backWidth, backHeight)
-            .setInteractive({ useHandCursor: true });
-        backButton.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
+        const navButtons = new HomeBackButtons(this, {
+            x: MARGIN,
+            y: MARGIN,
+            onHome: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("SimulatorOws"),
         });
 
-        // A single seamless pill beside the Kembali button, sized to match
-        // its height: a solid-blue "MODUL SIMULATOR OWS" segment (rounded
+        // A single seamless pill beside the nav buttons, sized to match the
+        // compact materi header: a solid-blue "MODUL SIMULATOR OWS" segment (rounded
         // left / flat right) fused onto a white "› Kuis MARPOL Annex I"
         // segment (flat left / rounded right) inside one shared outer
         // stroke, rather than a floating badge + bare text.
-        const crumbHeight = backHeight;
+        const crumbHeight = navButtons.height - 10;
         const crumbGap = 20;
-        const crumbX = MARGIN + backWidth + crumbGap;
-        const crumbY = MARGIN;
+        const crumbX = MARGIN + navButtons.width + crumbGap;
+        const crumbY = MARGIN + 6;
         const crumbCenterY = crumbY + crumbHeight / 2;
 
         const badgeText = this.add.text(0, 0, "MODUL SIMULATOR OWS", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
@@ -158,10 +154,10 @@ export class OwsQuiz extends Scene {
         pillBg.strokeRoundedRect(crumbX, crumbY, totalWidth, crumbHeight, crumbHeight / 2);
 
         badgeText.setPosition(crumbX + blueWidth / 2, crumbCenterY).setOrigin(0.5);
-        chevron.setPosition(crumbX + blueWidth + whitePadLeft, crumbCenterY).setOrigin(0, 0.5);
+        chevron.setPosition(crumbX + blueWidth + whitePadLeft, crumbCenterY - 2).setOrigin(0, 0.5);
         crumbLabel.setPosition(chevron.x + chevron.width + whiteGap, crumbCenterY).setOrigin(0, 0.5);
 
-        this.root.add([backButton, pillBg, badgeText, chevron, crumbLabel]);
+        this.root.add([navButtons.view, pillBg, badgeText, chevron, crumbLabel]);
     }
 
     // ---- Card chrome (blue header bar + white body) --------------------------------------

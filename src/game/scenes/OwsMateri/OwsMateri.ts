@@ -1,6 +1,7 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
@@ -125,22 +126,12 @@ export class OwsMateri extends Scene {
     // ---- Header ---------------------------------------------------------------------
 
     private buildHeader() {
-        const backWidth = 165;
-        const backHeight = backWidth * (558 / 1780);
-        const y = 32 + backHeight / 2;
-        const backBtn = this.add
-            .image(32 + backWidth / 2, y, "ows.btnKembali")
-            .setDisplaySize(backWidth, backHeight)
-            .setInteractive({ useHandCursor: true });
-        backBtn.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
-        });
+        const navButtons = new HomeBackButtons(this, { x: 32, y: 32, onHome: () => this.goTo("MainMenu") });
 
         // Match the quiz header: a single joined module-and-page breadcrumb.
-        const crumbX = 32 + backWidth + 20;
-        const crumbY = 32;
-        const crumbHeight = backHeight;
+        const crumbX = 32 + navButtons.width + 20;
+        const crumbY = 38;
+        const crumbHeight = navButtons.height - 10;
         const centerY = crumbY + crumbHeight / 2;
         const badgeText = this.add.text(0, 0, "MODUL MATERI OWS", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
         const blueWidth = badgeText.width + 48;
@@ -157,9 +148,11 @@ export class OwsMateri extends Scene {
         breadcrumb.strokeRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
 
         badgeText.setPosition(crumbX + blueWidth / 2, centerY).setOrigin(0.5);
-        chevron.setPosition(crumbX + blueWidth + 22, centerY).setOrigin(0, 0.5);
+        // The chevron glyph's visible mark sits lower than its text bounds.
+        // Lift it slightly to align visually with the breadcrumb label.
+        chevron.setPosition(crumbX + blueWidth + 22, centerY - 2).setOrigin(0, 0.5);
         label.setPosition(chevron.x + chevron.width + 10, centerY).setOrigin(0, 0.5);
-        this.root.add([backBtn, breadcrumb, badgeText, chevron, label]);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label]);
     }
 
     // ---- Sidebar ---------------------------------------------------------------------
@@ -184,16 +177,15 @@ export class OwsMateri extends Scene {
         header.fillRoundedRect(SIDEBAR_X, SIDEBAR_Y, SIDEBAR_WIDTH, headerHeight, { tl: cardRadius, tr: cardRadius, bl: 0, br: 0 });
         this.sidebarContainer.add(header);
 
-        const bookIcon = this.add.text(SIDEBAR_X + 24, SIDEBAR_Y + headerHeight / 2, "📖", { fontFamily: FONT, fontStyle: "600", fontSize: 20 }).setOrigin(0.5);
         const heading = this.add
-            .text(SIDEBAR_X + 48, SIDEBAR_Y + headerHeight / 2, "Daftar Materi", {
+            .text(SIDEBAR_X + 24, SIDEBAR_Y + headerHeight / 2, "Daftar Materi", {
                 fontFamily: FONT,
                 fontStyle: "600",
                 fontSize: 17,
                 color: "#ffffff",
             })
             .setOrigin(0, 0.5);
-        this.sidebarContainer.add([bookIcon, heading]);
+        this.sidebarContainer.add(heading);
 
         const rowTop = SIDEBAR_Y + headerHeight + 20;
         const rowHeight = 90;
@@ -224,9 +216,9 @@ export class OwsMateri extends Scene {
 
             const label = this.add.text(labelX, 0, item.title, {
                 fontFamily: FONT,
-                fontStyle: "600",
+                fontStyle: active ? "700" : "500",
                 fontSize: 15,
-                color: DARK_NAVY,
+                color: active ? DARK_NAVY : PRIMARY_BLUE_HEX,
                 wordWrap: { width: SIDEBAR_WIDTH - 72 - 30 },
                 lineSpacing: 3,
             });
@@ -282,7 +274,7 @@ export class OwsMateri extends Scene {
             height: buttonHeight,
             text: "← Sebelumnya",
             fontFamily: FONT,
-            fontStyle: "600",
+            fontStyle: "700",
             fontSize: 14,
             borderRadius: buttonHeight / 2,
             disabled: atFirst,
@@ -306,7 +298,7 @@ export class OwsMateri extends Scene {
             height: buttonHeight,
             text: isLast ? "Mulai Simulator OWS →" : "Selanjutnya →",
             fontFamily: FONT,
-            fontStyle: "600",
+            fontStyle: "700",
             fontSize: 14,
             borderRadius: buttonHeight / 2,
             fillColor: PRIMARY_BLUE,
@@ -338,7 +330,7 @@ export class OwsMateri extends Scene {
         const stepLabel = this.add
             .text(BOARD_X + BOARD_WIDTH / 2, navY + buttonHeight / 2 - 12, `STEP ${this.step} / ${TOTAL_STEPS}`, {
                 fontFamily: FONT,
-                fontStyle: "600",
+                fontStyle: "700",
                 fontSize: 14,
                 color: DARK_NAVY,
             })
@@ -398,12 +390,50 @@ export class OwsMateri extends Scene {
     private addBoardTitle(text: string): GameObjects.Text {
         const title = this.add.text(CONTENT_X, BOARD_Y + BOARD_PAD, text, {
             fontFamily: FONT,
-            fontStyle: "600",
-            fontSize: 22,
+            fontStyle: "800",
+            fontSize: 26,
             color: DARK_NAVY,
         });
         this.boardContainer.add(title);
         return title;
+    }
+
+    /** Shared "note/warning" card standard: tinted background, full-opacity
+     * accent border, and a solid icon badge beside bold accent-colored
+     * text — used for every callout box across all 7 materi steps.
+     * Returns the box height actually used, so callers can stack content
+     * below it. */
+    private buildNoteBox(x: number, y: number, width: number, message: string, accent: number, accentHex: string, bg: number, icon: string): number {
+        const badgeRadius = 16;
+        const paddingX = 24;
+        const iconGap = 16;
+        const textWidth = width - (paddingX + badgeRadius * 2 + iconGap + paddingX);
+
+        const measure = this.add.text(0, 0, message, {
+            fontFamily: FONT, fontStyle: "500", fontSize: 15, lineSpacing: 4, wordWrap: { width: textWidth },
+        });
+        const textHeight = measure.height;
+        measure.destroy();
+
+        const height = Math.max(64, textHeight + 28);
+        const box = this.add.graphics();
+        box.fillStyle(bg, 1);
+        box.fillRoundedRect(x, y, width, height, 14);
+        box.lineStyle(2, accent, 1);
+        box.strokeRoundedRect(x, y, width, height, 14);
+
+        const badgeCenterX = x + paddingX + badgeRadius;
+        const badgeCenterY = y + height / 2;
+        const badge = this.add.circle(badgeCenterX, badgeCenterY, badgeRadius, accent, 1);
+        const badgeIcon = this.add.text(badgeCenterX, badgeCenterY, icon, { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: "#ffffff" }).setOrigin(0.5);
+        const text = this.add
+            .text(badgeCenterX + badgeRadius + iconGap, badgeCenterY, message, {
+                fontFamily: FONT, fontStyle: "500", fontSize: 15, color: accentHex, lineSpacing: 4, wordWrap: { width: textWidth },
+            })
+            .setOrigin(0, 0.5);
+
+        this.boardContainer.add([box, badge, badgeIcon, text]);
+        return height;
     }
 
     private renderBoard() {
@@ -440,65 +470,67 @@ export class OwsMateri extends Scene {
         this.addBoardChrome();
         const title = this.addBoardTitle("Pengertian Oil Water Separator (OWS)");
 
-        const rowTop = title.y + title.height + 14;
+        const rowTop = title.y + title.height + 16;
         const paraWidth = 620;
         const para = this.add.text(
             CONTENT_X,
             rowTop,
             "Oil Water Separator (OWS) adalah peralatan di kapal yang digunakan untuk memisahkan minyak dari air got (bilge water) sebelum air tersebut dibuang ke laut.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: paraWidth } },
+            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: paraWidth } },
         );
         this.boardContainer.add(para);
 
         const cardsX = CONTENT_X + paraWidth + 32;
         const cardsWidth = CONTENT_WIDTH - paraWidth - 32;
         const cardW = (cardsWidth - 24) / 3;
-        const cardH = 132;
+        const cardH = 140;
         const highlights = [
-            { label: "FUNGSI UTAMA", value: "Memisahkan kandungan minyak dari bilge water.", accent: PRIMARY_BLUE, accentHex: PRIMARY_BLUE_HEX },
-            { label: "TARGET BUANGAN", value: "< 15 PPM", accent: GREEN, accentHex: GREEN_HEX },
-            { label: "REGULASI", value: "MARPOL Annex I", accent: AMBER, accentHex: AMBER_HEX },
+            { label: "FUNGSI UTAMA", value: "Memisahkan kandungan minyak dari bilge water.", accent: PRIMARY_BLUE, accentHex: PRIMARY_BLUE_HEX, tint: 0xeaf3ff, icon: "⚙️" },
+            { label: "TARGET BUANGAN", value: "< 15 PPM", accent: GREEN, accentHex: GREEN_HEX, tint: 0xe3f7ec, icon: "✅" },
+            { label: "REGULASI", value: "MARPOL Annex I", accent: AMBER, accentHex: AMBER_HEX, tint: 0xfdecdf, icon: "📄" },
         ];
         highlights.forEach((item, index) => {
             const x = cardsX + index * (cardW + 12);
             const card = this.add.graphics();
-            card.fillStyle(0xf7faff, 1);
-            card.fillRoundedRect(x, rowTop, cardW, cardH, 12);
-            card.lineStyle(2, item.accent, 0.5);
-            card.strokeRoundedRect(x, rowTop, cardW, cardH, 12);
-            const label = this.add.text(x + 14, rowTop + 14, item.label, {
+            card.fillStyle(item.tint, 1);
+            card.fillRoundedRect(x, rowTop, cardW, cardH, 14);
+            card.lineStyle(2, item.accent, 1);
+            card.strokeRoundedRect(x, rowTop, cardW, cardH, 14);
+
+            const iconSize = 30;
+            const iconCenterX = x + 16 + iconSize / 2;
+            const iconCenterY = rowTop + 18 + iconSize / 2;
+            const iconBadge = this.add.circle(iconCenterX, iconCenterY, iconSize / 2, item.accent, 1);
+            const iconText = this.add.text(iconCenterX, iconCenterY, item.icon, { fontFamily: FONT, fontSize: 15 }).setOrigin(0.5);
+
+            const label = this.add
+                .text(iconCenterX + iconSize / 2 + 10, iconCenterY, item.label, {
+                    fontFamily: FONT,
+                    fontStyle: "700",
+                    fontSize: 12,
+                    color: item.accentHex,
+                    wordWrap: { width: cardW - iconSize - 42 },
+                })
+                .setOrigin(0, 0.5);
+
+            const isBigValue = item.value.length <= 20;
+            const value = this.add.text(x + 16, rowTop + 18 + iconSize + 16, item.value, {
                 fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 11,
-                color: item.accentHex,
-                wordWrap: { width: cardW - 28 },
-            });
-            const value = this.add.text(x + 14, rowTop + 48, item.value, {
-                fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: item.value.length > 20 ? 13 : 18,
+                fontStyle: isBigValue ? "800" : "500",
+                fontSize: isBigValue ? 20 : 14,
                 color: DARK_NAVY,
-                wordWrap: { width: cardW - 28 },
-                lineSpacing: 3,
+                wordWrap: { width: cardW - 32 },
+                lineSpacing: 4,
             });
-            this.boardContainer.add([card, label, value]);
+            this.boardContainer.add([card, iconBadge, iconText, label, value]);
         });
 
         const noteY = rowTop + Math.max(para.height, cardH) + 22;
-        const note = this.add.graphics();
-        note.fillStyle(SKY, 1);
-        note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 54, 12);
-        this.boardContainer.add(note);
-        const noteText = this.add
-            .text(CONTENT_X + 16, noteY + 27, "Air buangan hanya dapat dialirkan ke laut apabila memenuhi persyaratan pembuangan yang berlaku.", {
-                fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 13,
-                color: PRIMARY_BLUE_HEX,
-                wordWrap: { width: CONTENT_WIDTH - 32 },
-            })
-            .setOrigin(0, 0.5);
-        this.boardContainer.add(noteText);
+        this.buildNoteBox(
+            CONTENT_X, noteY, CONTENT_WIDTH,
+            "Air buangan hanya dapat dialirkan ke laut apabila memenuhi persyaratan pembuangan yang berlaku.",
+            PRIMARY_BLUE, PRIMARY_BLUE_HEX, SKY, "i",
+        );
     }
 
     // ---- Step 2: Prinsip kerja -----------------------------------------------------------
@@ -527,8 +559,8 @@ export class OwsMateri extends Scene {
             const label = this.add
                 .text(centerX, rowTop + nodeSize / 2 + 12, flow.label, {
                     fontFamily: FONT,
-                    fontStyle: "600",
-                    fontSize: 13,
+                    fontStyle: "700",
+                    fontSize: 17,
                     color: isHighlight ? GREEN_HEX : DARK_NAVY,
                     align: "center",
                     wordWrap: { width: nodeWidth },
@@ -537,8 +569,8 @@ export class OwsMateri extends Scene {
             const desc = this.add
                 .text(centerX, label.y + label.height + 6, flow.description, {
                     fontFamily: FONT,
-                    fontStyle: "600",
-                    fontSize: 11,
+                    fontStyle: "500",
+                    fontSize: 15,
                     color: BODY_TEXT,
                     align: "center",
                     lineSpacing: 2,
@@ -557,20 +589,11 @@ export class OwsMateri extends Scene {
         });
 
         const noteY = rowTop + 150;
-        const note = this.add.graphics();
-        note.fillStyle(SKY, 1);
-        note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 50, 12);
-        this.boardContainer.add(note);
-        const noteText = this.add
-            .text(CONTENT_X + 16, noteY + 25, "Air hanya diarahkan ke overboard apabila Oil Content Monitor membaca kadar minyak di bawah 15 PPM — jika belum, aliran dikembalikan (recirculation).", {
-                fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 13,
-                color: PRIMARY_BLUE_HEX,
-                wordWrap: { width: CONTENT_WIDTH - 32 },
-            })
-            .setOrigin(0, 0.5);
-        this.boardContainer.add(noteText);
+        this.buildNoteBox(
+            CONTENT_X, noteY, CONTENT_WIDTH,
+            "Air hanya diarahkan ke overboard apabila Oil Content Monitor membaca kadar minyak di bawah 15 PPM — jika belum, aliran dikembalikan (recirculation).",
+            PRIMARY_BLUE, PRIMARY_BLUE_HEX, SKY, "i",
+        );
     }
 
     // ---- Step 3: Komponen utama (markers over the real background) ----------------------
@@ -598,7 +621,7 @@ export class OwsMateri extends Scene {
         const pillText = this.add
             .text(iconX + iconRadius + 18, iconY, "Klik salah satu komponen pada gambar untuk melihat penjelasannya", {
                 fontFamily: FONT,
-                fontStyle: "600",
+                fontStyle: "500",
                 fontSize: 17,
                 color: PRIMARY_BLUE_HEX,
             })
@@ -642,8 +665,25 @@ export class OwsMateri extends Scene {
     private buildMarkerDetailCard(marker: OwsComponentMarker) {
         const anchorX = marker.xFrac * DESIGN_WIDTH;
         const anchorY = marker.yFrac * DESIGN_HEIGHT;
-        const cardWidth = 320;
-        const cardHeight = 116;
+        const cardWidth = 594;
+        const textXOffset = 102;
+        const textWidth = cardWidth - textXOffset - 24;
+        const titleMeasure = this.add.text(0, 0, marker.title, {
+            fontFamily: FONT,
+            fontStyle: "800",
+            fontSize: 24,
+            wordWrap: { width: textWidth },
+        });
+        const roleMeasure = this.add.text(0, 0, marker.role, {
+            fontFamily: FONT,
+            fontStyle: "500",
+            fontSize: 20,
+            lineSpacing: 3,
+            wordWrap: { width: textWidth },
+        });
+        const cardHeight = Math.max(132, 24 + titleMeasure.height + 10 + roleMeasure.height + 20);
+        titleMeasure.destroy();
+        roleMeasure.destroy();
         const offsetX = anchorX < DESIGN_WIDTH / 2 ? 34 : -34 - cardWidth;
         let cardX = anchorX + offsetX;
         let cardY = anchorY - cardHeight / 2;
@@ -653,26 +693,29 @@ export class OwsMateri extends Scene {
 
         const card = this.add.graphics();
         card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 14);
+        card.fillRoundedRect(cardX, cardY, cardWidth, cardHeight, 12);
+        card.fillStyle(PRIMARY_BLUE, 0.2);
+        card.fillRoundedRect(cardX, cardY, 88, cardHeight, { tl: 12, tr: 0, br: 0, bl: 12 });
         card.lineStyle(2, PRIMARY_BLUE, 1);
-        card.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 14);
+        card.strokeRoundedRect(cardX, cardY, cardWidth, cardHeight, 12);
 
-        const numberBadge = this.add.circle(cardX + 28, cardY + 28, 16, PRIMARY_BLUE, 1);
-        const numberText = this.add.text(cardX + 28, cardY + 28, marker.number, { fontFamily: FONT, fontStyle: "600", fontSize: 12, color: "#ffffff" }).setOrigin(0.5);
-        const titleText = this.add.text(cardX + 52, cardY + 18, marker.title, {
+        const numberBadge = this.add.circle(cardX + 44, cardY + cardHeight / 2, 28, PRIMARY_BLUE, 1);
+        const numberText = this.add.text(cardX + 44, cardY + cardHeight / 2, marker.number, { fontFamily: FONT, fontStyle: "800", fontSize: 22, color: "#ffffff" }).setOrigin(0.5);
+        const textX = cardX + textXOffset;
+        const titleText = this.add.text(textX, cardY + 24, marker.title, {
             fontFamily: FONT,
-            fontStyle: "600",
-            fontSize: 14,
+            fontStyle: "800",
+            fontSize: 24,
             color: DARK_NAVY,
-            wordWrap: { width: cardWidth - 66 },
+            wordWrap: { width: textWidth },
         });
-        const roleText = this.add.text(cardX + 20, cardY + 62, marker.role, {
+        const roleText = this.add.text(textX, titleText.y + titleText.height + 10, marker.role, {
             fontFamily: FONT,
-            fontStyle: "600",
-            fontSize: 12,
+            fontStyle: "500",
+            fontSize: 20,
             color: BODY_TEXT,
             lineSpacing: 3,
-            wordWrap: { width: cardWidth - 40 },
+            wordWrap: { width: textWidth },
         });
 
         this.boardContainer.add([card, numberBadge, numberText, titleText, roleText]);
@@ -702,8 +745,8 @@ export class OwsMateri extends Scene {
                 .setOrigin(0.5);
             const label = this.add.text(x + 36, y + 4, step, {
                 fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 13,
+                fontStyle: "500",
+                fontSize: 14,
                 color: DARK_NAVY,
                 wordWrap: { width: colWidth - 36 },
             });
@@ -711,21 +754,11 @@ export class OwsMateri extends Scene {
         });
 
         const warnY = listTop + rows * rowHeight + 14;
-        const warn = this.add.graphics();
-        warn.fillStyle(0xfceaea, 1);
-        warn.fillRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 54, 12);
-        warn.lineStyle(2, RED, 0.6);
-        warn.strokeRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 54, 12);
-        const warnText = this.add
-            .text(CONTENT_X + 16, warnY + 27, "⚠ Jangan melakukan pembuangan ke laut apabila kondisi sistem atau kadar minyak tidak memenuhi persyaratan.", {
-                fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 13,
-                color: RED_HEX,
-                wordWrap: { width: CONTENT_WIDTH - 32 },
-            })
-            .setOrigin(0, 0.5);
-        this.boardContainer.add([warn, warnText]);
+        this.buildNoteBox(
+            CONTENT_X, warnY, CONTENT_WIDTH,
+            "Jangan melakukan pembuangan ke laut apabila kondisi sistem atau kadar minyak tidak memenuhi persyaratan.",
+            RED, RED_HEX, 0xfceaea, "⚠",
+        );
     }
 
     // ---- Step 5: Batas buangan -------------------------------------------------------------
@@ -775,7 +808,7 @@ export class OwsMateri extends Scene {
             CONTENT_X,
             ocmNoteY,
             "Oil Content Monitor (OCM) digunakan untuk memantau kandungan minyak pada air buangan.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 13, color: BODY_TEXT, lineSpacing: 4, wordWrap: { width: CONTENT_WIDTH } },
+            { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: CONTENT_WIDTH } },
         );
         this.boardContainer.add(ocmNote);
 
@@ -790,17 +823,18 @@ export class OwsMateri extends Scene {
             const isBorder = sample.verdict === "BATAS";
             const color = isOk ? GREEN : isBorder ? AMBER : RED;
             const colorHex = isOk ? GREEN_HEX : isBorder ? AMBER_HEX : RED_HEX;
+            const tint = isOk ? 0xe3f7ec : isBorder ? 0xfdecdf : 0xfceaea;
 
             const chip = this.add.graphics();
-            chip.fillStyle(0xf7faff, 1);
+            chip.fillStyle(tint, 1);
             chip.fillRoundedRect(x, chipsY, chipWidth, chipHeight, 10);
-            chip.lineStyle(2, color, 0.7);
+            chip.lineStyle(2, color, 1);
             chip.strokeRoundedRect(x, chipsY, chipWidth, chipHeight, 10);
             const ppmText = this.add
-                .text(x + chipWidth / 2, chipsY + 18, `${sample.ppm} PPM`, { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: DARK_NAVY })
+                .text(x + chipWidth / 2, chipsY + 18, `${sample.ppm} PPM`, { fontFamily: FONT, fontStyle: "800", fontSize: 15, color: DARK_NAVY })
                 .setOrigin(0.5);
             const verdictText = this.add
-                .text(x + chipWidth / 2, chipsY + 40, sample.verdict, { fontFamily: FONT, fontStyle: "600", fontSize: 10, color: colorHex })
+                .text(x + chipWidth / 2, chipsY + 41, sample.verdict, { fontFamily: FONT, fontStyle: "800", fontSize: 11, color: colorHex })
                 .setOrigin(0.5);
             this.boardContainer.add([chip, ppmText, verdictText]);
         });
@@ -824,7 +858,7 @@ export class OwsMateri extends Scene {
             CONTENT_X,
             rowTop,
             "Aktivitas terkait operasi dan penanganan minyak di kapal harus dicatat sesuai ketentuan yang berlaku pada kapal.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT, lineSpacing: 5, wordWrap: { width: paraWidth } },
+            { fontFamily: FONT, fontStyle: "700", fontSize: 16, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: paraWidth } },
         );
         this.boardContainer.add(para);
 
@@ -855,7 +889,7 @@ export class OwsMateri extends Scene {
             text: "Lihat Contoh →",
             fontFamily: FONT,
             fontStyle: "600",
-            fontSize: 12,
+            fontSize: 16,
             borderRadius: 10,
             fillColor: 0xffffff,
             strokeColor: PRIMARY_BLUE,
@@ -874,7 +908,7 @@ export class OwsMateri extends Scene {
         const fieldsHeading = this.add.text(fieldsX, rowTop, "Kategori informasi yang dicatat:", {
             fontFamily: FONT,
             fontStyle: "600",
-            fontSize: 12,
+            fontSize: 16,
             color: PRIMARY_BLUE_HEX,
         });
         this.boardContainer.add(fieldsHeading);
@@ -883,18 +917,18 @@ export class OwsMateri extends Scene {
         const fieldCols = 2;
         const fieldRows = Math.ceil(OWS_RECORD_BOOK_FIELDS.length / fieldCols);
         const fieldColWidth = (fieldsWidth - 20) / fieldCols;
-        const fieldRowHeight = 38;
+        const fieldRowHeight = 48;
 
         OWS_RECORD_BOOK_FIELDS.forEach((field, index) => {
             const col = Math.floor(index / fieldRows);
             const row = index % fieldRows;
             const x = fieldsX + col * (fieldColWidth + 20);
             const y = fieldRowTop + row * fieldRowHeight;
-            const dot = this.add.circle(x + 5, y + 8, 4, PRIMARY_BLUE, 1);
+            const dot = this.add.circle(x + 5, y + 10, 4, PRIMARY_BLUE, 1);
             const label = this.add.text(x + 18, y, field, {
                 fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 12,
+                fontStyle: "500",
+                fontSize: 16,
                 color: DARK_NAVY,
                 wordWrap: { width: fieldColWidth - 18 },
             });
@@ -930,7 +964,7 @@ export class OwsMateri extends Scene {
         const note = this.add.text(CONTENT_X, title.y + title.height + 10, "Data di bawah ini contoh ilustratif, bukan data kapal nyata.", {
             fontFamily: FONT,
             fontStyle: "600",
-            fontSize: 12,
+            fontSize: 16,
             color: BODY_TEXT,
         });
         this.boardContainer.add(note);
@@ -941,23 +975,23 @@ export class OwsMateri extends Scene {
 
         let colX = CONTENT_X;
         headers.forEach((header, index) => {
-            const headerText = this.add.text(colX, tableTop, header, { fontFamily: FONT, fontStyle: "600", fontSize: 11, color: PRIMARY_BLUE_HEX });
+            const headerText = this.add.text(colX, tableTop, header, { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: PRIMARY_BLUE_HEX });
             this.boardContainer.add(headerText);
             colX += colWidths[index];
         });
 
-        const headerLine = this.add.rectangle(CONTENT_X + CONTENT_WIDTH / 2, tableTop + 22, CONTENT_WIDTH, 2, 0xdce6f5);
+        const headerLine = this.add.rectangle(CONTENT_X + CONTENT_WIDTH / 2, tableTop + 28, CONTENT_WIDTH, 2, 0xdce6f5);
         this.boardContainer.add(headerLine);
 
-        let rowY = tableTop + 34;
+        let rowY = tableTop + 42;
         OWS_RECORD_BOOK_EXAMPLE.forEach((row) => {
             colX = CONTENT_X;
             const values = [row.tanggal, row.operasi, row.jumlah, row.petugas];
             values.forEach((value, index) => {
                 const cell = this.add.text(colX, rowY, value, {
                     fontFamily: FONT,
-                    fontStyle: "600",
-                    fontSize: 12,
+                    fontStyle: "500",
+                    fontSize: 16,
                     color: DARK_NAVY,
                     lineSpacing: 3,
                     wordWrap: { width: colWidths[index] - 12 },
@@ -965,7 +999,7 @@ export class OwsMateri extends Scene {
                 this.boardContainer.add(cell);
                 colX += colWidths[index];
             });
-            rowY += 56;
+            rowY += 68;
         });
     }
 
@@ -983,36 +1017,28 @@ export class OwsMateri extends Scene {
         OWS_SUMMARY_CARDS.forEach((item, index) => {
             const x = CONTENT_X + index * (cardWidth + cardGap);
             const card = this.add.graphics();
-            card.fillStyle(0xf7faff, 1);
-            card.fillRoundedRect(x, rowTop, cardWidth, cardHeight, 12);
-            card.lineStyle(2, PRIMARY_BLUE, 0.5);
-            card.strokeRoundedRect(x, rowTop, cardWidth, cardHeight, 12);
-            const titleText = this.add.text(x + 18, rowTop + 16, item.title, { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: PRIMARY_BLUE_HEX });
-            const bodyText = this.add.text(x + 18, rowTop + 46, item.body, {
+            card.fillStyle(SKY, 1);
+            card.fillRoundedRect(x, rowTop, cardWidth, cardHeight, 14);
+            card.lineStyle(2, PRIMARY_BLUE, 1);
+            card.strokeRoundedRect(x, rowTop, cardWidth, cardHeight, 14);
+            const titleText = this.add.text(x + 18, rowTop + 16, item.title, { fontFamily: FONT, fontStyle: "800", fontSize: 15, color: PRIMARY_BLUE_HEX });
+            const bodyText = this.add.text(x + 18, rowTop + 48, item.body, {
                 fontFamily: FONT,
-                fontStyle: "600",
-                fontSize: 13,
+                fontStyle: "700",
+                fontSize: 14,
                 color: DARK_NAVY,
-                lineSpacing: 4,
+                lineSpacing: 5,
                 wordWrap: { width: cardWidth - 36 },
             });
             this.boardContainer.add([card, titleText, bodyText]);
         });
 
         const warnY = rowTop + cardHeight + 18;
-        const warn = this.add.graphics();
-        warn.fillStyle(0xfdf3e7, 1);
-        warn.fillRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 76, 12);
-        warn.lineStyle(2, AMBER, 0.6);
-        warn.strokeRoundedRect(CONTENT_X, warnY, CONTENT_WIDTH, 76, 12);
-        const warnTitle = this.add.text(CONTENT_X + 18, warnY + 14, "INGAT!", { fontFamily: FONT, fontStyle: "600", fontSize: 13, color: AMBER_HEX });
-        const warnBody = this.add.text(
-            CONTENT_X + 18,
-            warnY + 36,
-            "Operasikan OWS sesuai prosedur, pantau OCM, dan jangan melakukan pembuangan yang tidak memenuhi ketentuan.",
-            { fontFamily: FONT, fontStyle: "600", fontSize: 13, color: DARK_NAVY, wordWrap: { width: CONTENT_WIDTH - 36 } },
+        this.buildNoteBox(
+            CONTENT_X, warnY, CONTENT_WIDTH,
+            "INGAT! Operasikan OWS sesuai prosedur, pantau OCM, dan jangan melakukan pembuangan yang tidak memenuhi ketentuan.",
+            AMBER, AMBER_HEX, 0xfdf3e7, "⚠",
         );
-        this.boardContainer.add([warn, warnTitle, warnBody]);
     }
 
     // ---- Layout -------------------------------------------------------------------------

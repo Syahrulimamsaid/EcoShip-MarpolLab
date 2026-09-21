@@ -1,7 +1,6 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
-import { createBackButton } from "../../../component/ModuleHeader/ModuleHeader";
-import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
+import { DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 
@@ -12,6 +11,10 @@ const DESIGN_HEIGHT = 1060;
 const MARGIN = 40;
 
 const CARD_WIDTH = 1000;
+const CARD_HEIGHT = 570;
+const CARD_X = (DESIGN_WIDTH - CARD_WIDTH) / 2;
+const CARD_Y = 214;
+const PALE_BLUE = 0xeaf4ff;
 
 /**
  * A single-panel "Tentang" (about) info page — developer profile, asset
@@ -28,7 +31,7 @@ export class Tentang extends Scene {
     }
 
     create() {
-        this.background = this.add.image(0, 0, "AnatomiStructure.background");
+        this.background = this.add.image(0, 0, "background.home");
         this.root = this.add.container(0, 0);
 
         const groups: GameObjects.GameObject[][] = [];
@@ -58,150 +61,144 @@ export class Tentang extends Scene {
     // ---- Title + back button --------------------------------------------------
 
     private buildTopBar() {
-        const backButton = createBackButton(this, MARGIN, 40, () => this.goTo("MainMenu"));
+        const backButton = this.add
+            .image(MARGIN + 29, 68, "btn_back")
+            .setDisplaySize(58, 58)
+            .setInteractive({ useHandCursor: true })
+            .on("pointerup", () => this.goTo("MainMenu"));
 
         const title = this.add
-            .text(DESIGN_WIDTH / 2, 67, "TENTANG", {
+            .text(MARGIN + 86, 66, "TENTANG", {
                 fontFamily: "Plus Jakarta Sans",
-                fontStyle: "600",
-                fontSize: 32,
+                fontStyle: "800",
+                fontSize: 38,
                 color: DARK_NAVY,
             })
-            .setOrigin(0.5);
+            .setOrigin(0, 0.5);
 
-        this.root.add([backButton, title]);
+        const underline = this.add.graphics();
+        underline.fillStyle(PRIMARY_BLUE, 1);
+        underline.fillRoundedRect(MARGIN + 88, 94, 56, 7, 4);
+
+        this.root.add([backButton, title, underline]);
     }
 
     // ---- Content card -----------------------------------------------------------
 
     private buildContentCard() {
-        const paddingX = 36;
-        const paddingY = 32;
-        const textWidth = CARD_WIDTH - paddingX * 2;
-
-        const cardContainer = this.add.container(0, 0);
-
-        let cursorY = paddingY;
-        cursorY += this.buildProfilPengembang(paddingX, cursorY, textWidth, cardContainer) + 28;
-        cursorY +=
-            this.buildLabeledParagraph(
-                paddingX,
-                cursorY,
-                textWidth,
-                "Aset gambar",
-                "Ilustrasi, karakter, dan ikon dibuat dengan bantuan ChatGPT (OpenAI).",
-                cardContainer,
-            ) + 28;
-        cursorY += this.buildLabeledParagraph(paddingX, cursorY, textWidth, "Music", "Pixabay — pixabay.com (Free License)", cardContainer) + 28;
-        cursorY += this.buildDaftarPustaka(paddingX, cursorY, textWidth, cardContainer);
-        cursorY += paddingY;
-
-        const cardHeight = cursorY;
+        const cardContainer = this.add.container(CARD_X, CARD_Y);
 
         const card = this.add.graphics();
-        card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(0, 0, CARD_WIDTH, cardHeight, 20);
-        card.lineStyle(2, PRIMARY_BLUE, 0.9);
-        card.strokeRoundedRect(0, 0, CARD_WIDTH, cardHeight, 20);
+        card.fillStyle(0xffffff, 0.97);
+        card.fillRoundedRect(0, 0, CARD_WIDTH, CARD_HEIGHT, 22);
+        card.lineStyle(2, PRIMARY_BLUE, 0.94);
+        card.strokeRoundedRect(0, 0, CARD_WIDTH, CARD_HEIGHT, 22);
         cardContainer.addAt(card, 0);
 
-        cardContainer.setPosition((DESIGN_WIDTH - CARD_WIDTH) / 2, (DESIGN_HEIGHT - cardHeight) / 2);
-        this.root.add(cardContainer);
-    }
+        const divider = this.add.graphics();
+        divider.lineStyle(2, PRIMARY_BLUE, 0.22);
+        divider.lineBetween(360, 44, 360, 402);
+        cardContainer.add(divider);
 
-    private buildProfilPengembang(x: number, y: number, width: number, container: GameObjects.Container): number {
-        const header = this.add.text(x, y, "Profil Pengembang :", {
-            fontFamily: "Plus Jakarta Sans",
-            fontStyle: "600",
-            fontSize: 17,
-            color: PRIMARY_BLUE_HEX,
-        });
-        container.add(header);
+        const logo = this.add.image(184, 190, "logo").setDisplaySize(298, 118);
+        const logoCaption = this.add
+            .text(184, 294, "Kepedulian Lingkungan dan\nPencegahan Polusi Kelautan", {
+                fontFamily: "Plus Jakarta Sans",
+                fontStyle: "500",
+                fontSize: 16,
+                color: PRIMARY_BLUE_HEX,
+                align: "center",
+                lineSpacing: 5,
+            })
+            .setOrigin(0.5, 0);
+        cardContainer.add([logo, logoCaption]);
 
-        const rows: Array<[string, string]> = [
-            ["Judul", "Stabilitas Kapal Niaga dan Rangka Lambung"],
-            ["Pengembang", "Creator (Muhamad Slamet Riyadi, S.Kom, M.Kom), Programmer dan Design Asset (Syahrul Imam Said)"],
+        const fieldX = 384;
+        const fieldWidth = 584;
+        const fields: Array<[string, string]> = [
+            ["Judul", "EcoShip–MarpolLab"],
+            ["Pengembang", "Muhamad Slamet Riyadi, S.Kom, M.Kom"],
+            ["Programmer &\nDesain Asset", "Syahrul Imam Said"],
             ["Program Keahlian", "Nautika Kapal Niaga"],
             ["Instansi", "SMK Negeri 2 Kudus"],
         ];
-
-        const labelWidth = 170;
-        const rowGap = 10;
-        let rowY = y + header.height + 12;
-
-        rows.forEach(([label, value]) => {
-            const labelText = this.add.text(x, rowY, label, {
-                fontFamily: "Plus Jakarta Sans",
-                fontStyle: "600",
-                fontSize: 14,
-                color: DARK_NAVY,
-            });
-            const colonText = this.add.text(x + labelWidth, rowY, ":", {
-                fontFamily: "Plus Jakarta Sans",
-                fontStyle: "600",
-                fontSize: 14,
-                color: DARK_NAVY,
-            });
-            const valueText = this.add.text(x + labelWidth + 16, rowY, value, {
-                fontFamily: "Plus Jakarta Sans",
-                fontStyle: "600",
-                fontSize: 14,
-                color: BODY_TEXT,
-                lineSpacing: 4,
-                wordWrap: { width: width - labelWidth - 16 },
-            });
-            container.add([labelText, colonText, valueText]);
-            rowY += Math.max(labelText.height, valueText.height) + rowGap;
+        fields.forEach(([label, value], index) => {
+            const y = 44 + index * 68;
+            const row = this.add.graphics();
+            row.fillStyle(PALE_BLUE, 1);
+            row.fillRoundedRect(fieldX, y, fieldWidth, 58, 13);
+            const labelText = this.add
+                .text(fieldX + 16, y + 29, label, {
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "700",
+                    fontSize: 15,
+                    color: DARK_NAVY,
+                    lineSpacing: 2,
+                })
+                .setOrigin(0, 0.5);
+            const colon = this.add
+                .text(fieldX + 192, y + 29, ":", {
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "700",
+                    fontSize: 16,
+                    color: DARK_NAVY,
+                })
+                .setOrigin(0.5);
+            const valueText = this.add
+                .text(fieldX + 220, y + 29, value, {
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "500",
+                    fontSize: 15,
+                    color: DARK_NAVY,
+                    wordWrap: { width: fieldWidth - 238 },
+                })
+                .setOrigin(0, 0.5);
+            cardContainer.add([row, labelText, colon, valueText]);
         });
 
-        return rowY - rowGap - y;
+        this.buildInformationPanel(cardContainer);
+
+        this.root.add(cardContainer);
     }
 
-    private buildLabeledParagraph(x: number, y: number, width: number, label: string, body: string, container: GameObjects.Container): number {
-        const header = this.add.text(x, y, `${label} :`, {
-            fontFamily: "Plus Jakarta Sans",
-            fontStyle: "600",
-            fontSize: 17,
-            color: PRIMARY_BLUE_HEX,
-        });
+    private buildInformationPanel(container: GameObjects.Container) {
+        const x = 32;
+        const y = 430;
+        const width = CARD_WIDTH - x * 2;
+        const height = 108;
+        const panel = this.add.graphics();
+        panel.fillStyle(PALE_BLUE, 1);
+        panel.fillRoundedRect(x, y, width, height, 16);
 
-        const bodyText = this.add.text(x, y + header.height + 10, body, {
-            fontFamily: "Plus Jakarta Sans",
-            fontStyle: "600",
-            fontSize: 14,
-            color: BODY_TEXT,
-            lineSpacing: 4,
-            wordWrap: { width },
-        });
-
-        container.add([header, bodyText]);
-        return header.height + 10 + bodyText.height;
-    }
-
-    private buildDaftarPustaka(x: number, y: number, width: number, container: GameObjects.Container): number {
-        const header = this.add.text(x, y, "Daftar Pustaka", {
-            fontFamily: "Plus Jakarta Sans",
-            fontStyle: "600",
-            fontSize: 17,
-            color: PRIMARY_BLUE_HEX,
-        });
-
-        const bodyText = this.add.text(
-            x,
-            y + header.height + 10,
-            "Referensi materi mengacu pada standar International Maritime Organization (IMO), Biro Klasifikasi Indonesia (BKI), dan sumber pembelajaran maritim terbuka lainnya.",
-            {
+        const infoCircle = this.add.graphics();
+        infoCircle.fillStyle(PRIMARY_BLUE, 1);
+        infoCircle.fillCircle(x + 52, y + height / 2, 25);
+        const infoText = this.add
+            .text(x + 52, y + height / 2 + 1, "i", {
                 fontFamily: "Plus Jakarta Sans",
-                fontStyle: "600",
-                fontSize: 14,
-                color: BODY_TEXT,
-                lineSpacing: 4,
-                wordWrap: { width },
-            },
-        );
-
-        container.add([header, bodyText]);
-        return header.height + 10 + bodyText.height;
+                fontStyle: "800",
+                fontSize: 34,
+                color: "#ffffff",
+            })
+            .setOrigin(0.5);
+        const panelDivider = this.add.graphics();
+        panelDivider.lineStyle(2, PRIMARY_BLUE, 0.24);
+        panelDivider.lineBetween(x + 110, y + 20, x + 110, y + height - 20);
+        const description = this.add
+            .text(
+                x + 140,
+                y + height / 2,
+                "Media pembelajaran interaktif ini dikembangkan untuk meningkatkan pemahaman siswa\nmengenai pengelolaan sampah kapal dan pencegahan polusi laut.",
+                {
+                    fontFamily: "Plus Jakarta Sans",
+                    fontStyle: "500",
+                    fontSize: 16,
+                    color: DARK_NAVY,
+                    lineSpacing: 7,
+                },
+            )
+            .setOrigin(0, 0.5);
+        container.add([panel, infoCircle, infoText, panelDivider, description]);
     }
 
     // ---- Layout -------------------------------------------------------------

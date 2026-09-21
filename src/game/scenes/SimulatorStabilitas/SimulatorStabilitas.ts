@@ -114,6 +114,7 @@ export class SimulatorStabilitas extends Scene {
             breadcrumbLabel: "Simulasi Distribusi Beban",
             heading: "SIMULASI STABILITAS KAPAL",
             subtitle: "Atur distribusi muatan agar kapal kembali dalam kondisi stabil.",
+            onHome: () => this.goTo("MainMenu"),
             onBack: () => this.goTo("PilihAktivitasStabilitas"),
         });
         this.root.add(header.view);

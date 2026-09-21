@@ -2,6 +2,7 @@ import { GameObjects, Scale, Scene } from "phaser";
 
 import { BgmToggleButton } from "../../../component/Button/BgmToggleButton";
 import { Button } from "../../../component/Button/Button";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { createStepDots } from "../../../component/StepDots/StepDots";
@@ -90,24 +91,9 @@ export class SopepMateri extends Scene {
     // ---- Header ---------------------------------------------------------------------
 
     private buildHeader() {
-        const homeWidth = 150;
-        const homeHeight = HEADER_HEIGHT;
-        const homeBg = this.add.graphics();
-        homeBg.fillStyle(0xffffff, 1);
-        homeBg.fillRoundedRect(32, HEADER_Y, homeWidth, homeHeight, homeHeight / 2);
-        homeBg.lineStyle(2, BORDER_BLUE, 1);
-        homeBg.strokeRoundedRect(32, HEADER_Y, homeWidth, homeHeight, homeHeight / 2);
-        const homeIcon = this.add.text(32 + 26, HEADER_Y + homeHeight / 2, "🏠", { fontFamily: FONT, fontSize: 18 }).setOrigin(0.5);
-        const homeLabel = this.add
-            .text(32 + 48, HEADER_Y + homeHeight / 2, "Beranda", { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: PRIMARY_BLUE_HEX })
-            .setOrigin(0, 0.5);
-        const homeHit = this.add.rectangle(32 + homeWidth / 2, HEADER_Y + homeHeight / 2, homeWidth, homeHeight, 0xffffff, 0).setInteractive({ useHandCursor: true });
-        homeHit.on("pointerdown", () => {
-            playSfx(this, SFX_KEYS.click);
-            this.goTo("MainMenu");
-        });
+        const navButtons = new HomeBackButtons(this, { x: 32, y: HEADER_Y, size: HEADER_HEIGHT, onHome: () => this.goTo("MainMenu") });
 
-        const crumbX = 32 + homeWidth + 16;
+        const crumbX = 32 + navButtons.width + 16;
         const crumbHeight = HEADER_HEIGHT;
         const centerY = HEADER_Y + crumbHeight / 2;
         const badgeText = this.add.text(0, 0, "MODUL MATERI SOPEP", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: "#ffffff" });
@@ -152,7 +138,7 @@ export class SopepMateri extends Scene {
             },
         });
 
-        this.root.add([homeBg, homeIcon, homeLabel, homeHit, breadcrumb, badgeText, chevron, label, settingsBg, settingsIcon, settingsHit, bgmToggle.view]);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label, settingsBg, settingsIcon, settingsHit, bgmToggle.view]);
     }
 
     // ---- Main content (data-driven "MaterialLessonPage" template) ---------------------

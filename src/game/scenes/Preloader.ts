@@ -81,7 +81,7 @@ export class Preloader extends Scene {
         this.load.image("star", "assets/star.png");
         this.load.image("profile.human", "assets/profile.png");
         this.load.image("character", "assets/character.png");
-        this.load.audio("bgm.main", "assets/bgm/bluelike_u-7-wizard-cute-bgm-274665.mp3");
+        this.load.audio("bgm.main", "assets/bgm/mangmaru-shameless-child-327092.mp3");
         this.load.audio("sfx.menuClick", "assets/soundeffect/menu-click.mp3");
         this.load.audio("bgm.dubbing_greeting", "assets/soundeffect/dashboard_archilab.mp3");
         this.load.audio("bgm.quizThinking", "assets/bgm/sonican-thinking-time.mp3");
@@ -152,7 +152,12 @@ export class Preloader extends Scene {
             "soped.background",
             "assets/soped/bg.png",
         );
-        this.load.image("ows.btnKembali", "assets/ows/btn_kembali.png");
+
+        // Shared header nav icons — Home (always present) and Back (only on
+        // pages reached beyond a module's first-level materi/hub screen).
+        this.load.image("btn_home", "assets/btn_home.png");
+        this.load.image("btn_back", "assets/btn_back.png");
+
         this.load.image("ows.cardSimulator", "assets/ows/card_menu_simulasi_ows.png");
         this.load.image("ows.cardKuis", "assets/ows/card_menu_kuis_marpol.png");
         this.load.image("ows.deskripsiMenu", "assets/ows/deskripsi_menu.png");
@@ -161,7 +166,6 @@ export class Preloader extends Scene {
         this.load.image("ows.cardInstruksi", "assets/ows/card_intruksi_simulasi.png");
 
         this.load.image("pilah_sampah.background", "assets/pilah_sampah/bg.png");
-        this.load.image("pilah_sampah.btnKembali", "assets/btn_kembali.png");
         this.load.image("pilah_sampah.instruksi", "assets/pilah_sampah/intruksi.png");
         this.load.svg("pilah_sampah.icon.incinerator", "assets/pilah_sampah/icons/incinerator.svg", { width: 128, height: 128 });
         this.load.svg("pilah_sampah.icon.comminutor", "assets/pilah_sampah/icons/comminutor.svg", { width: 128, height: 128 });
@@ -280,7 +284,7 @@ export class Preloader extends Scene {
         this.hasPlayedIntro = true;
 
         const logoFinalScaleX = this.logo.scaleX;
-        const logoFinalScaleY = this.logo.scaleY;
+        const logoFinalScaleY = this.logo.scaleY ;
 
         this.logo.setAlpha(0);
         this.logo.setScale(logoFinalScaleX, logoFinalScaleY);

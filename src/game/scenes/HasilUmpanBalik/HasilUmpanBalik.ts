@@ -80,7 +80,8 @@ export class HasilUmpanBalik extends Scene {
             breadcrumbLabel: "Kuis Evaluasi Akhir",
             heading: "Hasil & Umpan Balik",
             subtitle: "Uji seluruh pemahamanmu lewat kuis evaluasi akhir sebelum menyelesaikan modul ini.",
-            onBack: () => this.goTo("MainMenu"),
+            onHome: () => this.goTo("MainMenu"),
+            onBack: () => this.goTo("SopepHasilUmpanBalik"),
         });
         this.root.add(header.view);
     }

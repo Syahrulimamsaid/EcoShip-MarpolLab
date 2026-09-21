@@ -124,7 +124,7 @@ export class StabilitasMateri extends Scene {
             breadcrumbLabel: "Materi Dasar Stabilitas Kapal",
             heading: "DASAR STABILITAS KAPAL",
             subtitle: "Pelajari konsep dasar stabilitas sebelum melakukan simulasi distribusi muatan.",
-            onBack: () => this.goTo("MainMenu"),
+            onHome: () => this.goTo("MainMenu"),
         });
         this.root.add(header.view);
     }
