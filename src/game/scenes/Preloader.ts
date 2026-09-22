@@ -182,6 +182,34 @@ export class Preloader extends Scene {
         this.load.image("pilah_sampah.waste.daun", "assets/pilah_sampah/sampah/10_daun.png");
         this.load.image("pilah_sampah.waste.kue", "assets/pilah_sampah/sampah/11_kue.png");
         this.load.image("pilah_sampah.waste.paperBag", "assets/pilah_sampah/sampah/12_paper_bag.png");
+        this.load.image("pilah_sampah.waste.sisaNasi", "assets/pilah_sampah/sampah/13_rice.png");
+        this.load.image("pilah_sampah.waste.kulitJeruk", "assets/pilah_sampah/sampah/14_orange.png");
+        this.load.image("pilah_sampah.waste.sisaIkan", "assets/pilah_sampah/sampah/15_fish_bone.png");
+        this.load.image("pilah_sampah.waste.sisaRoti", "assets/pilah_sampah/sampah/16_bread.png");
+        this.load.image("pilah_sampah.materi.circleShip", "assets/pilah_sampah/materi/circle-ship.png");
+        this.load.image("pilah_sampah.materi.circleSea", "assets/pilah_sampah/materi/circle-sea.png");
+        this.load.image("pilah_sampah.materi.circleLeaf", "assets/pilah_sampah/materi/circle-leaf.png");
+        this.load.image("pilah_sampah.materi.circleTrash", "assets/pilah_sampah/materi/circle-trash.png");
+        this.load.image("pilah_sampah.materi.trashFoodwaste", "assets/pilah_sampah/materi/trash-foodwaste.png");
+        this.load.image("pilah_sampah.materi.trashPlastic", "assets/pilah_sampah/materi/trash-plastic.png");
+        this.load.image("pilah_sampah.materi.trashPaper", "assets/pilah_sampah/materi/trash-paper.png");
+        this.load.image("pilah_sampah.materi.trashLogam", "assets/pilah_sampah/materi/trash-logam.png");
+        this.load.image("pilah_sampah.materi.trashGlass", "assets/pilah_sampah/materi/trash-glass.png");
+        this.load.image("pilah_sampah.materi.trashOil", "assets/pilah_sampah/materi/trash-oil.png");
+        this.load.image("pilah_sampah.materi.trashDanger", "assets/pilah_sampah/materi/trash-danger.png");
+        this.load.image("pilah_sampah.materi.imgMarpol", "assets/pilah_sampah/materi/img-marpol.png");
+        this.load.image("pilah_sampah.materi.imgIncinerator", "assets/pilah_sampah/materi/img-incinerator.png");
+        this.load.image("pilah_sampah.materi.imgComminutor", "assets/pilah_sampah/materi/img-comminutor.png");
+        this.load.image("pilah_sampah.materi.imgBakSampah", "assets/pilah_sampah/materi/img-bak-sampah.png");
+        this.load.image("pilah_sampah.materi.iconComminutorTrash", "assets/pilah_sampah/materi/icon-comminutor-trash.png");
+        this.load.image("pilah_sampah.materi.iconComminutor", "assets/pilah_sampah/materi/icon-comminutor.png");
+        this.load.image("pilah_sampah.materi.iconComminutorResult", "assets/pilah_sampah/materi/icon-comminutor-result.png");
+        this.load.image("pilah_sampah.materi.imgKesimpulan", "assets/pilah_sampah/materi/img-kesimpulan.png");
+        this.load.image("pilah_sampah.materi.iconAlurPemilahan", "assets/pilah_sampah/materi/icon-alur-pemilahan.png");
+        this.load.image("pilah_sampah.materi.iconAlurPengelolaan", "assets/pilah_sampah/materi/icon-alur-pengelolaan.png");
+        this.load.image("pilah_sampah.materi.iconAlurPenyimpanan", "assets/pilah_sampah/materi/icon-alur-penyimpanan.png");
+        this.load.image("pilah_sampah.materi.iconAlurPencatatan", "assets/pilah_sampah/materi/icon-alur-pencatatan.png");
+        this.load.image("pilah_sampah.materi.iconAlurPenyerahan", "assets/pilah_sampah/materi/icon-alur-penyerahan.png");
     }
 
     create() {

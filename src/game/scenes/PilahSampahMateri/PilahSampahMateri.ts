@@ -7,20 +7,16 @@ import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/Sc
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
 import {
-    COMMINUTOR_FLOW,
-    FlowNode,
-    INCINERATOR_FLOW,
-    PILAH_HANDLING_BRANCHES,
-    PILAH_INTRO_ICONS,
+    PILAH_COMMINUTOR_CARDS,
+    PILAH_INCINERATOR_CARDS,
+    PILAH_INTRO_ITEMS,
     PILAH_LEARNING_GOALS,
-    PILAH_MAIN_FLOW,
-    PILAH_REMINDERS,
+    PILAH_MANAGEMENT_FLOW,
     PILAH_SIDEBAR_STEPS,
-    PILAH_SORTING_GOALS,
-    PILAH_STORAGE_CHECKLIST,
-    PILAH_SUMMARY,
-    STORAGE_BINS,
-    WASTE_CATEGORIES,
+    PILAH_SORTING_PRINCIPLES,
+    PILAH_STORAGE_CARDS,
+    PILAH_SUMMARY_POINTS,
+    PILAH_WASTE_CATEGORIES,
 } from "./PilahSampahMateriData";
 
 const DESIGN_WIDTH = 1920;
@@ -28,11 +24,13 @@ const DESIGN_HEIGHT = 1080;
 const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
 const TOTAL_STEPS = PILAH_SIDEBAR_STEPS.length;
 
-const GREEN = 0x1f8d52;
 const GREEN_HEX = "#1f8d52";
 const AMBER = 0xe0792e;
 const AMBER_HEX = "#b5651d";
 const SKY = 0xeaf3ff;
+// Pale blue used by the Incinerator information cards, matching the design reference.
+const INCINERATOR_CARD_BG = 0xf3f7fc;
+const PLACEHOLDER_BG = 0xf5f9ff;
 
 const SIDEBAR_X = 24;
 const SIDEBAR_Y = 104;
@@ -44,16 +42,26 @@ const BOARD_X = SIDEBAR_X + SIDEBAR_WIDTH + 24;
 const BOARD_WIDTH = DESIGN_WIDTH - BOARD_X - 24;
 const BOARD_Y = SIDEBAR_Y;
 const BOARD_HEIGHT = SIDEBAR_HEIGHT;
-const BOARD_PAD = 32;
+const BOARD_RADIUS = 24;
+const BOARD_PAD = 40;
 const CONTENT_X = BOARD_X + BOARD_PAD;
 const CONTENT_WIDTH = BOARD_WIDTH - BOARD_PAD * 2;
+const CONTENT_BOTTOM = BOARD_Y + BOARD_HEIGHT - BOARD_PAD;
+const COL_GAP = 32;
 
 /**
  * "Materi Pemilahan Sampah" — a 7-step reading module that runs before the
  * existing PilahSampah drag-and-drop simulator. Mirrors OwsMateri's sidebar +
- * whiteboard layout so the two learning modules feel like one product; the
+ * board layout so the two learning modules feel like one product; the
  * simulator itself (PilahSampah.ts) is untouched — this scene only adds a
  * "Mulai Simulasi" hand-off into it.
+ *
+ * The whiteboard content is template-driven, per the client design brief:
+ * every slot that would hold an icon/illustration/machine asset (ship, sea,
+ * environment, bin, Incinerator, Comminutor, storage bak, flow-step icons,
+ * etc.) is rendered as an empty bordered placeholder container rather than a
+ * generated icon — real PNG/SVG assets are meant to be dropped into those
+ * slots later without touching this layout code.
  */
 export class PilahSampahMateri extends Scene {
     private background!: GameObjects.Image;
@@ -174,9 +182,8 @@ export class PilahSampahMateri extends Scene {
             .setOrigin(0, 0.5);
         this.sidebarContainer.add(heading);
 
-        const rowTop = SIDEBAR_Y + headerHeight + 16;
-        const rowsBottom = SIDEBAR_Y + SIDEBAR_HEIGHT - 16;
-        const rowHeight = Math.min(84, (rowsBottom - rowTop) / PILAH_SIDEBAR_STEPS.length);
+        const rowTop = SIDEBAR_Y + headerHeight + 20;
+        const rowHeight = 90;
 
         PILAH_SIDEBAR_STEPS.forEach((item, index) => {
             const rowY = rowTop + index * rowHeight;
@@ -187,22 +194,22 @@ export class PilahSampahMateri extends Scene {
             if (active) {
                 const activeBg = this.add.graphics();
                 activeBg.fillStyle(SKY, 1);
-                activeBg.fillRoundedRect(SIDEBAR_X + 12, rowY - 8, SIDEBAR_WIDTH - 24, rowHeight - 12, 12);
+                activeBg.fillRoundedRect(SIDEBAR_X + 12, rowY - 10, SIDEBAR_WIDTH - 24, rowHeight - 16, 12);
                 this.sidebarContainer.add(activeBg);
             }
 
-            const circleRadius = 17;
+            const circleRadius = 18;
             const groupGap = 14;
-            const contentCenterY = rowY + rowHeight / 2 - 6;
-            const circleX = SIDEBAR_X + 40;
+            const contentCenterY = rowY + 18;
+            const circleX = SIDEBAR_X + 42;
             const labelX = circleX + circleRadius + groupGap;
 
             const label = this.add.text(labelX, 0, item.title, {
                 fontFamily: FONT,
                 fontStyle: active ? "700" : "500",
-                fontSize: 14,
+                fontSize: 15,
                 color: active ? DARK_NAVY : PRIMARY_BLUE_HEX,
-                wordWrap: { width: SIDEBAR_WIDTH - 70 - 28 },
+                wordWrap: { width: SIDEBAR_WIDTH - 72 - 30 },
                 lineSpacing: 3,
             });
 
@@ -211,7 +218,7 @@ export class PilahSampahMateri extends Scene {
                 .text(circleX, contentCenterY, String(item.id), {
                     fontFamily: FONT,
                     fontStyle: "600",
-                    fontSize: 14,
+                    fontSize: 15,
                     color: "#ffffff",
                 })
                 .setOrigin(0.5);
@@ -220,10 +227,10 @@ export class PilahSampahMateri extends Scene {
             this.sidebarContainer.add([circle, numberText, label]);
 
             if (completed) {
-                const check = this.add.text(SIDEBAR_X + SIDEBAR_WIDTH - 24, contentCenterY, "✓", {
+                const check = this.add.text(SIDEBAR_X + SIDEBAR_WIDTH - 26, rowY + 18, "✓", {
                     fontFamily: FONT,
                     fontStyle: "600",
-                    fontSize: 15,
+                    fontSize: 16,
                     color: GREEN_HEX,
                 }).setOrigin(0.5);
                 this.sidebarContainer.add(check);
@@ -231,13 +238,12 @@ export class PilahSampahMateri extends Scene {
 
             if (unlocked) {
                 const hit = this.add
-                    .rectangle(SIDEBAR_X + SIDEBAR_WIDTH / 2, rowY + rowHeight / 2 - 6, SIDEBAR_WIDTH - 12, rowHeight - 8, 0xffffff, 0)
+                    .rectangle(SIDEBAR_X + SIDEBAR_WIDTH / 2, rowY + 18, SIDEBAR_WIDTH - 12, rowHeight - 16, 0xffffff, 0)
                     .setInteractive({ useHandCursor: true });
                 hit.on("pointerdown", () => this.goToStep(item.id));
                 this.sidebarContainer.add(hit);
             }
         });
-
     }
 
     // ---- Footer nav -------------------------------------------------------------------
@@ -343,76 +349,118 @@ export class PilahSampahMateri extends Scene {
         this.renderBoard();
     }
 
-    // ---- Whiteboard chrome + per-step content --------------------------------------------
+    // ---- Whiteboard chrome + shared building blocks ------------------------------------
 
     private addBoardChrome() {
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x0b1f4d, 0.06);
+        shadow.fillRoundedRect(BOARD_X, BOARD_Y + 6, BOARD_WIDTH, BOARD_HEIGHT, BOARD_RADIUS);
         const card = this.add.graphics();
         card.fillStyle(0xffffff, 1);
-        card.fillRoundedRect(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, 18);
+        card.fillRoundedRect(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, BOARD_RADIUS);
         card.lineStyle(2, BORDER_BLUE, 1);
-        card.strokeRoundedRect(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, 18);
-        this.boardContainer.add(card);
+        card.strokeRoundedRect(BOARD_X, BOARD_Y, BOARD_WIDTH, BOARD_HEIGHT, BOARD_RADIUS);
+        this.boardContainer.add([shadow, card]);
     }
 
-    private addBoardTitle(text: string): GameObjects.Text {
-        const title = this.add.text(CONTENT_X, BOARD_Y + BOARD_PAD, text, {
+    /** Main title + short accent underline. Identical position/size on every state. */
+    private addTitle(text: string): number {
+        const title = this.add.text(CONTENT_X, BOARD_Y + 36, text, {
             fontFamily: FONT,
             fontStyle: "800",
-            fontSize: 26,
+            fontSize: 28,
             color: DARK_NAVY,
         });
-        this.boardContainer.add(title);
-        return title;
+        const underline = this.add.graphics();
+        underline.fillStyle(PRIMARY_BLUE, 1);
+        underline.fillRoundedRect(CONTENT_X, title.y + title.height + 8, 56, 4, 2);
+        this.boardContainer.add([title, underline]);
+        return title.y + title.height + 8 + 4;
     }
 
-    private buildNoteBox(x: number, y: number, width: number, message: string, accent: number, accentHex: string, bg: number, icon: string): number {
-        const badgeRadius = 16;
-        const paddingX = 24;
-        const iconGap = 16;
-        const textWidth = width - (paddingX + badgeRadius * 2 + iconGap + paddingX);
-        const measure = this.add.text(0, 0, message, { fontFamily: FONT, fontStyle: "500", fontSize: 15, lineSpacing: 4, wordWrap: { width: textWidth } });
-        const height = Math.max(64, measure.height + 28);
-        measure.destroy();
+    private addDescription(text: string, y: number, width: number = CONTENT_WIDTH, x: number = CONTENT_X): number {
+        const desc = this.add.text(x, y, text, {
+            fontFamily: FONT,
+            fontStyle: "500",
+            fontSize: 16,
+            color: BODY_TEXT,
+            lineSpacing: 6,
+            wordWrap: { width },
+        });
+        this.boardContainer.add(desc);
+        return desc.y + desc.height;
+    }
 
+    /** Empty rounded-rect placeholder — where a PNG/SVG asset will be dropped in later. */
+    private addPlaceholderBox(x: number, y: number, width: number, height: number, radius = 16) {
         const box = this.add.graphics();
-        box.fillStyle(bg, 1);
-        box.fillRoundedRect(x, y, width, height, 14);
-        box.lineStyle(2, accent, 1);
-        box.strokeRoundedRect(x, y, width, height, 14);
-        const badgeX = x + paddingX + badgeRadius;
-        const badgeY = y + height / 2;
-        const badge = this.add.circle(badgeX, badgeY, badgeRadius, accent, 1);
-        const badgeIcon = this.add.text(badgeX, badgeY, icon, { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: "#ffffff" }).setOrigin(0.5);
-        const noteText = this.add.text(badgeX + badgeRadius + iconGap, badgeY, message, {
-            fontFamily: FONT, fontStyle: "500", fontSize: 15, color: accentHex, lineSpacing: 4, wordWrap: { width: textWidth },
-        }).setOrigin(0, 0.5);
-        this.boardContainer.add([box, badge, badgeIcon, noteText]);
-        return height;
+        box.fillStyle(PLACEHOLDER_BG, 1);
+        box.fillRoundedRect(x, y, width, height, radius);
+        box.lineStyle(2, BORDER_BLUE, 1);
+        box.strokeRoundedRect(x, y, width, height, radius);
+        this.boardContainer.add(box);
     }
 
-    private addChecklistPanel(x: number, y: number, width: number, title: string, items: string[], accentHex = PRIMARY_BLUE_HEX, accent = PRIMARY_BLUE): number {
-        const lineHeight = 30;
-        const height = 46 + items.length * lineHeight + 10;
+    /** Big illustration slot: shows the given texture contain-fit and
+     * centered once an asset is supplied, otherwise falls back to the empty
+     * placeholder box. */
+    private addIllustrationSlot(x: number, y: number, width: number, height: number, textureKey?: string, radius = 20): number {
+        if (!textureKey) {
+            this.addPlaceholderBox(x, y, width, height, radius);
+            return height;
+        }
+        const image = this.add.image(x + width / 2, y + height / 2, textureKey);
+        const scale = Math.min(width / image.width, height / image.height);
+        image.setScale(scale);
+        this.boardContainer.add(image);
+        return image.displayHeight;
+    }
+
+    private addInfoCard(x: number, y: number, width: number, height: number, title: string, body: string, accentHex = PRIMARY_BLUE_HEX, accent = PRIMARY_BLUE, background = SKY): void {
+        const card = this.add.graphics();
+        card.fillStyle(background, 1);
+        card.fillRoundedRect(x, y, width, height, 14);
+        card.lineStyle(2, accent, 1);
+        card.strokeRoundedRect(x, y, width, height, 14);
+        const titleText = this.add.text(x + 18, y + 16, title, { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: accentHex });
+        const bodyText = this.add.text(x + 18, titleText.y + titleText.height + 6, body, {
+            fontFamily: FONT,
+            fontStyle: "500",
+            fontSize: 14,
+            color: BODY_TEXT,
+            lineSpacing: 4,
+            wordWrap: { width: width - 36 },
+        });
+        this.boardContainer.add([card, titleText, bodyText]);
+    }
+
+    /** Checklist card ("✓ item" rows). Returns the height actually used, so
+     * callers can leave the remainder of a column as whitespace rather than
+     * stretching the card to fill it. */
+    private addChecklistCard(x: number, y: number, width: number, title: string, items: string[]): number {
+        const lineHeight = 32;
+        const titleBlockHeight = 46;
+        const height = titleBlockHeight + items.length * lineHeight + 20;
 
         const card = this.add.graphics();
         card.fillStyle(SKY, 1);
         card.fillRoundedRect(x, y, width, height, 14);
-        card.lineStyle(2, accent, 1);
+        card.lineStyle(2, PRIMARY_BLUE, 1);
         card.strokeRoundedRect(x, y, width, height, 14);
         this.boardContainer.add(card);
 
-        const titleText = this.add.text(x + 18, y + 16, title, { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: accentHex });
+        const titleText = this.add.text(x + 20, y + 18, title, { fontFamily: FONT, fontStyle: "700", fontSize: 18, color: DARK_NAVY });
         this.boardContainer.add(titleText);
 
         items.forEach((item, index) => {
-            const itemY = y + 50 + index * lineHeight;
-            const check = this.add.text(x + 18, itemY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: GREEN_HEX });
-            const label = this.add.text(x + 40, itemY, item, {
+            const itemY = y + titleBlockHeight + index * lineHeight;
+            const check = this.add.text(x + 20, itemY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: GREEN_HEX });
+            const label = this.add.text(x + 42, itemY, item, {
                 fontFamily: FONT,
                 fontStyle: "500",
-                fontSize: 13,
+                fontSize: 15,
                 color: DARK_NAVY,
-                wordWrap: { width: width - 58 },
+                wordWrap: { width: width - 62 },
             });
             this.boardContainer.add([check, label]);
         });
@@ -420,50 +468,31 @@ export class PilahSampahMateri extends Scene {
         return height;
     }
 
-    /** A row of circular flow nodes joined by arrows, used by steps 3/4/6. */
-    private buildFlowChain(nodes: FlowNode[], topY: number, highlightLastGreen = false): number {
-        const nodeCount = nodes.length;
-        const arrowWidth = 34;
-        const nodeWidth = (CONTENT_WIDTH - arrowWidth * (nodeCount - 1)) / nodeCount;
-        const nodeSize = 56;
-        const centerY = topY + nodeSize / 2;
-
-        let maxBottom = centerY;
-        nodes.forEach((node, index) => {
-            const x = CONTENT_X + index * (nodeWidth + arrowWidth);
-            const centerX = x + nodeWidth / 2;
-            const isLast = index === nodeCount - 1;
-            const highlight = highlightLastGreen && isLast;
-
-            const circle = this.add.circle(centerX, centerY, nodeSize / 2, highlight ? GREEN : PRIMARY_BLUE, 1);
-            const numberText = this.add.text(centerX, centerY, String(index + 1), { fontFamily: FONT, fontStyle: "700", fontSize: 16, color: "#ffffff" }).setOrigin(0.5);
-            const label = this.add
-                .text(centerX, centerY + nodeSize / 2 + 12, node.label, {
-                    fontFamily: FONT,
-                    fontStyle: "700",
-                    fontSize: 14,
-                    color: highlight ? GREEN_HEX : DARK_NAVY,
-                    align: "center",
-                    lineSpacing: 3,
-                    wordWrap: { width: nodeWidth + 10 },
-                })
-                .setOrigin(0.5, 0);
-            this.boardContainer.add([circle, numberText, label]);
-            maxBottom = Math.max(maxBottom, label.y + label.height);
-
-            if (index < nodeCount - 1) {
-                const arrow = this.add
-                    .text(x + nodeWidth + arrowWidth / 2, centerY, "→", { fontFamily: FONT, fontStyle: "600", fontSize: 22, color: BODY_TEXT })
-                    .setOrigin(0.5);
-                this.boardContainer.add(arrow);
-            }
-        });
-
-        return maxBottom;
+    /** Full-width information bar at the bottom of a state. */
+    private addInfoBar(text: string, y: number, width: number = CONTENT_WIDTH, x: number = CONTENT_X): number {
+        const height = 60;
+        const bar = this.add.graphics();
+        bar.fillStyle(SKY, 1);
+        bar.fillRoundedRect(x, y, width, height, 14);
+        bar.lineStyle(2, PRIMARY_BLUE, 1);
+        bar.strokeRoundedRect(x, y, width, height, 14);
+        const label = this.add
+            .text(x + width / 2, y + height / 2, text, {
+                fontFamily: FONT,
+                fontStyle: "500",
+                fontSize: 15,
+                color: PRIMARY_BLUE_HEX,
+                align: "center",
+                wordWrap: { width: width - 48 },
+            })
+            .setOrigin(0.5);
+        this.boardContainer.add([bar, label]);
+        return height;
     }
 
     private renderBoard() {
         this.boardContainer.removeAll(true);
+        this.addBoardChrome();
 
         switch (this.step) {
             case 1:
@@ -493,305 +522,357 @@ export class PilahSampahMateri extends Scene {
     // ---- Step 1: Pengantar MARPOL Annex V --------------------------------------------
 
     private buildStep1() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Pengantar MARPOL Annex V");
-
-        const paraWidth = CONTENT_WIDTH;
-        const para = this.add.text(
-            CONTENT_X,
-            title.y + title.height + 16,
+        const titleBottom = this.addTitle("Pengantar MARPOL Annex V");
+        const descBottom = this.addDescription(
             "MARPOL Annex V mengatur pencegahan pencemaran laut oleh sampah yang berasal dari kegiatan operasional kapal. Sampah harus dikelola, dipilah, disimpan, dan ditangani sesuai dengan jenisnya.",
-            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: paraWidth } },
+            titleBottom + 16,
         );
-        this.boardContainer.add(para);
 
-        const iconRowY = para.y + para.height + 34;
-        const iconSize = 84;
-        const iconGap = (CONTENT_WIDTH - iconSize * PILAH_INTRO_ICONS.length) / (PILAH_INTRO_ICONS.length - 1);
-        PILAH_INTRO_ICONS.forEach((item, index) => {
-            const centerX = CONTENT_X + iconSize / 2 + index * (iconSize + iconGap);
-            const circle = this.add.circle(centerX, iconRowY + iconSize / 2, iconSize / 2, SKY, 1);
-            circle.setStrokeStyle(2, PRIMARY_BLUE, 0.5);
-            const icon = this.add.text(centerX, iconRowY + iconSize / 2 - 6, item.icon, { fontFamily: FONT, fontSize: 34 }).setOrigin(0.5);
-            const label = this.add.text(centerX, iconRowY + iconSize + 10, item.label, {
-                fontFamily: FONT, fontStyle: "600", fontSize: 13, color: DARK_NAVY,
+        const iconRowY = descBottom + 30;
+        const colGap = 28;
+        const colWidth = (CONTENT_WIDTH - colGap * 3) / 4;
+        const circleRadius = 36;
+        PILAH_INTRO_ITEMS.forEach((item, index) => {
+            const colX = CONTENT_X + index * (colWidth + colGap);
+            const centerX = colX + colWidth / 2;
+            const centerY = iconRowY + circleRadius;
+            const icon = this.add.image(centerX, centerY, item.icon).setDisplaySize(circleRadius * 2, circleRadius * 2);
+            this.boardContainer.add(icon);
+
+            const label = this.add.text(centerX, centerY + circleRadius + 14, item.label, {
+                fontFamily: FONT, fontStyle: "700", fontSize: 16, color: DARK_NAVY, align: "center",
             }).setOrigin(0.5, 0);
-            this.boardContainer.add([circle, icon, label]);
+            const desc = this.add
+                .text(centerX, label.y + label.height + 4, item.desc, {
+                    fontFamily: FONT, fontStyle: "500", fontSize: 13, color: BODY_TEXT, align: "center", lineSpacing: 2,
+                    wordWrap: { width: colWidth },
+                })
+                .setOrigin(0.5, 0);
+            this.boardContainer.add([label, desc]);
         });
 
-        const panelY = iconRowY + iconSize + 46;
-        this.addChecklistPanel(CONTENT_X, panelY, CONTENT_WIDTH, "🎯  Tujuan Pembelajaran", PILAH_LEARNING_GOALS.map((g) => g), PRIMARY_BLUE_HEX, PRIMARY_BLUE);
+        const bottomY = iconRowY + circleRadius * 2 + 100;
+        const leftWidth = CONTENT_WIDTH * 0.52;
+        const rightWidth = CONTENT_WIDTH - leftWidth - COL_GAP;
+        this.addChecklistCard(CONTENT_X, bottomY, leftWidth, "Tujuan Pembelajaran", PILAH_LEARNING_GOALS);
+
+        const rightX = CONTENT_X + leftWidth + COL_GAP;
+        this.addIllustrationSlot(rightX, bottomY, rightWidth, CONTENT_BOTTOM - bottomY, "pilah_sampah.materi.imgMarpol", 20);
     }
 
     // ---- Step 2: Pemilahan Sampah di Kapal --------------------------------------------
 
     private buildStep2() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Pemilahan Sampah di Kapal");
-
-        const desc = this.add.text(
-            CONTENT_X,
-            title.y + title.height + 10,
-            "Sampah harus dipisahkan berdasarkan jenisnya sejak dari sumber agar dapat dikelola dengan benar.",
-            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, wordWrap: { width: CONTENT_WIDTH } },
+        const titleBottom = this.addTitle("Pemilahan Sampah di Kapal");
+        const descBottom = this.addDescription(
+            "Sampah harus dipisahkan berdasarkan jenisnya sejak dari sumber agar dapat dikelola dengan benar sesuai MARPOL Annex V.",
+            titleBottom + 16,
         );
-        this.boardContainer.add(desc);
 
-        const rowTop = desc.y + desc.height + 20;
+        const rowTop = descBottom + 24;
+        const cardCount = PILAH_WASTE_CATEGORIES.length;
         const cardGap = 14;
-        const cardCount = WASTE_CATEGORIES.length;
         const cardWidth = (CONTENT_WIDTH - cardGap * (cardCount - 1)) / cardCount;
-        const binHeight = 54;
-        const cardHeight = 210;
+        const cardHeight = 226;
+        const iconSize = 80;
 
-        WASTE_CATEGORIES.forEach((category, index) => {
+        PILAH_WASTE_CATEGORIES.forEach((category, index) => {
             const x = CONTENT_X + index * (cardWidth + cardGap);
-
-            const bin = this.add.graphics();
-            bin.fillStyle(category.color, 1);
-            bin.fillRoundedRect(x, rowTop, cardWidth, binHeight, { tl: 10, tr: 10, bl: 0, br: 0 });
-            const lid = this.add.rectangle(x + cardWidth / 2, rowTop - 4, cardWidth * 0.7, 8, category.color, 1);
-            const icon = this.add.text(x + cardWidth / 2, rowTop + binHeight / 2, category.icon, { fontFamily: FONT, fontSize: 22 }).setOrigin(0.5);
-
             const card = this.add.graphics();
             card.fillStyle(0xffffff, 1);
-            card.fillRoundedRect(x, rowTop + binHeight, cardWidth, cardHeight - binHeight, { tl: 0, tr: 0, bl: 10, br: 10 });
-            card.lineStyle(2, category.color, 0.4);
-            card.strokeRoundedRect(x, rowTop + binHeight, cardWidth, cardHeight - binHeight, { tl: 0, tr: 0, bl: 10, br: 10 });
+            card.fillRoundedRect(x, rowTop, cardWidth, cardHeight, 14);
+            card.lineStyle(2, BORDER_BLUE, 1);
+            card.strokeRoundedRect(x, rowTop, cardWidth, cardHeight, 14);
+            this.boardContainer.add(card);
 
-            const titleText = this.add.text(x + 10, rowTop + binHeight + 12, category.title, {
-                fontFamily: FONT, fontStyle: "700", fontSize: 12, color: DARK_NAVY,
-                wordWrap: { width: cardWidth - 20 }, lineSpacing: 2,
-            });
-            let nextY = titleText.y + titleText.height + 2;
-            const items: GameObjects.GameObject[] = [bin, lid, icon, card, titleText];
-            if (category.subtitle) {
-                const subtitleText = this.add.text(x + 10, nextY, category.subtitle, {
-                    fontFamily: FONT, fontStyle: "600", fontSize: 11, color: BODY_TEXT,
-                });
-                items.push(subtitleText);
-                nextY = subtitleText.y + subtitleText.height + 4;
+            const iconCenterX = x + cardWidth / 2;
+            const iconCenterY = rowTop + 16 + iconSize / 2;
+            if (category.icon) {
+                const icon = this.add.image(iconCenterX, iconCenterY, category.icon);
+                const scale = Math.min(iconSize / icon.width, iconSize / icon.height);
+                icon.setScale(scale);
+                this.boardContainer.add(icon);
             } else {
-                nextY += 4;
+                this.addPlaceholderBox(x + (cardWidth - iconSize) / 2, rowTop + 16, iconSize, iconSize, 12);
             }
-            const exampleText = this.add.text(x + 10, nextY, category.example, {
-                fontFamily: FONT, fontStyle: "600", fontSize: 11, color: BODY_TEXT,
-                wordWrap: { width: cardWidth - 20 }, lineSpacing: 2,
-            });
-            items.push(exampleText);
 
-            this.boardContainer.add(items);
+            const nameText = this.add
+                .text(x + cardWidth / 2, rowTop + 16 + iconSize + 12, category.name, {
+                    fontFamily: FONT, fontStyle: "700", fontSize: 15, color: DARK_NAVY, align: "center", lineSpacing: 2,
+                    wordWrap: { width: cardWidth - 16 },
+                })
+                .setOrigin(0.5, 0);
+            const descText = this.add
+                .text(x + cardWidth / 2, nameText.y + nameText.height + 6, category.desc, {
+                    fontFamily: FONT, fontStyle: "500", fontSize: 13, color: BODY_TEXT, align: "center", lineSpacing: 3,
+                    wordWrap: { width: cardWidth - 16 },
+                })
+                .setOrigin(0.5, 0);
+            this.boardContainer.add([nameText, descText]);
         });
 
-        const panelY = rowTop + cardHeight + 22;
-        const panelGap = 20;
-        const panelWidth = (CONTENT_WIDTH - panelGap) / 2;
-        this.addChecklistPanel(CONTENT_X, panelY, panelWidth, "🎯  Tujuan Pemilahan Sampah", PILAH_SORTING_GOALS, PRIMARY_BLUE_HEX, PRIMARY_BLUE);
-        this.addChecklistPanel(CONTENT_X + panelWidth + panelGap, panelY, panelWidth, "🚢  Ingat!", PILAH_REMINDERS, PRIMARY_BLUE_HEX, PRIMARY_BLUE);
+        const principlesY = rowTop + cardHeight + 22;
+        const half = PILAH_SORTING_PRINCIPLES.length / 2;
+        const leftItems = PILAH_SORTING_PRINCIPLES.slice(0, half);
+        const rightItems = PILAH_SORTING_PRINCIPLES.slice(half);
+        const principlesHeight = this.addTwoColumnChecklistCard(CONTENT_X, principlesY, CONTENT_WIDTH, "Prinsip Pemilahan", leftItems, rightItems);
+
+        this.addInfoBar(
+            "Pemilahan yang benar mempermudah proses pengolahan, penyimpanan, dan penyerahan sampah.",
+            principlesY + principlesHeight + 20,
+        );
+    }
+
+    /** Same visual language as addChecklistCard, but splits items across two columns. */
+    private addTwoColumnChecklistCard(x: number, y: number, width: number, title: string, leftItems: string[], rightItems: string[]): number {
+        const lineHeight = 32;
+        const titleBlockHeight = 46;
+        const rows = Math.max(leftItems.length, rightItems.length);
+        const height = titleBlockHeight + rows * lineHeight + 20;
+
+        const card = this.add.graphics();
+        card.fillStyle(SKY, 1);
+        card.fillRoundedRect(x, y, width, height, 14);
+        card.lineStyle(2, PRIMARY_BLUE, 1);
+        card.strokeRoundedRect(x, y, width, height, 14);
+        this.boardContainer.add(card);
+
+        const titleText = this.add.text(x + 20, y + 18, title, { fontFamily: FONT, fontStyle: "700", fontSize: 18, color: DARK_NAVY });
+        this.boardContainer.add(titleText);
+
+        const colWidth = (width - 40) / 2;
+        [leftItems, rightItems].forEach((items, col) => {
+            const colX = x + 20 + col * colWidth;
+            items.forEach((item, index) => {
+                const itemY = y + titleBlockHeight + index * lineHeight;
+                const check = this.add.text(colX, itemY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: GREEN_HEX });
+                const label = this.add.text(colX + 22, itemY, item, {
+                    fontFamily: FONT, fontStyle: "500", fontSize: 15, color: DARK_NAVY,
+                    wordWrap: { width: colWidth - 42 },
+                });
+                this.boardContainer.add([check, label]);
+            });
+        });
+
+        return height;
     }
 
     // ---- Step 3: Incinerator -----------------------------------------------------------
 
     private buildStep3() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Incinerator");
-
-        const illustrationY = title.y + title.height + 20;
-        const illustrationX = CONTENT_X + CONTENT_WIDTH / 2 - 60;
-        const machine = this.add.graphics();
-        machine.fillStyle(0x8a94a6, 1);
-        machine.fillRoundedRect(illustrationX, illustrationY, 120, 90, 10);
-        machine.fillStyle(0x5b6577, 1);
-        machine.fillRect(illustrationX + 10, illustrationY + 60, 100, 12);
-        const chimney = this.add.rectangle(illustrationX + 90, illustrationY - 20, 18, 40, 0x5b6577);
-        const flame = this.add.text(illustrationX + 30, illustrationY + 20, "🔥", { fontFamily: FONT, fontSize: 34 }).setOrigin(0.5);
-        this.boardContainer.add([machine, chimney, flame]);
-
-        const desc = this.add.text(
-            CONTENT_X,
-            illustrationY + 100,
-            "Incinerator merupakan peralatan yang digunakan untuk membakar jenis limbah tertentu sehingga volume limbah dapat dikurangi.",
-            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, align: "center", wordWrap: { width: CONTENT_WIDTH } },
-        ).setOrigin(0.5, 0);
-        desc.setX(CONTENT_X + CONTENT_WIDTH / 2);
-        this.boardContainer.add(desc);
-
-        const flowTop = desc.y + desc.height + 30;
-        const flowBottom = this.buildFlowChain(INCINERATOR_FLOW, flowTop);
-
-        const noteY = flowBottom + 26;
-        this.buildNoteBox(
-            CONTENT_X, noteY, CONTENT_WIDTH,
-            "Tidak semua jenis sampah boleh dibakar. Pengoperasian incinerator harus mengikuti prosedur kapal dan ketentuan yang berlaku.",
-            AMBER, AMBER_HEX, 0xfdf3e7, "⚠",
+        const titleBottom = this.addTitle("Incinerator");
+        const descBottom = this.addDescription(
+            "Incinerator adalah peralatan di kapal yang digunakan untuk membakar jenis limbah tertentu secara terkendali sesuai prosedur operasional dan ketentuan yang berlaku.",
+            titleBottom + 16,
         );
+
+        const infoBarHeight = 60;
+        const colY = descBottom + 26;
+        const colBottomLimit = CONTENT_BOTTOM - infoBarHeight - 20;
+        const colHeight = colBottomLimit - colY;
+        const leftWidth = CONTENT_WIDTH * 0.42;
+        const rightWidth = CONTENT_WIDTH - leftWidth - COL_GAP;
+
+        this.addIllustrationSlot(CONTENT_X, colY, leftWidth, colHeight, "pilah_sampah.materi.imgIncinerator", 20);
+
+        const rightX = CONTENT_X + leftWidth + COL_GAP;
+        const cardGap = 16;
+        const cardHeight = (colHeight - cardGap * (PILAH_INCINERATOR_CARDS.length - 1)) / PILAH_INCINERATOR_CARDS.length;
+        PILAH_INCINERATOR_CARDS.forEach((card, index) => {
+            const isWarning = card.title === "PERHATIAN";
+            const cardY = colY + index * (cardHeight + cardGap);
+            this.addInfoCard(
+                rightX,
+                cardY,
+                rightWidth,
+                cardHeight,
+                card.title,
+                card.body,
+                isWarning ? AMBER_HEX : PRIMARY_BLUE_HEX,
+                isWarning ? AMBER : PRIMARY_BLUE,
+                INCINERATOR_CARD_BG,
+            );
+        });
+
+        this.addInfoBar("Pastikan jenis sampah sesuai sebelum proses pembakaran dilakukan.", colBottomLimit + 20);
     }
 
     // ---- Step 4: Comminutor -------------------------------------------------------------
 
     private buildStep4() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Comminutor");
+        const titleBottom = this.addTitle("Comminutor");
+        const descBottom = this.addDescription(
+            "Comminutor merupakan peralatan yang digunakan untuk menghancurkan atau memperkecil ukuran sampah makanan sebelum penanganan lebih lanjut.",
+            titleBottom + 16,
+        );
 
-        const illustrationY = title.y + title.height + 20;
-        const illustrationX = CONTENT_X + CONTENT_WIDTH / 2 - 60;
-        const machine = this.add.graphics();
-        machine.fillStyle(0x2f68d8, 1);
-        machine.fillRoundedRect(illustrationX, illustrationY, 120, 70, 10);
-        machine.fillStyle(0xffffff, 1);
-        machine.fillCircle(illustrationX + 60, illustrationY + 35, 22);
-        const blade = this.add.text(illustrationX + 60, illustrationY + 35, "⚙️", { fontFamily: FONT, fontSize: 26 }).setOrigin(0.5);
-        const foodIn = this.add.text(illustrationX + 60, illustrationY - 26, "🍌", { fontFamily: FONT, fontSize: 26 }).setOrigin(0.5);
-        this.boardContainer.add([machine, blade, foodIn]);
+        const diagramHeight = 130;
+        const colY = descBottom + 22;
+        const colBottomLimit = CONTENT_BOTTOM - diagramHeight - 20;
+        const colHeight = colBottomLimit - colY;
+        const leftWidth = CONTENT_WIDTH * 0.42;
+        const rightWidth = CONTENT_WIDTH - leftWidth - COL_GAP;
 
-        const desc = this.add.text(
-            CONTENT_X,
-            illustrationY + 90,
-            "Comminutor digunakan untuk menghancurkan atau menggiling sisa makanan menjadi ukuran partikel yang lebih kecil.",
-            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, align: "center", wordWrap: { width: CONTENT_WIDTH } },
-        ).setOrigin(0.5, 0);
-        desc.setX(CONTENT_X + CONTENT_WIDTH / 2);
-        this.boardContainer.add(desc);
+        this.addIllustrationSlot(CONTENT_X, colY, leftWidth, colHeight, "pilah_sampah.materi.imgComminutor", 20);
 
-        const flowTop = desc.y + desc.height + 30;
-        const flowBottom = this.buildFlowChain(COMMINUTOR_FLOW, flowTop);
+        const rightX = CONTENT_X + leftWidth + COL_GAP;
+        const statHeight = 84;
+        const statLabel = this.add.text(rightX, colY, "UKURAN PARTIKEL", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: PRIMARY_BLUE_HEX });
+        const statValue = this.add.text(rightX, statLabel.y + statLabel.height + 6, "< 25 mm", { fontFamily: FONT, fontStyle: "800", fontSize: 34, color: DARK_NAVY });
+        this.boardContainer.add([statLabel, statValue]);
 
-        const noteY = flowBottom + 26;
-        const note = this.add.graphics();
-        note.fillStyle(SKY, 1);
-        note.fillRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 54, 12);
-        note.lineStyle(2, PRIMARY_BLUE, 1);
-        note.strokeRoundedRect(CONTENT_X, noteY, CONTENT_WIDTH, 54, 12);
-        this.boardContainer.add(note);
-        const noteText = this.add
-            .text(CONTENT_X + 16, noteY + 27, "Comminutor bukan tempat untuk semua jenis sampah — plastik, logam, dan kaca tidak boleh dimasukkan ke comminutor.", {
-                fontFamily: FONT, fontStyle: "500", fontSize: 15, color: PRIMARY_BLUE_HEX, lineSpacing: 4, wordWrap: { width: CONTENT_WIDTH - 32 },
-            })
-            .setOrigin(0, 0.5);
-        this.boardContainer.add(noteText);
+        const cardsY = colY + statHeight;
+        const cardGap = 14;
+        const cardHeight = (colHeight - statHeight - cardGap * (PILAH_COMMINUTOR_CARDS.length - 1)) / PILAH_COMMINUTOR_CARDS.length;
+        PILAH_COMMINUTOR_CARDS.forEach((card, index) => {
+            const cardY = cardsY + index * (cardHeight + cardGap);
+            this.addInfoCard(rightX, cardY, rightWidth, cardHeight, card.title, card.body);
+        });
+
+        // Simple input → machine → output diagram, spanning the full board width.
+        const diagramY = colBottomLimit + 20;
+        const boxSize = 76;
+        const boxCenterY = diagramY + boxSize / 2;
+        const diagramLabels = ["Sampah Masuk", "Comminutor", "Hasil Olahan"];
+        const diagramIcons = [
+            "pilah_sampah.materi.iconComminutorTrash",
+            "pilah_sampah.materi.iconComminutor",
+            "pilah_sampah.materi.iconComminutorResult",
+        ];
+        const slotWidth = CONTENT_WIDTH / 3;
+        diagramLabels.forEach((diagramLabel, index) => {
+            const slotCenterX = CONTENT_X + slotWidth * index + slotWidth / 2;
+            this.addIllustrationSlot(slotCenterX - boxSize / 2, diagramY, boxSize, boxSize, diagramIcons[index], 14);
+            const caption = this.add
+                .text(slotCenterX, diagramY + boxSize + 8, diagramLabel, { fontFamily: FONT, fontStyle: "500", fontSize: 12, color: BODY_TEXT })
+                .setOrigin(0.5, 0);
+            this.boardContainer.add(caption);
+
+            if (index < diagramLabels.length - 1) {
+                const arrow = this.add
+                    .text(slotCenterX + slotWidth / 2, boxCenterY, "→", { fontFamily: FONT, fontStyle: "600", fontSize: 22, color: BODY_TEXT })
+                    .setOrigin(0.5);
+                this.boardContainer.add(arrow);
+            }
+        });
     }
 
     // ---- Step 5: Bak / Gudang Sampah -----------------------------------------------------
 
     private buildStep5() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Bak dan Gudang Sampah");
-
-        const desc = this.add.text(
-            CONTENT_X,
-            title.y + title.height + 10,
-            "Gudang sampah merupakan area penyimpanan sementara untuk sampah yang telah dipilah sebelum diolah di atas kapal atau diserahkan ke fasilitas penerimaan di pelabuhan.",
-            { fontFamily: FONT, fontStyle: "500", fontSize: 16, color: BODY_TEXT, lineSpacing: 6, wordWrap: { width: CONTENT_WIDTH } },
+        const titleBottom = this.addTitle("Bak / Gudang Sampah");
+        const descBottom = this.addDescription(
+            "Sampah yang belum dapat diolah atau diserahkan harus disimpan sementara pada area penyimpanan sampah di kapal dengan aman dan sesuai kategorinya.",
+            titleBottom + 16,
         );
-        this.boardContainer.add(desc);
 
-        const rowTop = desc.y + desc.height + 30;
-        const gap = 16;
-        const binWidth = (CONTENT_WIDTH - gap * (STORAGE_BINS.length - 1)) / STORAGE_BINS.length;
-        const binHeight = 130;
+        const colY = descBottom + 26;
+        const colHeight = CONTENT_BOTTOM - colY;
+        const leftWidth = CONTENT_WIDTH * 0.42;
+        const rightWidth = CONTENT_WIDTH - leftWidth - COL_GAP;
 
-        STORAGE_BINS.forEach((bin, index) => {
-            const x = CONTENT_X + index * (binWidth + gap);
-            const card = this.add.graphics();
-            card.fillStyle(bin.color, 0.12);
-            card.fillRoundedRect(x, rowTop, binWidth, binHeight, 12);
-            card.lineStyle(2, bin.color, 0.7);
-            card.strokeRoundedRect(x, rowTop, binWidth, binHeight, 12);
-            const lidTop = rowTop + 14;
-            const lid = this.add.graphics();
-            lid.fillStyle(bin.color, 1);
-            lid.fillRoundedRect(x + binWidth / 2 - 24, lidTop, 48, 20, 6);
-            const bodyRect = this.add.rectangle(x + binWidth / 2, lidTop + 44, 56, 46, bin.color, 1).setOrigin(0.5);
-            const label = this.add
-                .text(x + binWidth / 2, rowTop + binHeight - 24, bin.label, {
-                    fontFamily: FONT, fontStyle: "700", fontSize: 12, color: DARK_NAVY, align: "center",
-                    wordWrap: { width: binWidth - 10 },
-                })
-                .setOrigin(0.5);
-            this.boardContainer.add([card, lid, bodyRect, label]);
+        const illustrationHeight = this.addIllustrationSlot(CONTENT_X, colY, leftWidth, colHeight, "pilah_sampah.materi.imgBakSampah", 20);
+
+        const rightX = CONTENT_X + leftWidth + COL_GAP;
+        const cardGap = 14;
+        const cardsY = colY + (colHeight - illustrationHeight) / 2;
+        const cardHeight = (illustrationHeight - cardGap * (PILAH_STORAGE_CARDS.length - 1)) / PILAH_STORAGE_CARDS.length;
+        PILAH_STORAGE_CARDS.forEach((card, index) => {
+            const cardY = cardsY + index * (cardHeight + cardGap);
+            this.addInfoCard(rightX, cardY, rightWidth, cardHeight, card.title, card.body);
         });
-
-        const panelY = rowTop + binHeight + 26;
-        this.addChecklistPanel(CONTENT_X, panelY, CONTENT_WIDTH, "✅  Checklist Gudang Sampah", PILAH_STORAGE_CHECKLIST, PRIMARY_BLUE_HEX, PRIMARY_BLUE);
     }
 
-    // ---- Step 6: Alur Pengelolaan ---------------------------------------------------------
+    // ---- Step 6: Alur Pengelolaan Sampah di Kapal -----------------------------------------
 
     private buildStep6() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Alur Pengelolaan Sampah di Kapal");
+        const titleBottom = this.addTitle("Alur Pengelolaan Sampah di Kapal");
+        const descBottom = this.addDescription(
+            "Pengelolaan sampah dilakukan secara sistematis mulai dari pemilahan hingga penanganan dan penyerahan akhir.",
+            titleBottom + 16,
+        );
 
-        const chainTop = title.y + title.height + 40;
-        const chainBottom = this.buildFlowChain(PILAH_MAIN_FLOW, chainTop);
+        const flowY = descBottom + 26;
+        const nodeCount = PILAH_MANAGEMENT_FLOW.length;
+        const arrowWidth = 30;
+        const nodeWidth = (CONTENT_WIDTH - arrowWidth * (nodeCount - 1)) / nodeCount;
+        const nodeCardHeight = 325;
+        const iconHeight = 210;
+        const iconSize = 178;
+        const flowIcons = [
+            "pilah_sampah.materi.iconAlurPemilahan",
+            "pilah_sampah.materi.iconAlurPengelolaan",
+            "pilah_sampah.materi.iconAlurPenyimpanan",
+            "pilah_sampah.materi.iconAlurPencatatan",
+            "pilah_sampah.materi.iconAlurPenyerahan",
+        ];
 
-        // Branching diagram: the last chain node splits into the four
-        // handling routes below it.
-        const branchTop = chainBottom + 40;
-        const branchGap = 20;
-        const branchCount = PILAH_HANDLING_BRANCHES.length;
-        const branchWidth = (CONTENT_WIDTH - branchGap * (branchCount - 1)) / branchCount;
-        const branchHeight = 64;
+        PILAH_MANAGEMENT_FLOW.forEach((flowStep, index) => {
+            const x = CONTENT_X + index * (nodeWidth + arrowWidth);
+            const centerX = x + nodeWidth / 2;
 
-        const trunkX = CONTENT_X + CONTENT_WIDTH / 2;
-        const trunk = this.add.line(0, 0, trunkX, chainBottom + 6, trunkX, branchTop - 16, BORDER_BLUE, 1).setLineWidth(2);
-        this.boardContainer.add(trunk);
-        const rail = this.add.line(0, 0, CONTENT_X + branchWidth / 2, branchTop - 16, CONTENT_X + CONTENT_WIDTH - branchWidth / 2, branchTop - 16, BORDER_BLUE, 1).setLineWidth(2);
-        this.boardContainer.add(rail);
+            const badgeRadius = 15;
+            const badge = this.add.circle(centerX, flowY + 18, badgeRadius, PRIMARY_BLUE, 1);
+            const badgeText = this.add.text(centerX, flowY + 18, flowStep.number, { fontFamily: FONT, fontStyle: "700", fontSize: 12, color: "#ffffff" }).setOrigin(0.5);
+            this.boardContainer.add([badge, badgeText]);
 
-        PILAH_HANDLING_BRANCHES.forEach((branchLabel, index) => {
-            const x = CONTENT_X + index * (branchWidth + branchGap);
-            const centerX = x + branchWidth / 2;
+            const iconY = flowY + 40;
+            this.addIllustrationSlot(
+                centerX - (nodeWidth - 18) / 2,
+                iconY,
+                nodeWidth - 18,
+                iconHeight,
+                flowIcons[index],
+                12,
+            );
 
-            const drop = this.add.line(0, 0, centerX, branchTop - 16, centerX, branchTop, BORDER_BLUE, 1).setLineWidth(2);
-            this.boardContainer.add(drop);
-
-            const card = this.add.graphics();
-            card.fillStyle(0xf7faff, 1);
-            card.fillRoundedRect(x, branchTop, branchWidth, branchHeight, 12);
-            card.lineStyle(2, PRIMARY_BLUE, 0.5);
-            card.strokeRoundedRect(x, branchTop, branchWidth, branchHeight, 12);
-            const label = this.add
-                .text(centerX, branchTop + branchHeight / 2, branchLabel, {
-                    fontFamily: FONT, fontStyle: "700", fontSize: 13, color: DARK_NAVY, align: "center",
-                    lineSpacing: 3, wordWrap: { width: branchWidth - 12 },
+            const labelText = this.add
+                .text(centerX, iconY + iconHeight + 14, flowStep.label, { fontFamily: FONT, fontStyle: "700", fontSize: 18, color: DARK_NAVY, align: "center" })
+                .setOrigin(0.5, 0);
+            const descText = this.add
+                .text(centerX, labelText.y + labelText.height + 6, flowStep.desc, {
+                    fontFamily: FONT, fontStyle: "500", fontSize: 12, color: BODY_TEXT, align: "center", lineSpacing: 3,
+                    wordWrap: { width: nodeWidth - 16 },
                 })
-                .setOrigin(0.5);
-            this.boardContainer.add([card, label]);
+                .setOrigin(0.5, 0);
+            this.boardContainer.add([labelText, descText]);
+
+            if (index < nodeCount - 1) {
+                const arrow = this.add
+                    .text(x + nodeWidth + arrowWidth / 2, flowY + iconSize / 2 + 56, "→", { fontFamily: FONT, fontStyle: "600", fontSize: 22, color: BODY_TEXT })
+                    .setOrigin(0.5);
+                this.boardContainer.add(arrow);
+            }
         });
+
+        this.addInfoBar(
+            "Setiap tahap harus dilakukan sesuai prosedur pengelolaan sampah kapal dan ketentuan MARPOL Annex V.",
+            flowY + nodeCardHeight + 24,
+        );
     }
 
     // ---- Step 7: Kesimpulan ---------------------------------------------------------------
 
     private buildStep7() {
-        this.addBoardChrome();
-        const title = this.addBoardTitle("Siap Melakukan Pemilahan Sampah?");
+        const titleBottom = this.addTitle("Kesimpulan");
+        const descBottom = this.addDescription(
+            "Pengelolaan sampah di kapal merupakan tanggung jawab seluruh awak kapal. Pemilahan dan penanganan yang tepat membantu menjaga kebersihan kapal serta mencegah pencemaran lingkungan laut.",
+            titleBottom + 16,
+        );
 
-        const listTop = title.y + title.height + 24;
-        const rowHeight = 40;
-        PILAH_SUMMARY.forEach((item, index) => {
-            const y = listTop + index * rowHeight;
-            const badge = this.add.circle(CONTENT_X + 14, y + 14, 14, PRIMARY_BLUE, 1);
-            const num = this.add.text(CONTENT_X + 14, y + 14, String(index + 1), { fontFamily: FONT, fontStyle: "700", fontSize: 13, color: "#ffffff" }).setOrigin(0.5);
-            const label = this.add.text(CONTENT_X + 40, y + 3, item, {
-                fontFamily: FONT, fontStyle: "500", fontSize: 15, color: DARK_NAVY,
-                wordWrap: { width: CONTENT_WIDTH - 60 },
-            });
-            this.boardContainer.add([badge, num, label]);
-        });
+        const infoBarHeight = 60;
+        const colY = descBottom + 26;
+        const colBottomLimit = CONTENT_BOTTOM - infoBarHeight - 20;
+        const colHeight = colBottomLimit - colY;
+        const leftWidth = CONTENT_WIDTH * 0.5;
+        const rightWidth = CONTENT_WIDTH - leftWidth - COL_GAP;
 
-        const messageY = listTop + PILAH_SUMMARY.length * rowHeight + 20;
-        const message = this.add.graphics();
-        message.fillStyle(0xe4f7ec, 1);
-        message.fillRoundedRect(CONTENT_X, messageY, CONTENT_WIDTH, 74, 14);
-        message.lineStyle(2, GREEN, 0.4);
-        message.strokeRoundedRect(CONTENT_X, messageY, CONTENT_WIDTH, 74, 14);
-        const messageIcon = this.add.text(CONTENT_X + 26, messageY + 37, "🚀", { fontFamily: FONT, fontSize: 26 }).setOrigin(0.5);
-        const messageText = this.add
-            .text(CONTENT_X + 56, messageY + 37, "Sekarang saatnya menerapkan pengetahuanmu dalam Simulasi Pemilahan Sampah.", {
-                fontFamily: FONT, fontStyle: "700", fontSize: 16, color: GREEN_HEX, wordWrap: { width: CONTENT_WIDTH - 90 },
-            })
-            .setOrigin(0, 0.5);
-        this.boardContainer.add([message, messageIcon, messageText]);
+        this.addChecklistCard(CONTENT_X, colY, leftWidth, "Poin Penting", PILAH_SUMMARY_POINTS);
+
+        const rightX = CONTENT_X + leftWidth + COL_GAP;
+        this.addIllustrationSlot(rightX, colY, rightWidth, colHeight, "pilah_sampah.materi.imgKesimpulan", 20);
+
+        this.addInfoBar("Pengelolaan sampah yang tepat membantu menjaga laut tetap bersih untuk generasi mendatang.", colBottomLimit + 20);
     }
 
     // ---- Layout -------------------------------------------------------------------------

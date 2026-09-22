@@ -13,38 +13,61 @@ const DESIGN_HEIGHT = 1080;
 const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
 const PRIMARY_BLUE = 0x087ff1;
 const MAX_LIVES = 5;
+const SUCCESS = 0x1f8d52;
+const ERROR = 0xc0392b;
 
-type BinId = "incinerator" | "comminutor" | "plastic";
+type BinId = "incinerator" | "comminutor" | "storage";
 
 interface WasteItemConfig {
     texture: string;
+    name: string;
+    category: string;
     bin: BinId;
+    rounds: number[];
+    available: boolean;
+    feedbackCorrect: string;
+    feedbackWrong: string;
 }
 
 const BIN_ZONES: Record<BinId, { x: number; y: number; width: number; height: number }> = {
     incinerator: { x: 702, y: 558, width: 220, height: 230 },
     comminutor: { x: 1015, y: 566, width: 230, height: 210 },
-    plastic: { x: 1318, y: 566, width: 250, height: 210 },
+    storage: { x: 1318, y: 566, width: 250, height: 210 },
 };
 
 /** Full pool of waste types the lesson can draw from. Each round only shows
  * ITEMS_PER_ROUND of these, chosen at random. */
 const WASTE_POOL: WasteItemConfig[] = [
-    { texture: "pilah_sampah.waste.plastik", bin: "plastic" },
-    { texture: "pilah_sampah.waste.kalengMerah", bin: "plastic" },
-    { texture: "pilah_sampah.waste.organik", bin: "comminutor" },
-    { texture: "pilah_sampah.waste.kertas", bin: "incinerator" },
-    { texture: "pilah_sampah.waste.kardus", bin: "incinerator" },
-    { texture: "pilah_sampah.waste.logam", bin: "plastic" },
-    { texture: "pilah_sampah.waste.styrofoam", bin: "plastic" },
-    { texture: "pilah_sampah.waste.kaca", bin: "plastic" },
-    { texture: "pilah_sampah.waste.taliJaring", bin: "plastic" },
-    { texture: "pilah_sampah.waste.daun", bin: "comminutor" },
-    { texture: "pilah_sampah.waste.kue", bin: "comminutor" },
-    { texture: "pilah_sampah.waste.paperBag", bin: "incinerator" },
+    { texture: "pilah_sampah.waste.plastik", name: "Botol Plastik", category: "Plastik", bin: "storage", rounds: [1, 2, 3], available: true, feedbackCorrect: "Botol plastik disimpan di gudang sampah untuk penanganan selanjutnya.", feedbackWrong: "Botol plastik tidak diproses melalui Incinerator atau Comminutor. Simpan di gudang sampah." },
+    { texture: "pilah_sampah.waste.kalengMerah", name: "Kaleng Minuman", category: "Logam", bin: "storage", rounds: [1, 2, 3], available: true, feedbackCorrect: "Kaleng minuman disimpan untuk penanganan selanjutnya di pelabuhan.", feedbackWrong: "Kaleng minuman termasuk logam dan perlu disimpan di gudang sampah." },
+    { texture: "pilah_sampah.waste.organik", name: "Kulit Pisang", category: "Sampah Organik", bin: "comminutor", rounds: [1, 2, 3], available: true, feedbackCorrect: "Kulit pisang adalah sampah organik yang dapat dicacah melalui Comminutor.", feedbackWrong: "Kulit pisang adalah sampah organik. Arahkan ke Comminutor untuk dicacah." },
+    { texture: "pilah_sampah.waste.kertas", name: "Kertas", category: "Kertas", bin: "incinerator", rounds: [1, 2, 3], available: true, feedbackCorrect: "Kertas dapat diarahkan ke Incinerator pada skenario pembelajaran ini.", feedbackWrong: "Comminutor digunakan untuk sampah makanan. Kertas diarahkan ke Incinerator pada simulasi ini." },
+    { texture: "pilah_sampah.waste.kardus", name: "Kardus", category: "Kertas / Karton", bin: "incinerator", rounds: [1, 2, 3], available: true, feedbackCorrect: "Kardus dapat diarahkan ke Incinerator pada skenario pembelajaran ini.", feedbackWrong: "Kardus berbahan kertas dan diarahkan ke Incinerator pada simulasi ini." },
+    { texture: "pilah_sampah.waste.logam", name: "Potongan Logam", category: "Logam", bin: "storage", rounds: [2, 3], available: true, feedbackCorrect: "Potongan logam disimpan untuk penanganan lebih lanjut.", feedbackWrong: "Logam tidak dicacah atau dibakar pada simulasi ini. Simpan di gudang sampah." },
+    { texture: "pilah_sampah.waste.styrofoam", name: "Styrofoam", category: "Plastik", bin: "storage", rounds: [2, 3], available: true, feedbackCorrect: "Styrofoam disimpan di gudang sampah untuk penanganan berikutnya.", feedbackWrong: "Styrofoam tidak diarahkan ke Comminutor. Simpan di gudang sampah." },
+    { texture: "pilah_sampah.waste.kaca", name: "Botol Kaca", category: "Kaca", bin: "storage", rounds: [1, 2, 3], available: true, feedbackCorrect: "Botol kaca disimpan dengan aman untuk penanganan selanjutnya.", feedbackWrong: "Kaca perlu disimpan di gudang sampah, bukan diproses dengan Incinerator atau Comminutor." },
+    { texture: "pilah_sampah.waste.taliJaring", name: "Tali / Jaring Sintetis", category: "Sintetis", bin: "storage", rounds: [2, 3], available: true, feedbackCorrect: "Tali dan jaring sintetis disimpan untuk penanganan selanjutnya.", feedbackWrong: "Tali atau jaring sintetis disimpan di gudang sampah pada simulasi ini." },
+    { texture: "pilah_sampah.waste.daun", name: "Sisa Sayuran", category: "Sampah Organik", bin: "comminutor", rounds: [2, 3], available: true, feedbackCorrect: "Sisa sayuran dapat diproses melalui Comminutor.", feedbackWrong: "Sisa sayuran adalah sampah organik yang diarahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.kue", name: "Sisa Kue", category: "Sampah Organik", bin: "comminutor", rounds: [2, 3], available: true, feedbackCorrect: "Sisa kue dapat dicacah melalui Comminutor.", feedbackWrong: "Sisa kue termasuk sampah organik. Arahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.paperBag", name: "Paper Bag", category: "Kertas", bin: "incinerator", rounds: [2, 3], available: true, feedbackCorrect: "Paper bag berbahan kertas dapat diarahkan ke Incinerator pada simulasi ini.", feedbackWrong: "Paper bag bukan sampah organik. Arahkan ke Incinerator pada simulasi ini." },
+    // TODO ASSET: add a preloaded texture, then change available to true.
+    { texture: "pilah_sampah.waste.sisaNasi", name: "Sisa Nasi", category: "Sampah Organik", bin: "comminutor", rounds: [1, 2, 3], available: true, feedbackCorrect: "Sisa nasi dapat dicacah melalui Comminutor.", feedbackWrong: "Sisa nasi adalah sampah organik. Arahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.kulitJeruk", name: "Kulit Jeruk", category: "Sampah Organik", bin: "comminutor", rounds: [2, 3], available: true, feedbackCorrect: "Kulit jeruk dapat diproses melalui Comminutor.", feedbackWrong: "Kulit jeruk adalah sampah organik. Arahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.potonganBuah", name: "Potongan Buah", category: "Sampah Organik", bin: "comminutor", rounds: [2, 3], available: false, feedbackCorrect: "Potongan buah dapat dicacah melalui Comminutor.", feedbackWrong: "Potongan buah adalah sampah organik. Arahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.sisaIkan", name: "Tulang / Sisa Ikan", category: "Sampah Organik", bin: "comminutor", rounds: [2, 3], available: true, feedbackCorrect: "Sisa ikan dapat diarahkan ke Comminutor.", feedbackWrong: "Sisa ikan termasuk sampah organik pada simulasi ini." },
+    { texture: "pilah_sampah.waste.sisaRoti", name: "Sisa Roti", category: "Sampah Organik", bin: "comminutor", rounds: [2, 3], available: true, feedbackCorrect: "Sisa roti dapat dicacah melalui Comminutor.", feedbackWrong: "Sisa roti termasuk sampah organik. Arahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.gelasPlastik", name: "Gelas Plastik", category: "Plastik", bin: "storage", rounds: [2, 3], available: false, feedbackCorrect: "Gelas plastik disimpan di gudang sampah.", feedbackWrong: "Gelas plastik disimpan untuk penanganan selanjutnya." },
+    { texture: "pilah_sampah.waste.kantongPlastik", name: "Kantong Plastik", category: "Plastik", bin: "storage", rounds: [3], available: false, feedbackCorrect: "Kantong plastik disimpan di gudang sampah.", feedbackWrong: "Kantong plastik disimpan untuk penanganan selanjutnya." },
+    { texture: "pilah_sampah.waste.kemasanPlastik", name: "Kemasan Plastik", category: "Plastik", bin: "storage", rounds: [2, 3], available: false, feedbackCorrect: "Kemasan plastik disimpan di gudang sampah.", feedbackWrong: "Kemasan plastik tidak diarahkan ke Comminutor pada simulasi ini." },
+    { texture: "pilah_sampah.waste.pecahanKaca", name: "Pecahan Kaca", category: "Kaca", bin: "storage", rounds: [2, 3], available: false, feedbackCorrect: "Pecahan kaca disimpan dengan aman untuk penanganan selanjutnya.", feedbackWrong: "Pecahan kaca perlu disimpan di gudang sampah." },
+    { texture: "pilah_sampah.waste.kalengMakanan", name: "Kaleng Makanan", category: "Logam", bin: "storage", rounds: [2, 3], available: false, feedbackCorrect: "Kaleng makanan disimpan di gudang sampah.", feedbackWrong: "Kaleng makanan termasuk logam dan perlu disimpan." },
+    { texture: "pilah_sampah.waste.aluminium", name: "Aluminium", category: "Logam", bin: "storage", rounds: [3], available: false, feedbackCorrect: "Aluminium disimpan untuk penanganan selanjutnya.", feedbackWrong: "Aluminium perlu disimpan di gudang sampah." },
+    { texture: "pilah_sampah.waste.kemasanKertas", name: "Kemasan Kertas", category: "Kertas", bin: "incinerator", rounds: [2, 3], available: false, feedbackCorrect: "Kemasan berbahan kertas diarahkan ke Incinerator pada simulasi ini.", feedbackWrong: "Kemasan kertas diarahkan ke Incinerator pada simulasi ini." },
+    { texture: "pilah_sampah.waste.sisaMakanan", name: "Sisa Makanan", category: "Sampah Organik", bin: "comminutor", rounds: [1, 2, 3], available: false, feedbackCorrect: "Sisa makanan dapat dicacah melalui Comminutor.", feedbackWrong: "Sisa makanan diarahkan ke Comminutor." },
+    { texture: "pilah_sampah.waste.residuLain", name: "Sampah Lainnya", category: "Residu", bin: "storage", rounds: [3], available: false, feedbackCorrect: "Sampah residu disimpan untuk penanganan lebih lanjut.", feedbackWrong: "Sampah residu disimpan di gudang sampah pada simulasi ini." },
 ];
 
-const ITEMS_PER_ROUND = 8;
+const ROUND_ITEM_COUNTS = [6, 8, 8];
 
 /** Conveyor slot positions, one per item shown in a round. */
 const SLOT_POSITIONS: { x: number; y: number }[] = [530, 650, 770, 890, 1010, 1130, 1250, 1370].map((x) => ({ x, y: 760 }));
@@ -63,45 +86,57 @@ export class PilahSampah extends Scene {
     private lifeHearts: GameObjects.Graphics[] = [];
     private feedbackText!: GameObjects.Text;
     private feedbackBackground!: GameObjects.Graphics;
+    private roundText!: GameObjects.Text;
+    private progressText!: GameObjects.Text;
+    private progressBar!: GameObjects.Graphics;
+    private storageCapacityText!: GameObjects.Text;
+    private storageCapacityBar!: GameObjects.Graphics;
+    private dragLabel?: GameObjects.Container;
+    private hoverHighlight?: GameObjects.Graphics;
+    private hoveredBin?: BinId;
     private lives = MAX_LIVES;
-    private remainingItems = ITEMS_PER_ROUND;
-    private restarting = false;
+    private currentRound = 1;
+    private readonly totalRounds = 3;
+    private correctAnswers = 0;
+    private wrongAnswers = 0;
+    private totalAttempts = 0;
+    private roundCorrect = 0;
+    private roundWrong = 0;
+    private processedItems = 0;
+    private totalRoundItems = 0;
+    private storageItems = 0;
+    private roundActive = false;
     private itemOrder: WasteItemConfig[] = [];
 
     constructor() {
         super("PilahSampah");
     }
 
-    /** Picks ITEMS_PER_ROUND random waste types out of the full pool. */
+    /** Picks non-duplicated, currently available waste assets for a round. */
     private pickRoundItems(): WasteItemConfig[] {
-        return shuffled(WASTE_POOL).slice(0, ITEMS_PER_ROUND);
+        const roundIndex = this.currentRound - 1;
+        const candidates = WASTE_POOL.filter((item) => item.available && item.rounds.includes(this.currentRound));
+        return shuffled(candidates).slice(0, Math.min(ROUND_ITEM_COUNTS[roundIndex], candidates.length));
     }
 
     create() {
         this.background = this.add.image(0, 0, "pilah_sampah.background");
         this.root = this.add.container(0, 0);
-        this.lives = MAX_LIVES;
-        this.itemOrder = this.pickRoundItems();
-        this.remainingItems = this.itemOrder.length;
-        this.restarting = false;
-
         const groups: GameObjects.GameObject[][] = [];
         trackGroup(this.root, groups, () => this.buildHeader());
         trackGroup(this.root, groups, () => this.buildInstructions());
         trackGroup(this.root, groups, () => this.buildBinLabels());
         this.wasteLayer = this.add.container(0, 0);
         this.root.add(this.wasteLayer);
-        this.buildWasteItems();
         groups.push([this.wasteLayer]);
+        this.buildStatus();
         this.buildLives();
         this.transitionGroups = groups;
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
         playSceneEnter(this, groups);
-        // Wait for the conveyor items to reach their authored positions.
-        this.input.enabled = false;
-        this.time.delayedCall(700, () => { this.input.enabled = true; });
+        this.startRound(1);
         EventBus.emit("current-scene-ready", this);
 
         this.events.once("shutdown", () => {
@@ -157,9 +192,12 @@ export class PilahSampah extends Scene {
     }
 
     private buildBinLabels() {
-        this.buildBinLabel(BIN_ZONES.incinerator.x, 343, "INSINERATOR", "Sampah yang dapat\ndibakar (non-plastik)", "incinerator");
+        this.buildBinLabel(BIN_ZONES.incinerator.x, 343, "INCINERATOR", "Sampah yang dapat\ndibakar (non-plastik)", "incinerator");
         this.buildBinLabel(BIN_ZONES.comminutor.x, 343, "COMMINUTOR", "Sampah organik\nhingga < 25 mm", "comminutor");
-        this.buildBinLabel(BIN_ZONES.plastic.x, 343, "BAK GUDANG\nSAMPAH PLASTIK", "Simpan untuk penanganan\ndi pelabuhan", "recycling");
+        this.buildBinLabel(BIN_ZONES.storage.x, 343, "BAK / GUDANG\nSAMPAH", "Simpan untuk penanganan\nselanjutnya", "recycling");
+        this.storageCapacityText = this.add.text(BIN_ZONES.storage.x, 414, "KAPASITAS GUDANG  0%", { fontFamily: FONT, fontStyle: "700", fontSize: 12, color: "#143a84" }).setOrigin(0.5);
+        this.storageCapacityBar = this.add.graphics();
+        this.root.add([this.storageCapacityText, this.storageCapacityBar]);
     }
 
     private buildBinLabel(x: number, y: number, title: string, subtitle: string, icon: string) {
@@ -193,49 +231,121 @@ export class PilahSampah extends Scene {
         this.itemOrder.forEach((config, index) => {
             const slot = SLOT_POSITIONS[index];
             const item = this.add
-                .image(slot.x, slot.y, config.texture)
-                .setInteractive({ useHandCursor: true, draggable: true });
+                .image(slot.x - 420, slot.y, config.texture)
+                .setAlpha(0);
             const baseScale = 78 / Math.max(item.width, item.height);
             item.setScale(baseScale);
             item.setData("baseScale", baseScale);
             item.setData("originX", slot.x);
             item.setData("originY", slot.y);
             item.setData("bin", config.bin);
+            item.setData("config", config);
+            item.setData("ready", false);
             item.on("dragstart", (pointer: Phaser.Input.Pointer) => {
+                if (!this.roundActive || !item.getData("ready")) return;
                 this.wasteLayer.bringToTop(item);
                 item.setData("offsetX", this.toDesignX(pointer.worldX) - item.x);
                 item.setData("offsetY", this.toDesignY(pointer.worldY) - item.y);
+                item.setData("dragMoved", false);
+                item.setScale(baseScale * 1.08);
+                item.setTint(0xf4f9ff);
+                this.showDragLabel(item);
             });
             item.on("drag", (pointer: Phaser.Input.Pointer) => {
-                if (this.restarting) return;
-                item.setPosition(
-                    this.toDesignX(pointer.worldX) - item.getData("offsetX"),
-                    this.toDesignY(pointer.worldY) - item.getData("offsetY"),
-                );
+                if (!this.roundActive) return;
+                const x = this.toDesignX(pointer.worldX) - item.getData("offsetX");
+                const y = this.toDesignY(pointer.worldY) - item.getData("offsetY");
+                item.setPosition(x, y);
+                const movedX = Math.abs(x - item.getData("originX"));
+                const movedY = Math.abs(y - item.getData("originY"));
+                if (movedX > 8 || movedY > 8) item.setData("dragMoved", true);
+                const hovered = this.getBinAt(x, y);
+                this.updateDropHover(hovered === config.bin ? hovered : undefined);
+                this.positionDragLabel(item);
             });
             // Phaser's dragend coordinates are not world coordinates. Use
             // the pointer directly, transformed into the scene's design space.
-            item.on("dragend", (pointer: Phaser.Input.Pointer) => this.handleWasteDrop(item, pointer.worldX, pointer.worldY));
+            item.on("dragend", (pointer: Phaser.Input.Pointer) => {
+                this.destroyDragLabel();
+                this.updateDropHover();
+                if (!item.getData("dragMoved")) {
+                    const baseScale = item.getData("baseScale") as number;
+                    item.clearTint();
+                    item.setScale(baseScale);
+                    return;
+                }
+                this.handleWasteDrop(item, pointer.worldX, pointer.worldY);
+            });
             this.wasteLayer.add(item);
         });
     }
 
+    private startRound(round: number) {
+        this.currentRound = round;
+        this.lives = MAX_LIVES;
+        this.roundCorrect = 0;
+        this.roundWrong = 0;
+        this.processedItems = 0;
+        this.storageItems = 0;
+        this.roundActive = false;
+        this.wasteLayer.removeAll(true);
+        this.itemOrder = this.pickRoundItems();
+        this.totalRoundItems = this.itemOrder.length;
+        this.updateLives();
+        this.updateProgress();
+        this.updateStorageCapacity();
+        this.buildWasteItems();
+        this.animateConveyorEntrance();
+    }
+
+    private animateConveyorEntrance() {
+        this.setFeedback(`RONDE ${this.currentRound} / ${this.totalRounds}\nSampah sedang memasuki conveyor.`);
+        const items = this.wasteLayer.list.filter((child): child is GameObjects.Image => child instanceof GameObjects.Image);
+        items.forEach((item, index) => {
+            this.tweens.add({
+                targets: item, x: item.getData("originX"), alpha: 1, duration: 650, delay: index * 110, ease: "Sine.Out",
+                onComplete: () => {
+                    item.setData("ready", true);
+                    item.setInteractive({ useHandCursor: true, draggable: true });
+                    if (index === items.length - 1) {
+                        this.roundActive = true;
+                        this.recoverConveyorItems();
+                        this.setFeedback("Seret setiap sampah ke area pengelolaan yang sesuai.");
+                    }
+                },
+            });
+        });
+    }
+
     private handleWasteDrop(item: GameObjects.Image, screenX: number, screenY: number) {
-        if (this.restarting || item.getData("settling")) return;
+        if (!this.roundActive || item.getData("settling")) return;
         item.setData("settling", true);
         item.disableInteractive();
+        item.clearTint();
         const baseScale = item.getData("baseScale") as number;
         const x = this.toDesignX(screenX);
         const y = this.toDesignY(screenY);
-        const bin = item.getData("bin") as BinId;
+        const config = item.getData("config") as WasteItemConfig;
+        const bin = config.bin;
         const zone = BIN_ZONES[bin];
-        const isCorrect = x >= zone.x - zone.width / 2 && x <= zone.x + zone.width / 2 && y >= zone.y - zone.height / 2 && y <= zone.y + zone.height / 2;
+        const targetBin = this.getBinAt(x, y);
+        const isCorrect = targetBin === bin;
+        this.totalAttempts++;
 
         if (isCorrect) {
-            playSfx(this, SFX_KEYS.click);
-            this.remainingItems--;
-            const justFinished = this.remainingItems === 0;
-            this.setFeedback(justFinished ? "Semua sampah berhasil dipilah!" : "Benar! Sampah masuk ke wadah yang sesuai.", "#1f8d52");
+            playSfx(this, SFX_KEYS.quizCorrect);
+            this.correctAnswers++;
+            this.roundCorrect++;
+            this.processedItems++;
+            this.roundActive = false;
+            this.flashBin(targetBin!, SUCCESS);
+            this.playProcessingAnimation(bin);
+            if (bin === "storage") {
+                this.storageItems++;
+                this.updateStorageCapacity();
+            }
+            this.updateProgress();
+            this.setFeedback(`✓ BENAR\n${config.feedbackCorrect}`, "#1f8d52");
             this.tweens.add({
                 targets: item,
                 x: zone.x,
@@ -247,27 +357,38 @@ export class PilahSampah extends Scene {
                 ease: "Back.In",
                 onComplete: () => {
                     item.destroy();
-                    if (justFinished) {
-                        this.time.delayedCall(500, () => this.showSuccessModal());
+                    if (this.processedItems === this.totalRoundItems) {
+                        this.time.delayedCall(650, () => this.completeRound());
+                    } else {
+                        this.time.delayedCall(350, () => {
+                            this.recoverConveyorItems();
+                            this.roundActive = true;
+                        });
                     }
                 },
             });
             return;
         }
 
+        this.wrongAnswers++;
+        this.roundWrong++;
         this.lives--;
         this.updateLives();
-        this.setFeedback("Belum sesuai. Seret sampah ke wadah yang tepat.", "#c0392b");
+        if (targetBin) this.flashBin(targetBin, ERROR);
+        this.setFeedback(`BELUM TEPAT\n${config.feedbackWrong}`, "#c0392b");
+        playSfx(this, SFX_KEYS.quizWrong);
+        item.setTint(0xffd6d1);
         this.tweens.add({
             targets: item,
             x: item.getData("originX"),
             y: item.getData("originY"),
             scaleX: baseScale,
             scaleY: baseScale,
-            duration: 220,
+            duration: 300,
             ease: "Back.Out",
             onComplete: () => {
-                if (!this.restarting) {
+                item.clearTint();
+                if (this.lives > 0) {
                     item.setData("settling", false);
                     item.setInteractive({ useHandCursor: true, draggable: true });
                 }
@@ -275,11 +396,26 @@ export class PilahSampah extends Scene {
         });
 
         if (this.lives === 0) {
-            this.restarting = true;
-            this.wasteLayer.list.forEach((child) => child.disableInteractive());
-            this.setFeedback("Nyawa habis. Mengulang dengan posisi sampah diacak...", "#c0392b");
-            this.time.delayedCall(1200, () => this.restartRound());
+            this.roundActive = false;
+            this.wasteLayer.list.forEach((child) => {
+                if (child instanceof GameObjects.Image) child.disableInteractive();
+            });
+            this.time.delayedCall(800, () => this.showFailureModal());
         }
+    }
+
+    private buildStatus() {
+        const x = 1150;
+        const y = 128;
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 0.96);
+        card.fillRoundedRect(x, y, 336, 74, 20);
+        card.lineStyle(2, PRIMARY_BLUE, 1);
+        card.strokeRoundedRect(x, y, 336, 74, 20);
+        this.roundText = this.add.text(x + 24, y + 14, "RONDE 1 / 3", { fontFamily: FONT, fontStyle: "700", fontSize: 17, color: "#143a84" });
+        this.progressText = this.add.text(x + 24, y + 43, "SAMPAH DIPROSES  0 / 0", { fontFamily: FONT, fontStyle: "700", fontSize: 13, color: "#143a84" });
+        this.progressBar = this.add.graphics();
+        this.root.add([card, this.roundText, this.progressText, this.progressBar]);
     }
 
     private buildLives() {
@@ -288,8 +424,9 @@ export class PilahSampah extends Scene {
         card.fillRoundedRect(DESIGN_WIDTH - 310, 24, 278, 72, 20);
         card.lineStyle(2, PRIMARY_BLUE, 1);
         card.strokeRoundedRect(DESIGN_WIDTH - 310, 24, 278, 72, 20);
+        const label = this.add.text(DESIGN_WIDTH - 286, 34, "KESEMPATAN", { fontFamily: FONT, fontStyle: "700", fontSize: 12, color: "#143a84" });
         this.lifeHearts = Array.from({ length: MAX_LIVES }, (_, index) =>
-            this.add.graphics().setPosition(DESIGN_WIDTH - 171 + (index - 2) * 46, 58),
+            this.add.graphics().setPosition(DESIGN_WIDTH - 171 + (index - 2) * 46, 68),
         );
         this.feedbackBackground = this.add.graphics();
         this.feedbackText = this.add.text(0, 0, "", {
@@ -297,7 +434,7 @@ export class PilahSampah extends Scene {
             align: "center", wordWrap: { width: 1200 },
         }).setOrigin(0.5);
         const feedback = this.add.container(DESIGN_WIDTH / 2, 990, [this.feedbackBackground, this.feedbackText]);
-        this.root.add([card, ...this.lifeHearts, feedback]);
+        this.root.add([card, label, ...this.lifeHearts, feedback]);
         this.setFeedback("Seret setiap sampah ke wadah yang sesuai.");
         this.updateLives();
     }
@@ -328,23 +465,156 @@ export class PilahSampah extends Scene {
         });
     }
 
+    private updateProgress() {
+        const dots = Array.from({ length: this.totalRounds }, (_, index) => index < this.currentRound ? "●" : "○").join(" ");
+        this.roundText.setText(`RONDE ${this.currentRound} / ${this.totalRounds}  ${dots}`);
+        this.progressText.setText(`SAMPAH DIPROSES  ${this.processedItems} / ${this.totalRoundItems}`);
+        this.progressBar.clear();
+    }
+
+    private updateStorageCapacity() {
+        const percent = Math.min(100, this.storageItems * 15);
+        const width = 180;
+        const x = BIN_ZONES.storage.x - width / 2;
+        this.storageCapacityText.setText(`KAPASITAS GUDANG  ${percent}%`);
+        this.storageCapacityBar.clear();
+        this.storageCapacityBar.fillStyle(0xdcecff, 1);
+        this.storageCapacityBar.fillRoundedRect(x, 426, width, 10, 5);
+        this.storageCapacityBar.fillStyle(SUCCESS, 1);
+        this.storageCapacityBar.fillRoundedRect(x, 426, width * percent / 100, 10, 5);
+    }
+
+    private flashBin(bin: BinId, color: number) {
+        const zone = BIN_ZONES[bin];
+        const flash = this.add.graphics();
+        flash.fillStyle(color, 0.16);
+        flash.fillRoundedRect(zone.x - zone.width / 2, zone.y - zone.height / 2, zone.width, zone.height, 20);
+        flash.lineStyle(5, color, 0.9);
+        flash.strokeRoundedRect(zone.x - zone.width / 2, zone.y - zone.height / 2, zone.width, zone.height, 20);
+        this.root.add(flash);
+        this.tweens.add({ targets: flash, alpha: 0, duration: 700, ease: "Sine.Out", onComplete: () => flash.destroy() });
+    }
+
+    private playProcessingAnimation(bin: BinId) {
+        const zone = BIN_ZONES[bin];
+        const color = bin === "incinerator" ? 0xf59e0b : bin === "comminutor" ? PRIMARY_BLUE : SUCCESS;
+        const pulse = this.add.circle(zone.x, zone.y, 20, color, 0.45);
+        this.root.add(pulse);
+        this.tweens.add({ targets: pulse, scaleX: 3, scaleY: 3, alpha: 0, duration: 750, ease: "Sine.Out", onComplete: () => pulse.destroy() });
+        if (bin === "comminutor") {
+            this.tweens.add({ targets: pulse, x: zone.x + 6, yoyo: true, repeat: 3, duration: 55 });
+        }
+    }
+
+    private getBinAt(x: number, y: number): BinId | undefined {
+        return (Object.keys(BIN_ZONES) as BinId[]).find((candidate) => {
+            const zone = BIN_ZONES[candidate];
+            return x >= zone.x - zone.width / 2 && x <= zone.x + zone.width / 2 && y >= zone.y - zone.height / 2 && y <= zone.y + zone.height / 2;
+        });
+    }
+
+    private updateDropHover(bin?: BinId) {
+        if (bin === this.hoveredBin) return;
+        this.hoveredBin = bin;
+        this.hoverHighlight?.destroy();
+        this.hoverHighlight = undefined;
+        if (!bin) return;
+        const zone = BIN_ZONES[bin];
+        const highlight = this.add.graphics();
+        highlight.fillStyle(SUCCESS, 0.12);
+        highlight.fillRoundedRect(zone.x - zone.width / 2, zone.y - zone.height / 2, zone.width, zone.height, 20);
+        highlight.lineStyle(4, SUCCESS, 0.9);
+        highlight.strokeRoundedRect(zone.x - zone.width / 2, zone.y - zone.height / 2, zone.width, zone.height, 20);
+        this.root.add(highlight);
+        this.hoverHighlight = highlight;
+    }
+
+    /** Keeps unprocessed conveyor items visible after a tween or interrupted
+     * pointer gesture. Processed items are destroyed and therefore excluded. */
+    private recoverConveyorItems() {
+        this.wasteLayer.list.forEach((child) => {
+            if (!(child instanceof GameObjects.Image) || child.getData("settling") || !child.getData("ready")) return;
+            child.setVisible(true).setAlpha(1);
+            if (child.x < 0 || child.x > DESIGN_WIDTH || child.y < 0 || child.y > DESIGN_HEIGHT) {
+                child.setPosition(child.getData("originX"), child.getData("originY"));
+            }
+        });
+    }
+
+    private showDragLabel(item: GameObjects.Image) {
+        this.destroyDragLabel();
+        const config = item.getData("config") as WasteItemConfig;
+        const background = this.add.graphics();
+        const name = this.add.text(0, 0, config.name.toUpperCase(), { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: "#143a84" }).setOrigin(0.5, 0);
+        const category = this.add.text(0, name.height + 3, config.category, { fontFamily: FONT, fontStyle: "600", fontSize: 12, color: "#4a5b78" }).setOrigin(0.5, 0);
+        const width = Math.max(name.width, category.width) + 28;
+        const height = name.height + category.height + 16;
+        background.fillStyle(0xffffff, 0.97);
+        background.fillRoundedRect(-width / 2, -height / 2, width, height, 10);
+        background.lineStyle(2, PRIMARY_BLUE, 1);
+        background.strokeRoundedRect(-width / 2, -height / 2, width, height, 10);
+        this.dragLabel = this.add.container(item.x, item.y - 62, [background, name, category]);
+        this.wasteLayer.add(this.dragLabel);
+    }
+
+    private positionDragLabel(item: GameObjects.Image) {
+        this.dragLabel?.setPosition(item.x, item.y - 62);
+    }
+
+    private destroyDragLabel() {
+        this.dragLabel?.destroy();
+        this.dragLabel = undefined;
+    }
+
     private restartRound() {
-        this.wasteLayer.list.forEach((child) => this.tweens.killTweensOf(child));
-        this.wasteLayer.removeAll(true);
-        this.itemOrder = this.pickRoundItems();
-        this.lives = MAX_LIVES;
-        this.remainingItems = this.itemOrder.length;
-        this.restarting = false;
-        this.buildWasteItems();
-        this.updateLives();
-        this.setFeedback("Coba lagi! Posisi sampah sudah diacak.");
+        this.startRound(this.currentRound);
+    }
+
+    private completeRound() {
+        this.roundActive = false;
+        if (this.currentRound < this.totalRounds) {
+            this.showRoundCompleteModal();
+            return;
+        }
+        this.showFinalModal();
+    }
+
+    private getAccuracy() {
+        return this.totalAttempts ? Math.round(this.correctAnswers / this.totalAttempts * 100) : 0;
+    }
+
+    private showFailureModal() {
+        this.showSimpleModal("SIMULASI BELUM BERHASIL", "Kamu masih melakukan beberapa kesalahan dalam menentukan pengelolaan sampah.", "COBA LAGI", ERROR, () => this.restartRound());
+    }
+
+    private showRoundCompleteModal() {
+        const accuracy = this.roundCorrect + this.roundWrong ? Math.round(this.roundCorrect / (this.roundCorrect + this.roundWrong) * 100) : 0;
+        this.showSimpleModal(`RONDE ${this.currentRound} SELESAI`, `✓ ${this.processedItems} Sampah Diproses\n✓ Akurasi ${accuracy}%\n✓ Pemilahan Selesai`, `LANJUT RONDE ${this.currentRound + 1}`, SUCCESS, () => this.startRound(this.currentRound + 1));
+    }
+
+    private showFinalModal() {
+        this.showSimpleModal(
+            "SIMULASI SELESAI",
+            `PEMILAHAN SAMPAH DI KAPAL\n\nAKURASI  ${this.getAccuracy()}%\nBENAR  ${this.correctAnswers}     SALAH  ${this.wrongAnswers}\nRONDE SELESAI  3 / 3\n\n✓ Mengenali jenis sampah\n✓ Menentukan proses pengelolaan\n✓ Menggunakan Incinerator dengan tepat\n✓ Menggunakan Comminutor dengan tepat\n✓ Menentukan sampah yang harus disimpan\n\nKamu telah menyelesaikan simulasi pemilahan dan pengelolaan sampah di kapal.`,
+            "SELESAI",
+            SUCCESS,
+            () => { unlockNextModuleAfter("simulator-stabilitas"); this.goTo("MainMenu"); },
+            true,
+            "ULANGI SIMULASI",
+            () => {
+                this.correctAnswers = 0;
+                this.wrongAnswers = 0;
+                this.totalAttempts = 0;
+                this.startRound(1);
+            },
+        );
     }
 
     /** Shown once every waste item has been sorted correctly. Unlocks the
      * next module in the MainMenu chain and hands the player back to
      * MainMenu — this scene has no quiz of its own, so finishing the
      * drag-and-drop activity is the module's sole completion signal. */
-    private showSuccessModal() {
+    private showSimpleModal(titleLabel: string, messageLabel: string, buttonLabel: string, accent: number, onContinue: () => void, large = false, secondaryLabel?: string, onSecondary?: () => void) {
         const centerX = DESIGN_WIDTH / 2;
         const centerY = DESIGN_HEIGHT / 2;
 
@@ -358,36 +628,55 @@ export class PilahSampah extends Scene {
             },
         );
 
-        const panelWidth = 560;
-        const panelHeight = 340;
+        const panelWidth = large ? 680 : 620;
+        const panelHeight = large ? 680 : 420;
+        const panelTop = centerY - panelHeight / 2;
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x081a33, 0.16);
+        shadow.fillRoundedRect(centerX - panelWidth / 2, panelTop + 10, panelWidth, panelHeight, 28);
         const panel = this.add.graphics();
         panel.fillStyle(0xffffff, 1);
-        panel.fillRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 24);
-        panel.lineStyle(3, 0x1f8d52, 0.6);
-        panel.strokeRoundedRect(centerX - panelWidth / 2, centerY - panelHeight / 2, panelWidth, panelHeight, 24);
+        panel.fillRoundedRect(centerX - panelWidth / 2, panelTop, panelWidth, panelHeight, 28);
+        panel.lineStyle(3, accent, 0.6);
+        panel.strokeRoundedRect(centerX - panelWidth / 2, panelTop, panelWidth, panelHeight, 28);
+        const accentLine = this.add.graphics();
+        accentLine.fillStyle(accent, 1);
+        accentLine.fillRoundedRect(centerX - 46, panelTop + 20, 92, 5, 3);
 
-        const badgeRadius = 44;
-        const badgeY = centerY - panelHeight / 2 + 20 + badgeRadius;
-        const badge = this.add.circle(centerX, badgeY, badgeRadius, 0x1f8d52, 1);
+        const badgeRadius = large ? 44 : 40;
+        const badgeY = panelTop + 48 + badgeRadius;
+        const badge = this.add.circle(centerX, badgeY, badgeRadius, accent, 1);
         const check = this.add.text(centerX, badgeY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 44, color: "#ffffff" }).setOrigin(0.5);
 
         const title = this.add
-            .text(centerX, badgeY + badgeRadius + 26, "Berhasil!", { fontFamily: FONT, fontStyle: "700", fontSize: 28, color: "#143a84" })
+            .text(centerX, badgeY + badgeRadius + 24, titleLabel, { fontFamily: FONT, fontStyle: "800", fontSize: 28, color: "#143a84" })
             .setOrigin(0.5);
+        const isRoundComplete = titleLabel.startsWith("RONDE");
+        const context = isRoundComplete
+            ? this.add.text(centerX, title.y + title.height / 2 + 10, "PEMILAHAN SAMPAH DI KAPAL", { fontFamily: FONT, fontStyle: "700", fontSize: 13, color: "#087ff1", letterSpacing: 1 }).setOrigin(0.5, 0)
+            : undefined;
+        const detailTop = large ? title.y + title.height / 2 + 18 : (context?.y ?? title.y) + (context?.height ?? title.height / 2) + 18;
+        const detailCard = this.add.graphics();
+        if (!large) {
+            detailCard.fillStyle(0xeaf3ff, 1);
+            detailCard.fillRoundedRect(centerX - 235, detailTop, 470, 102, 16);
+            detailCard.lineStyle(2, 0xb8d5ff, 1);
+            detailCard.strokeRoundedRect(centerX - 235, detailTop, 470, 102, 16);
+        }
 
         const message = this.add
-            .text(centerX, title.y + title.height / 2 + 16, "Kamu berhasil menyelesaikan Simulasi Pemilahan Sampah dengan benar.", {
-                fontFamily: FONT, fontStyle: "600", fontSize: 16, color: "#4a5b78", align: "center",
+            .text(centerX, detailTop + (large ? 0 : 17), messageLabel, {
+                fontFamily: FONT, fontStyle: "600", fontSize: large ? 15 : 16, color: "#4a5b78", align: "center", lineSpacing: 6,
                 wordWrap: { width: panelWidth - 64 },
             })
             .setOrigin(0.5, 0);
 
         const button = new Button(this, {
             x: centerX,
-            y: centerY + panelHeight / 2 - 50,
+            y: centerY + panelHeight / 2 - 78,
             width: 280,
             height: 54,
-            text: "Kembali ke Menu",
+            text: buttonLabel,
             fontFamily: FONT,
             fontStyle: "600",
             fontSize: 16,
@@ -396,13 +685,40 @@ export class PilahSampah extends Scene {
             strokeAlpha: 0,
             textColor: "#ffffff",
         });
+        const contents: GameObjects.GameObject[] = [overlay, shadow, panel, accentLine, badge, check, title, detailCard, message, button.view];
+        if (context) contents.push(context);
+        let secondaryButton: Button | undefined;
+        if (secondaryLabel && onSecondary) {
+            button.view.setPosition(centerX - 132, centerY + panelHeight / 2 - 78);
+            secondaryButton = new Button(this, {
+                x: centerX + 132,
+                y: centerY + panelHeight / 2 - 78,
+                width: 250,
+                height: 54,
+                text: secondaryLabel,
+                fontFamily: FONT,
+                fontStyle: "600",
+                fontSize: 16,
+                borderRadius: 27,
+                fillColor: 0xffffff,
+                strokeColor: PRIMARY_BLUE,
+                strokeWidth: 2,
+                textColor: "#087ff1",
+            });
+            contents.push(secondaryButton.view);
+        }
         button.on("pointerdown", () => {
             playSfx(this, SFX_KEYS.click);
-            unlockNextModuleAfter("simulator-stabilitas");
-            this.goTo("MainMenu");
+            modal.destroy();
+            onContinue();
+        });
+        secondaryButton?.on("pointerdown", () => {
+            playSfx(this, SFX_KEYS.click);
+            modal.destroy();
+            onSecondary!();
         });
 
-        const modal = this.add.container(0, 0, [overlay, panel, badge, check, title, message, button.view]).setDepth(200);
+        const modal = this.add.container(0, 0, contents).setDepth(200);
         this.root.add(modal);
         modal.setAlpha(0);
         modal.setScale(0.92);

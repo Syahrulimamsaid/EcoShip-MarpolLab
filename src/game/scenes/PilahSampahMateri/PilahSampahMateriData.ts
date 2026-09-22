@@ -1,3 +1,9 @@
+/** Text content for the 7-step "Materi Pemilahan Sampah" whiteboard.
+ * Every field that maps to an icon/illustration in the reference design is
+ * intentionally NOT represented here — PilahSampahMateri.ts renders those
+ * slots as empty bordered placeholder containers so real PNG/SVG assets can
+ * be dropped in later without touching layout code. */
+
 export interface PilahSidebarStep {
     id: number;
     title: string;
@@ -8,12 +14,26 @@ export const PILAH_SIDEBAR_STEPS: PilahSidebarStep[] = [
     { id: 2, title: "Pemilahan Sampah di Kapal" },
     { id: 3, title: "Incinerator" },
     { id: 4, title: "Comminutor" },
-    { id: 5, title: "Bak/Gudang Sampah" },
+    { id: 5, title: "Bak / Gudang Sampah" },
     { id: 6, title: "Alur Pengelolaan Sampah" },
     { id: 7, title: "Kesimpulan" },
 ];
 
-/** Step-1 "learning goals" panel. */
+/** Step 1 — the four intro columns. `icon` is the preloaded texture key for
+ * the circle asset (assets/pilah_sampah/materi/circle-*.png). */
+export interface PilahIntroItem {
+    icon: string;
+    label: string;
+    desc: string;
+}
+
+export const PILAH_INTRO_ITEMS: PilahIntroItem[] = [
+    { icon: "pilah_sampah.materi.circleShip", label: "Kapal", desc: "Sumber sampah dari kegiatan operasional" },
+    { icon: "pilah_sampah.materi.circleSea", label: "Laut", desc: "Harus dilindungi dari pencemaran" },
+    { icon: "pilah_sampah.materi.circleLeaf", label: "Lingkungan", desc: "Tetap bersih untuk generasi mendatang" },
+    { icon: "pilah_sampah.materi.circleTrash", label: "Tempat Sampah", desc: "Dikelola sesuai jenisnya" },
+];
+
 export const PILAH_LEARNING_GOALS: string[] = [
     "Mengenali jenis sampah di kapal",
     "Melakukan pemilahan sampah",
@@ -21,112 +41,78 @@ export const PILAH_LEARNING_GOALS: string[] = [
     "Menentukan penanganan sampah yang tepat",
 ];
 
-/** Step-1 icon strip (ship / sea / environment / bin). */
-export const PILAH_INTRO_ICONS: { icon: string; label: string }[] = [
-    { icon: "🚢", label: "Kapal" },
-    { icon: "🌊", label: "Laut" },
-    { icon: "🌿", label: "Lingkungan" },
-    { icon: "🗑️", label: "Tempat Sampah" },
+/** Step 2 — waste categories. `icon` is the preloaded texture key for the
+ * category's bin illustration (assets/pilah_sampah/materi/trash-*.png);
+ * categories without one yet fall back to an empty placeholder box. */
+export interface PilahWasteCategory {
+    name: string;
+    desc: string;
+    icon?: string;
+}
+
+export const PILAH_WASTE_CATEGORIES: PilahWasteCategory[] = [
+    { name: "Sisa Makanan", desc: "Nasi, sayur, buah, dan sisa bahan makanan.", icon: "pilah_sampah.materi.trashFoodwaste" },
+    { name: "Plastik", desc: "Botol plastik, kantong plastik, kemasan, dan tali sintetis.", icon: "pilah_sampah.materi.trashPlastic" },
+    { name: "Kertas / Karton", desc: "Kertas, kardus, dan kemasan berbahan kertas.", icon: "pilah_sampah.materi.trashPaper" },
+    { name: "Logam", desc: "Kaleng, besi, aluminium, dan peralatan logam.", icon: "pilah_sampah.materi.trashLogam" },
+    { name: "Kaca", desc: "Botol kaca, pecahan kaca, dan wadah kaca.", icon: "pilah_sampah.materi.trashGlass" },
+    { name: "Minyak Goreng", desc: "Minyak bekas dari kegiatan dapur.", icon: "pilah_sampah.materi.trashOil" },
+    { name: "Sampah Berbahaya / Lainnya", desc: "Baterai, lampu, elektronik, tali, jaring, dan residu lainnya.", icon: "pilah_sampah.materi.trashDanger" },
 ];
 
-export interface WasteCategory {
+export const PILAH_SORTING_PRINCIPLES: string[] = [
+    "Pisahkan sampah sejak dari sumber.",
+    "Jangan mencampurkan sampah berbeda jenis.",
+    "Gunakan wadah sesuai kategori.",
+    "Beri identitas pada tempat penyimpanan.",
+];
+
+/** Generic "info card" shape reused by steps 3, 4 and 5. */
+export interface PilahInfoCard {
     title: string;
-    subtitle?: string;
-    example: string;
-    color: number;
-    icon: string;
+    body: string;
 }
 
-/** Step-2 waste categories, shown as a row of flat garbage-bin cards. */
-export const WASTE_CATEGORIES: WasteCategory[] = [
-    { title: "SISA MAKANAN", subtitle: "(Food Waste)", example: "Sisa nasi, sayur, buah, dan bahan makanan lainnya.", color: 0x2e9e5b, icon: "🐟" },
-    { title: "PLASTIK", example: "Botol plastik, kantong plastik, kemasan plastik, tali sintetis.", color: 0xe0b400, icon: "♻️" },
-    { title: "KERTAS / KARTON", example: "Kertas, kardus, kemasan karton.", color: 0x2f68d8, icon: "📦" },
-    { title: "LOGAM", example: "Kaleng, besi, aluminium, dan peralatan logam.", color: 0x6b7280, icon: "⚙️" },
-    { title: "KACA", example: "Botol kaca, pecahan kaca, dan wadah kaca.", color: 0x1d9bd7, icon: "🍾" },
-    { title: "MINYAK GORENG BEKAS", subtitle: "(Cooking Oil)", example: "Minyak bekas kegiatan dapur.", color: 0x8a5a2b, icon: "🛢️" },
-    { title: "SAMPAH LAINNYA", example: "Tali, kain, lampu, residu, dan sampah lain yang memerlukan penanganan sesuai jenisnya.", color: 0xc0392b, icon: "⚠️" },
+export const PILAH_INCINERATOR_CARDS: PilahInfoCard[] = [
+    { title: "FUNGSI UTAMA", body: "Membakar limbah yang diizinkan secara terkendali untuk mengurangi volume sampah dan mencegah penumpukan di kapal." },
+    { title: "PENGGUNAAN", body: "Masukkan hanya limbah yang diizinkan, sesuai kapasitas alat, lalu operasikan mengikuti prosedur dan manual kapal." },
+    { title: "PERHATIAN", body: "Jangan membakar plastik, bahan berbahaya, atau limbah terlarang. Pastikan suhu dan ventilasi aman selama proses." },
 ];
 
-export const PILAH_SORTING_GOALS: string[] = [
-    "Mencegah pencemaran laut",
-    "Memudahkan pengelolaan dan daur ulang",
-    "Mendukung kepatuhan terhadap MARPOL Annex V",
-    "Menjaga lingkungan kapal tetap bersih dan aman",
+export const PILAH_COMMINUTOR_CARDS: PilahInfoCard[] = [
+    { title: "FUNGSI UTAMA", body: "Menghancurkan sampah makanan menjadi bagian yang lebih kecil." },
+    { title: "HASIL PROSES", body: "Ukuran sampah menjadi lebih kecil sehingga memudahkan proses pengelolaan berikutnya." },
+    { title: "CATATAN", body: "Penggunaan Comminutor tetap harus mengikuti prosedur dan ketentuan yang berlaku." },
 ];
 
-export const PILAH_REMINDERS: string[] = [
-    "Jangan mencampur kembali sampah yang telah dipilah",
-    "Plastik tidak boleh dibuang ke laut",
-    "Ikuti prosedur pengelolaan sampah kapal",
-    "Sampah yang perlu diserahkan ke darat ditangani melalui fasilitas penerimaan pelabuhan",
+export const PILAH_STORAGE_CARDS: PilahInfoCard[] = [
+    { title: "FUNGSI UTAMA", body: "Menyimpan sampah sementara sebelum pengolahan atau penyerahan." },
+    { title: "PENATAAN", body: "Sampah dipisahkan berdasarkan kategori dan ditempatkan pada wadah yang sesuai." },
+    { title: "KEAMANAN", body: "Area penyimpanan harus tertata, bersih, aman, dan tidak menyebabkan pencemaran." },
+    { title: "PENCATATAN", body: "Pengelolaan dan penyerahan sampah dilakukan sesuai prosedur kapal." },
 ];
 
-export interface FlowNode {
+/** Step 6 — the 5-node horizontal flow (icon placeholder + number + label + description). */
+export interface PilahFlowStep {
+    number: string;
     label: string;
+    desc: string;
 }
 
-/** Step-3 incinerator flow. */
-export const INCINERATOR_FLOW: FlowNode[] = [
-    { label: "SAMPAH\nYANG SESUAI" },
-    { label: "INCINERATOR" },
-    { label: "PROSES\nPEMBAKARAN" },
-    { label: "ABU" },
-    { label: "PENANGANAN\nSESUAI PROSEDUR" },
+export const PILAH_MANAGEMENT_FLOW: PilahFlowStep[] = [
+    { number: "01", label: "PEMILAHAN", desc: "Pisahkan berdasarkan jenis" },
+    { number: "02", label: "PENGOLAHAN", desc: "Gunakan peralatan sesuai kebutuhan" },
+    { number: "03", label: "PENYIMPANAN", desc: "Simpan pada area yang sesuai" },
+    { number: "04", label: "PENCATATAN", desc: "Catat proses pengelolaan" },
+    { number: "05", label: "PENYERAHAN", desc: "Serahkan ke fasilitas penerimaan" },
 ];
 
-/** Step-4 comminutor flow. */
-export const COMMINUTOR_FLOW: FlowNode[] = [
-    { label: "FOOD WASTE" },
-    { label: "COMMINUTOR" },
-    { label: "PENGHANCURAN" },
-    { label: "PARTIKEL\nLEBIH KECIL" },
-    { label: "PENANGANAN\nSESUAI KETENTUAN" },
-];
-
-export interface StorageBin {
-    label: string;
-    color: number;
-}
-
-/** Step-5 storage bin row. */
-export const STORAGE_BINS: StorageBin[] = [
-    { label: "PLASTIK", color: 0xe0b400 },
-    { label: "FOOD WASTE", color: 0x2e9e5b },
-    { label: "KERTAS/KARTON", color: 0x2f68d8 },
-    { label: "LOGAM", color: 0x6b7280 },
-    { label: "KACA", color: 0x1d9bd7 },
-    { label: "LAINNYA", color: 0xc0392b },
-];
-
-export const PILAH_STORAGE_CHECKLIST: string[] = [
-    "Sampah dipisahkan berdasarkan kategori",
-    "Wadah diberi identifikasi yang jelas",
-    "Area penyimpanan dijaga bersih dan aman",
-    "Sampah tidak dicampur kembali",
-    "Sampah disimpan sampai masuk proses pengelolaan berikutnya",
-];
-
-/** Step-6 main chain, before it branches into the four handling routes. */
-export const PILAH_MAIN_FLOW: FlowNode[] = [
-    { label: "SAMPAH\nDIHASILKAN" },
-    { label: "IDENTIFIKASI\nJENIS" },
-    { label: "PEMILAHAN" },
-    { label: "PILIH\nPENANGANAN" },
-];
-
-export const PILAH_HANDLING_BRANCHES: string[] = [
-    "INCINERATOR",
-    "COMMINUTOR",
-    "GUDANG SAMPAH",
-    "FASILITAS PENERIMAAN\nPELABUHAN",
-];
-
-/** Step-7 closing summary. */
-export const PILAH_SUMMARY: string[] = [
-    "Kenali jenis sampah",
-    "Pilah ke kategori yang tepat",
-    "Tentukan metode pengelolaan",
-    "Gunakan peralatan hanya untuk sampah yang sesuai",
-    "Simpan atau serahkan sampah sesuai prosedur",
+/** Step 7 — closing checklist. */
+export const PILAH_SUMMARY_POINTS: string[] = [
+    "Kenali jenis sampah.",
+    "Pisahkan sampah sejak dari sumber.",
+    "Gunakan Incinerator dan Comminutor sesuai fungsi.",
+    "Simpan sampah pada Bak/Gudang Sampah.",
+    "Lakukan pencatatan dan penyerahan sesuai prosedur.",
+    "Patuhi ketentuan MARPOL Annex V.",
 ];
