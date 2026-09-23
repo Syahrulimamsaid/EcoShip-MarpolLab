@@ -152,6 +152,10 @@ export class Preloader extends Scene {
             "soped.background",
             "assets/soped/bg.png",
         );
+        this.load.image("soped.illustration.administrasi", "assets/soped/img-pertugas-memeriksa.png");
+        this.load.image("soped.illustration.dokumen", "assets/soped/img-susunan-doc.png");
+        this.load.image("soped.illustration.pelaporan", "assets/soped/img-komunikasi-radio.png");
+        this.load.image("soped.illustration.pencatatan", "assets/soped/img-review-drill.png");
 
         // Shared header nav icons — Home (always present) and Back (only on
         // pages reached beyond a module's first-level materi/hub screen).

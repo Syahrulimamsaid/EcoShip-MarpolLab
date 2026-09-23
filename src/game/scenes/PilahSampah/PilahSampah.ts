@@ -68,9 +68,15 @@ const WASTE_POOL: WasteItemConfig[] = [
 ];
 
 const ROUND_ITEM_COUNTS = [6, 8, 8];
+const SLOT_SPACING = 120;
+const SLOT_CENTER_X = DESIGN_WIDTH / 2;
+const SLOT_Y = 760;
 
-/** Conveyor slot positions, one per item shown in a round. */
-const SLOT_POSITIONS: { x: number; y: number }[] = [530, 650, 770, 890, 1010, 1130, 1250, 1370].map((x) => ({ x, y: 760 }));
+/** Conveyor slot positions, one per item shown in a round, centered on the belt. */
+function getSlotPositions(count: number): { x: number; y: number }[] {
+    const startX = SLOT_CENTER_X - ((count - 1) * SLOT_SPACING) / 2;
+    return Array.from({ length: count }, (_, index) => ({ x: startX + index * SLOT_SPACING, y: SLOT_Y }));
+}
 
 /** A drag-and-drop MARPOL Annex V activity. The background already contains
  * the three waste receptacles and conveyor; this scene only adds the lesson
@@ -161,10 +167,12 @@ export class PilahSampah extends Scene {
             onHome: () => this.goTo("MainMenu"),
             onBack: () => this.goTo("PilahSampahMateri"),
         });
-        const backHeight = navButtons.height;
-        const centerY = headerY + backHeight / 2;
 
         const crumbX = 32 + navButtons.width + 20;
+        // Match the compact breadcrumb used by the OWS materi screen.
+        const crumbY = 38;
+        const crumbHeight = navButtons.height - 10;
+        const centerY = crumbY + crumbHeight / 2;
         const badgeText = this.add.text(0, 0, "MODUL PEMILAHAN SAMPAH", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
         const blueWidth = badgeText.width + 48;
         const chevron = this.add.text(0, 0, "›", { fontFamily: FONT, fontStyle: "600", fontSize: 20, color: "#087ff1" });
@@ -172,11 +180,11 @@ export class PilahSampah extends Scene {
         const whiteWidth = 22 + chevron.width + 10 + label.width + 26;
         const breadcrumb = this.add.graphics();
         breadcrumb.fillStyle(0xffffff, 1);
-        breadcrumb.fillRoundedRect(crumbX, headerY, blueWidth + whiteWidth, backHeight, backHeight / 2);
+        breadcrumb.fillRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
         breadcrumb.fillStyle(PRIMARY_BLUE, 1);
-        breadcrumb.fillRoundedRect(crumbX, headerY, blueWidth, backHeight, { tl: backHeight / 2, bl: backHeight / 2, tr: 0, br: 0 });
+        breadcrumb.fillRoundedRect(crumbX, crumbY, blueWidth, crumbHeight, { tl: crumbHeight / 2, bl: crumbHeight / 2, tr: 0, br: 0 });
         breadcrumb.lineStyle(2, PRIMARY_BLUE, 1);
-        breadcrumb.strokeRoundedRect(crumbX, headerY, blueWidth + whiteWidth, backHeight, backHeight / 2);
+        breadcrumb.strokeRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
         badgeText.setPosition(crumbX + blueWidth / 2, centerY).setOrigin(0.5);
         chevron.setPosition(crumbX + blueWidth + 22, centerY).setOrigin(0, 0.5);
         label.setPosition(chevron.x + chevron.width + 10, centerY).setOrigin(0, 0.5);
@@ -228,8 +236,9 @@ export class PilahSampah extends Scene {
     }
 
     private buildWasteItems() {
+        const slotPositions = getSlotPositions(this.itemOrder.length);
         this.itemOrder.forEach((config, index) => {
-            const slot = SLOT_POSITIONS[index];
+            const slot = slotPositions[index];
             const item = this.add
                 .image(slot.x - 420, slot.y, config.texture)
                 .setAlpha(0);
@@ -246,6 +255,8 @@ export class PilahSampah extends Scene {
                 this.wasteLayer.bringToTop(item);
                 item.setData("offsetX", this.toDesignX(pointer.worldX) - item.x);
                 item.setData("offsetY", this.toDesignY(pointer.worldY) - item.y);
+                item.setData("downScreenX", pointer.x);
+                item.setData("downScreenY", pointer.y);
                 item.setData("dragMoved", false);
                 item.setScale(baseScale * 1.08);
                 item.setTint(0xf4f9ff);
@@ -253,12 +264,16 @@ export class PilahSampah extends Scene {
             });
             item.on("drag", (pointer: Phaser.Input.Pointer) => {
                 if (!this.roundActive) return;
+                // Compare against raw screen-space movement, not design-space
+                // (which is divided by the current canvas scale and can turn
+                // tiny click jitter into a false "drag" on smaller windows).
+                const movedScreenX = Math.abs(pointer.x - item.getData("downScreenX"));
+                const movedScreenY = Math.abs(pointer.y - item.getData("downScreenY"));
+                if (movedScreenX > 8 || movedScreenY > 8) item.setData("dragMoved", true);
+                if (!item.getData("dragMoved")) return;
                 const x = this.toDesignX(pointer.worldX) - item.getData("offsetX");
                 const y = this.toDesignY(pointer.worldY) - item.getData("offsetY");
                 item.setPosition(x, y);
-                const movedX = Math.abs(x - item.getData("originX"));
-                const movedY = Math.abs(y - item.getData("originY"));
-                if (movedX > 8 || movedY > 8) item.setData("dragMoved", true);
                 const hovered = this.getBinAt(x, y);
                 this.updateDropHover(hovered === config.bin ? hovered : undefined);
                 this.positionDragLabel(item);
@@ -629,52 +644,98 @@ export class PilahSampah extends Scene {
         );
 
         const panelWidth = large ? 680 : 620;
-        const panelHeight = large ? 680 : 420;
-        const panelTop = centerY - panelHeight / 2;
-        const shadow = this.add.graphics();
-        shadow.fillStyle(0x081a33, 0.16);
-        shadow.fillRoundedRect(centerX - panelWidth / 2, panelTop + 10, panelWidth, panelHeight, 28);
-        const panel = this.add.graphics();
-        panel.fillStyle(0xffffff, 1);
-        panel.fillRoundedRect(centerX - panelWidth / 2, panelTop, panelWidth, panelHeight, 28);
-        panel.lineStyle(3, accent, 0.6);
-        panel.strokeRoundedRect(centerX - panelWidth / 2, panelTop, panelWidth, panelHeight, 28);
-        const accentLine = this.add.graphics();
-        accentLine.fillStyle(accent, 1);
-        accentLine.fillRoundedRect(centerX - 46, panelTop + 20, 92, 5, 3);
-
+        const radius = 32;
         const badgeRadius = large ? 44 : 40;
-        const badgeY = panelTop + 48 + badgeRadius;
-        const badge = this.add.circle(centerX, badgeY, badgeRadius, accent, 1);
-        const check = this.add.text(centerX, badgeY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 44, color: "#ffffff" }).setOrigin(0.5);
+        const detailCardHeight = 102;
+        const buttonHeight = 54;
 
+        // Measure text heights first (position doesn't matter yet) so the
+        // panel can be sized to fit its content with consistent margins,
+        // instead of relying on a fixed height that clips or crowds items.
         const title = this.add
-            .text(centerX, badgeY + badgeRadius + 24, titleLabel, { fontFamily: FONT, fontStyle: "800", fontSize: 28, color: "#143a84" })
-            .setOrigin(0.5);
+            .text(centerX, 0, titleLabel, { fontFamily: FONT, fontStyle: "800", fontSize: 28, color: "#143a84" })
+            .setOrigin(0.5, 0);
         const isRoundComplete = titleLabel.startsWith("RONDE");
         const context = isRoundComplete
-            ? this.add.text(centerX, title.y + title.height / 2 + 10, "PEMILAHAN SAMPAH DI KAPAL", { fontFamily: FONT, fontStyle: "700", fontSize: 13, color: "#087ff1", letterSpacing: 1 }).setOrigin(0.5, 0)
+            ? this.add.text(centerX, 0, "PEMILAHAN SAMPAH DI KAPAL", { fontFamily: FONT, fontStyle: "700", fontSize: 13, color: "#087ff1", letterSpacing: 1 }).setOrigin(0.5, 0)
             : undefined;
-        const detailTop = large ? title.y + title.height / 2 + 18 : (context?.y ?? title.y) + (context?.height ?? title.height / 2) + 18;
-        const detailCard = this.add.graphics();
-        if (!large) {
-            detailCard.fillStyle(0xeaf3ff, 1);
-            detailCard.fillRoundedRect(centerX - 235, detailTop, 470, 102, 16);
-            detailCard.lineStyle(2, 0xb8d5ff, 1);
-            detailCard.strokeRoundedRect(centerX - 235, detailTop, 470, 102, 16);
-        }
-
         const message = this.add
-            .text(centerX, detailTop + (large ? 0 : 17), messageLabel, {
+            .text(centerX, 0, messageLabel, {
                 fontFamily: FONT, fontStyle: "600", fontSize: large ? 15 : 16, color: "#4a5b78", align: "center", lineSpacing: 6,
                 wordWrap: { width: panelWidth - 64 },
             })
             .setOrigin(0.5, 0);
 
+        // Lay out everything from the top of the panel downward using
+        // explicit margins between each block.
+        const badgeTop = 56;
+        const badgeY = badgeTop + badgeRadius;
+        const titleTop = badgeTop + badgeRadius * 2 + 8 /* badge ring */ + 32 /* badge -> title */;
+        let cursor = titleTop + title.height;
+
+        let contextTop: number | undefined;
+        if (context) {
+            contextTop = cursor + 12;
+            cursor = contextTop + context.height + 22;
+        } else {
+            cursor += 24;
+        }
+
+        const detailTop = cursor;
+        const contentBottom = large ? detailTop + message.height : detailTop + detailCardHeight;
+        const buttonY = contentBottom + 36 + buttonHeight / 2;
+        const panelHeight = buttonY + buttonHeight / 2 + 56;
+        const panelTop = centerY - panelHeight / 2;
+
+        // Soft layered elevation instead of a single flat drop shadow.
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x081a33, 0.06);
+        shadow.fillRoundedRect(centerX - panelWidth / 2 - 6, panelTop + 18, panelWidth + 12, panelHeight, radius + 6);
+        shadow.fillStyle(0x081a33, 0.1);
+        shadow.fillRoundedRect(centerX - panelWidth / 2, panelTop + 10, panelWidth, panelHeight, radius);
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0xffffff, 1);
+        panel.fillRoundedRect(centerX - panelWidth / 2, panelTop, panelWidth, panelHeight, radius);
+        panel.lineStyle(2, PRIMARY_BLUE, 0.45);
+        panel.strokeRoundedRect(centerX - panelWidth / 2, panelTop, panelWidth, panelHeight, radius);
+
+        const accentLine = this.add.graphics();
+        accentLine.fillStyle(accent, 1);
+        accentLine.fillRoundedRect(centerX - 34, panelTop + 24, 68, 5, 3);
+
+        const badgeRing = this.add.circle(centerX, panelTop + badgeY, badgeRadius + 8, accent, 0.12);
+        const badge = this.add.circle(centerX, panelTop + badgeY, badgeRadius, accent, 1);
+        const check = this.add.text(centerX, panelTop + badgeY, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 44, color: "#ffffff" }).setOrigin(0.5);
+
+        title.setY(panelTop + titleTop);
+        context?.setY(panelTop + (contextTop as number));
+
+        const detailCard = this.add.graphics();
+        if (!large) {
+            detailCard.fillStyle(0xeaf3ff, 1);
+            detailCard.fillRoundedRect(centerX - 235, panelTop + detailTop, 470, detailCardHeight, 16);
+            detailCard.lineStyle(2, 0xb8d5ff, 1);
+            detailCard.strokeRoundedRect(centerX - 235, panelTop + detailTop, 470, detailCardHeight, 16);
+        }
+        message.setY(panelTop + detailTop + (large ? 0 : 17));
+        const hasSecondary = !!(secondaryLabel && onSecondary);
+        const primaryWidth = hasSecondary ? 260 : 280;
+        const secondaryWidth = 230;
+        const buttonGap = 32;
+        let primaryX = centerX;
+        let secondaryX = centerX;
+        if (hasSecondary) {
+            const totalWidth = primaryWidth + buttonGap + secondaryWidth;
+            const leftEdge = centerX - totalWidth / 2;
+            primaryX = leftEdge + primaryWidth / 2;
+            secondaryX = leftEdge + primaryWidth + buttonGap + secondaryWidth / 2;
+        }
+
         const button = new Button(this, {
-            x: centerX,
-            y: centerY + panelHeight / 2 - 78,
-            width: 280,
+            x: primaryX,
+            y: panelTop + buttonY,
+            width: primaryWidth,
             height: 54,
             text: buttonLabel,
             fontFamily: FONT,
@@ -685,17 +746,16 @@ export class PilahSampah extends Scene {
             strokeAlpha: 0,
             textColor: "#ffffff",
         });
-        const contents: GameObjects.GameObject[] = [overlay, shadow, panel, accentLine, badge, check, title, detailCard, message, button.view];
+        const contents: GameObjects.GameObject[] = [overlay, shadow, panel, accentLine, badgeRing, badge, check, title, detailCard, message, button.view];
         if (context) contents.push(context);
         let secondaryButton: Button | undefined;
-        if (secondaryLabel && onSecondary) {
-            button.view.setPosition(centerX - 132, centerY + panelHeight / 2 - 78);
+        if (hasSecondary) {
             secondaryButton = new Button(this, {
-                x: centerX + 132,
-                y: centerY + panelHeight / 2 - 78,
-                width: 250,
+                x: secondaryX,
+                y: panelTop + buttonY,
+                width: secondaryWidth,
                 height: 54,
-                text: secondaryLabel,
+                text: secondaryLabel!,
                 fontFamily: FONT,
                 fontStyle: "600",
                 fontSize: 16,

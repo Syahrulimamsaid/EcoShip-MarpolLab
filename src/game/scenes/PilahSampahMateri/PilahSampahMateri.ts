@@ -286,7 +286,7 @@ export class PilahSampahMateri extends Scene {
             y: navY + buttonHeight / 2,
             width: nextWidth,
             height: buttonHeight,
-            text: isLast ? "Mulai Simulasi →" : "Selanjutnya →",
+            text: isLast ? "Mulai Simulasi" : "Selanjutnya",
             fontFamily: FONT,
             fontStyle: "700",
             fontSize: 14,

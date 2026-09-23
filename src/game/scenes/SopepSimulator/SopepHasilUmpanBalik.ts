@@ -6,7 +6,7 @@ import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } fro
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
-import { SopepCaseScore, SopepResultData } from "./SopepSimulatorData";
+import { SOPEP_RESULT_CHECKLIST, SopepMissionResult } from "./SopepSimulatorData";
 
 const DESIGN_WIDTH = 1920;
 const DESIGN_HEIGHT = 1080;
@@ -14,33 +14,19 @@ const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
 const GREEN_HEX = "#1f8d52";
 const SKY = 0xeaf3ff;
 
-const AUDITOR_CHECKLIST = [
-    "Identifikasi sumber",
-    "Penghentian kebocoran",
-    "Pencegahan pencemaran",
-    "Penanganan tumpahan",
-    "Pengelolaan limbah",
-    "Administrasi & pelaporan",
-];
-
-function average(scores: SopepCaseScore[], pick: (score: SopepCaseScore) => boolean): number {
-    if (scores.length === 0) return 0;
-    const correct = scores.filter(pick).length;
-    return Math.round((correct / scores.length) * 100);
-}
-
 /**
  * SOPEP module's own "Hasil & Umpan Balik" — a per-module results screen
- * (mirrors StabilitasSimulatorResult's role) scored from the 3 emergency-
- * response cases just completed in SopepSimulator. Distinct from the app's
- * final "Kuis Evaluasi Akhir" (HasilUmpanBalik.ts), which is still reachable
- * from here as a secondary path so that existing feature stays intact.
+ * (mirrors StabilitasSimulatorResult's role) scored from the single oil-
+ * spill-response mission just completed in SopepSimulator. Distinct from the
+ * app's final "Kuis Evaluasi Akhir" (HasilUmpanBalik.ts), which is still
+ * reachable from here as a secondary path so that existing feature stays
+ * intact.
  */
 export class SopepHasilUmpanBalik extends Scene {
     private background!: GameObjects.Image;
     private root!: GameObjects.Container;
     private transitionGroups: GameObjects.GameObject[][] = [];
-    private caseScores: SopepCaseScore[] = [];
+    private result: SopepMissionResult = { mistakeCount: 0, stepsCompleted: 0, totalSteps: 5, accuracyPercent: 100 };
     private reflectionText = "";
     private reflectionPreview!: GameObjects.Text;
 
@@ -48,8 +34,8 @@ export class SopepHasilUmpanBalik extends Scene {
         super("SopepHasilUmpanBalik");
     }
 
-    init(data: SopepResultData) {
-        this.caseScores = data?.caseScores ?? [];
+    init(data: SopepMissionResult) {
+        this.result = data ?? { mistakeCount: 0, stepsCompleted: 0, totalSteps: 5, accuracyPercent: 100 };
     }
 
     create() {
@@ -121,7 +107,7 @@ export class SopepHasilUmpanBalik extends Scene {
         const panelX = 160;
         const panelY = 120;
         const panelWidth = DESIGN_WIDTH - panelX * 2;
-        const panelHeight = 840;
+        const panelHeight = 820;
         const panel = this.add.graphics();
         panel.fillStyle(0xffffff, 0.97);
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 24);
@@ -132,61 +118,57 @@ export class SopepHasilUmpanBalik extends Scene {
         const contentX = panelX + 48;
         const contentWidth = panelWidth - 96;
 
-        const heading = this.add.text(contentX, panelY + 32, "HASIL & UMPAN BALIK", { fontFamily: FONT, fontStyle: "800", fontSize: 28, color: DARK_NAVY });
-        this.root.add(heading);
+        const heading = this.add.text(contentX, panelY + 28, "MISI SELESAI", { fontFamily: FONT, fontStyle: "800", fontSize: 28, color: DARK_NAVY });
+        const subheading = this.add.text(contentX, heading.y + heading.height + 4, "SIMULASI PENANGANAN TUMPAHAN MINYAK", {
+            fontFamily: FONT, fontStyle: "700", fontSize: 15, color: PRIMARY_BLUE_HEX,
+        });
+        this.root.add([heading, subheading]);
 
-        const identifikasi = average(this.caseScores, (s) => s.identifyFirstTry);
-        const tindakan = average(this.caseScores, (s) => s.stopFirstTry);
-        const kit = average(this.caseScores, (s) => s.kitOrderCorrect);
-        const administrasi = average(this.caseScores, (s) => s.reportSubmitted);
-        const overall = Math.round((identifikasi + tindakan + kit + administrasi) / 4);
-
-        const scoreY = heading.y + heading.height + 20;
-        const scoreLabel = this.add.text(contentX, scoreY, "SKOR AKURASI", { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: PRIMARY_BLUE_HEX });
-        const scoreValue = this.add.text(contentX, scoreY + 22, `${overall} / 100`, { fontFamily: FONT, fontStyle: "800", fontSize: 44, color: GREEN_HEX });
-        this.root.add([scoreLabel, scoreValue]);
-
-        const breakdown: [string, number][] = [
-            ["Ketepatan Identifikasi", identifikasi],
-            ["Ketepatan Tindakan", tindakan],
-            ["Penggunaan SOPEP Kit", kit],
-            ["Administrasi & Pelaporan", administrasi],
+        // ---- Stat row: AKURASI PROSEDUR / KESALAHAN / LANGKAH SELESAI ----
+        const stats: [string, string][] = [
+            ["AKURASI PROSEDUR", `${this.result.accuracyPercent}%`],
+            ["KESALAHAN", `${this.result.mistakeCount}`],
+            ["LANGKAH SELESAI", `${this.result.stepsCompleted}/${this.result.totalSteps}`],
         ];
-        const cardGap = 16;
-        const cardWidth = (contentWidth - cardGap * 3) / 4;
-        const cardY = scoreValue.y + scoreValue.height + 20;
-        const cardHeight = 90;
-        breakdown.forEach(([label, value], index) => {
-            const x = contentX + index * (cardWidth + cardGap);
+        const statGap = 16;
+        const statWidth = (contentWidth - statGap * 2) / 3;
+        const statY = subheading.y + subheading.height + 18;
+        const statHeight = 84;
+        stats.forEach(([label, value], index) => {
+            const x = contentX + index * (statWidth + statGap);
             const bg = this.add.graphics();
             bg.fillStyle(SKY, 1);
-            bg.fillRoundedRect(x, cardY, cardWidth, cardHeight, 12);
-            const valueText = this.add.text(x + 16, cardY + 14, `${value}%`, { fontFamily: FONT, fontStyle: "800", fontSize: 22, color: PRIMARY_BLUE_HEX });
-            const labelText = this.add.text(x + 16, cardY + 50, label, {
-                fontFamily: FONT, fontStyle: "600", fontSize: 12, color: DARK_NAVY, wordWrap: { width: cardWidth - 32 }, lineSpacing: 2,
-            });
+            bg.fillRoundedRect(x, statY, statWidth, statHeight, 12);
+            const valueText = this.add.text(x + 18, statY + 14, value, { fontFamily: FONT, fontStyle: "800", fontSize: 26, color: PRIMARY_BLUE_HEX });
+            const labelText = this.add.text(x + 18, statY + 52, label, { fontFamily: FONT, fontStyle: "700", fontSize: 12, color: DARK_NAVY });
             this.root.add([bg, valueText, labelText]);
         });
 
-        const checklistY = cardY + cardHeight + 26;
-        const checklistTitle = this.add.text(contentX, checklistY, "CHECKLIST AUDITOR", { fontFamily: FONT, fontStyle: "800", fontSize: 15, color: PRIMARY_BLUE_HEX });
+        // ---- 8-item completion checklist (Section N) — always shown done,
+        // since this is a linear completion screen, not per-item pass/fail. ----
+        const checklistY = statY + statHeight + 24;
+        const checklistTitle = this.add.text(contentX, checklistY, "CHECKLIST MISI", { fontFamily: FONT, fontStyle: "800", fontSize: 15, color: PRIMARY_BLUE_HEX });
         this.root.add(checklistTitle);
 
-        const checklistValues = [identifikasi >= 50, tindakan >= 50, true, kit >= 50, kit >= 50, true];
         const colWidth = contentWidth / 2;
-        const rowHeight = 32;
-        AUDITOR_CHECKLIST.forEach((label, index) => {
+        const rowHeight = 30;
+        SOPEP_RESULT_CHECKLIST.forEach((label, index) => {
             const col = index % 2;
             const row = Math.floor(index / 2);
             const x = contentX + col * colWidth;
             const y = checklistTitle.y + checklistTitle.height + 12 + row * rowHeight;
-            const passed = checklistValues[index];
-            const mark = this.add.text(x, y, passed ? "✓" : "○", { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: passed ? GREEN_HEX : "#94a3b8" });
+            const mark = this.add.text(x, y, "✓", { fontFamily: FONT, fontStyle: "700", fontSize: 15, color: GREEN_HEX });
             const text = this.add.text(x + 24, y, label, { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: DARK_NAVY });
             this.root.add([mark, text]);
         });
 
-        const reflectionY = checklistTitle.y + checklistTitle.height + 12 + Math.ceil(AUDITOR_CHECKLIST.length / 2) * rowHeight + 24;
+        const feedbackY = checklistTitle.y + checklistTitle.height + 12 + Math.ceil(SOPEP_RESULT_CHECKLIST.length / 2) * rowHeight + 10;
+        const feedbackText = this.add.text(contentX, feedbackY, "Penanganan tumpahan telah dilakukan sesuai urutan prosedur simulasi SOPEP.", {
+            fontFamily: FONT, fontStyle: "500", fontSize: 14, color: BODY_TEXT, wordWrap: { width: contentWidth }, lineSpacing: 4,
+        });
+        this.root.add(feedbackText);
+
+        const reflectionY = feedbackText.y + feedbackText.height + 20;
         const reflectionTitle = this.add.text(contentX, reflectionY, "REFLEKSI MANDIRI", { fontFamily: FONT, fontStyle: "800", fontSize: 15, color: PRIMARY_BLUE_HEX });
         this.root.add(reflectionTitle);
 
