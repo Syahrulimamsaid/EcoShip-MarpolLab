@@ -42,6 +42,39 @@ type SimulatorStep =
     | "SHUTDOWN_CLOSE_VALVES"
     | "COMPLETE";
 
+/** The full operating procedure, in order. Index = "Langkah n" - 1. */
+const PROCEDURE_STEPS = [
+    "Buka Valve A (Inlet)",
+    "Nyalakan Bilge Pump",
+    "Buka Valve B (Top)",
+    "Tunggu OCM ≤ 15 ppm",
+    "Buka Valve D (Overboard)",
+    "Tutup Valve D",
+    "Matikan Bilge Pump",
+    "Tutup Valve A dan B",
+];
+
+/** Which PROCEDURE_STEPS index is currently expected for each simulator state. */
+const STEP_INDEX: Record<SimulatorStep, number> = {
+    READY: 0,
+    INLET_OPEN: 1,
+    PUMP_RUNNING: 2,
+    SEPARATING: 3,
+    SAFE_TO_DISCHARGE: 4,
+    DISCHARGING: 5,
+    SHUTDOWN_CLOSE_OVERBOARD: 5,
+    SHUTDOWN_STOP_PUMP: 6,
+    SHUTDOWN_CLOSE_VALVES: 7,
+    COMPLETE: 8,
+};
+
+interface HintPointer {
+    view: GameObjects.Container;
+    bg: GameObjects.Graphics;
+    text: GameObjects.Text;
+    tween: Phaser.Tweens.Tween | null;
+}
+
 interface ValveWidget {
     knob: GameObjects.Arc;
     trackTopY: number;
@@ -102,6 +135,11 @@ export class SimulatorOws extends Scene {
     private pumpStatusBackground!: GameObjects.Graphics;
     private pumpStatusText!: GameObjects.Text;
     private pumpHighlight!: GameObjects.Arc;
+    private trackerGraphics: GameObjects.Graphics | null = null;
+    private trackerMarks: GameObjects.Text[] = [];
+    private trackerLabels: GameObjects.Text[] = [];
+    private trackerRects: Array<{ x: number; y: number; width: number; height: number }> = [];
+    private hintPointers: HintPointer[] = [];
 
     private currentScale = 1;
     private currentRootY = 0;
@@ -123,10 +161,17 @@ export class SimulatorOws extends Scene {
         this.dischargeTicks = 0;
         this.flowIndicators = [];
         this.draggingValve = null;
+        this.trackerGraphics = null;
+        this.trackerMarks = [];
+        this.trackerLabels = [];
+        this.trackerRects = [];
+        this.hintPointers = [];
 
         const groups: GameObjects.GameObject[][] = [];
         trackGroup(this.root, groups, () => this.buildHeader());
         trackGroup(this.root, groups, () => this.buildMainCard());
+        // Outside the tracked group: the enter transition would otherwise reset the pointers' y.
+        this.buildHintPointers();
         this.transitionGroups = groups;
 
         this.layout(this.scale.width, this.scale.height);
@@ -145,6 +190,7 @@ export class SimulatorOws extends Scene {
             this.stopSeparation();
             this.stopDischargeTimer();
             this.tweens.killTweensOf(this.ocmValueText);
+            this.hintPointers.forEach((pointer) => pointer.tween?.stop());
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
             this.input.off("pointermove", this.handlePointerMove, this);
             this.input.off("pointerup", this.handlePointerUp, this);
@@ -243,6 +289,111 @@ export class SimulatorOws extends Scene {
         const instructionsX = contentX;
         this.buildInstructions(instructionsX, bottomLimit - instructionsHeight, instructionsWidth);
         this.buildSuccessInfo(cardX + cardWidth - 32 * CARD_SCALE, bottomLimit);
+
+        // Numbered procedure tracker in the free space between the instructions and the feedback panel.
+        const trackerX = instructionsX + instructionsWidth + 24;
+        const trackerWidth = cardX + cardWidth - 32 * CARD_SCALE - 520 - 24 - trackerX;
+        if (trackerWidth >= 320) this.buildProcedureTracker(trackerX, bottomLimit - 270, trackerWidth, 270);
+    }
+
+    // ---- Procedure tracker: every step, in order, with the current one marked -----------------
+
+    private buildProcedureTracker(x: number, y: number, width: number, height: number) {
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 1);
+        card.fillRoundedRect(x, y, width, height, 20);
+        card.lineStyle(2, BORDER_BLUE, 1);
+        card.strokeRoundedRect(x, y, width, height, 20);
+        const title = this.add.text(x + 22, y + 18, "URUTAN PROSEDUR", { fontFamily: FONT, fontStyle: "800", fontSize: 17, color: DARK_NAVY });
+        const note = this.add.text(x + 22, y + 42, "Ikuti langkah secara berurutan", { fontFamily: FONT, fontStyle: "500", fontSize: 12, color: BODY_TEXT });
+        this.trackerGraphics = this.add.graphics();
+        this.root.add([card, title, note, this.trackerGraphics]);
+
+        const columnWidth = (width - 44 - 12) / 2;
+        PROCEDURE_STEPS.forEach((label, index) => {
+            const column = Math.floor(index / 4);
+            const row = index % 4;
+            const rowX = x + 22 + column * (columnWidth + 12);
+            const rowY = y + 70 + row * 48;
+            this.trackerRects.push({ x: rowX, y: rowY, width: columnWidth, height: 42 });
+            const mark = this.add.text(rowX + 22, rowY + 21, String(index + 1), { fontFamily: FONT, fontStyle: "800", fontSize: 13, color: "#ffffff" }).setOrigin(0.5);
+            const text = this.add.text(rowX + 44, rowY + 21, label, { fontFamily: FONT, fontStyle: "600", fontSize: 13, color: BODY_TEXT, wordWrap: { width: columnWidth - 52 } }).setOrigin(0, 0.5);
+            this.trackerMarks.push(mark);
+            this.trackerLabels.push(text);
+            this.root.add([mark, text]);
+        });
+    }
+
+    private updateProcedureTracker() {
+        const graphics = this.trackerGraphics;
+        if (!graphics) return;
+        const current = STEP_INDEX[this.simulatorStep];
+        graphics.clear();
+        this.trackerRects.forEach((rect, index) => {
+            const done = index < current;
+            const active = index === current;
+            graphics.fillStyle(active ? 0xeaf3ff : done ? 0xebf8ef : 0xf7faff, 1);
+            graphics.fillRoundedRect(rect.x, rect.y, rect.width, rect.height, 10);
+            if (active) { graphics.lineStyle(2, PRIMARY_BLUE, 1); graphics.strokeRoundedRect(rect.x, rect.y, rect.width, rect.height, 10); }
+            graphics.fillStyle(done ? GREEN : active ? PRIMARY_BLUE : 0xb8c6dc, 1);
+            graphics.fillCircle(rect.x + 22, rect.y + 21, 13);
+            this.trackerMarks[index].setText(done ? "✓" : String(index + 1));
+            this.trackerLabels[index].setColor(done ? GREEN_HEX : active ? DARK_NAVY : BODY_TEXT_HEX).setFontStyle(active ? "800" : "600");
+        });
+    }
+
+    // ---- Floating "do this here" pointers over the control to use next ------------------------
+
+    private buildHintPointers() {
+        for (let i = 0; i < 2; i++) {
+            const bg = this.add.graphics();
+            const text = this.add.text(0, 0, "", { fontFamily: FONT, fontStyle: "800", fontSize: 14, color: "#ffffff" }).setOrigin(0.5);
+            const view = this.add.container(0, 0, [bg, text]).setVisible(false).setDepth(50);
+            this.root.add(view);
+            this.hintPointers.push({ view, bg, text, tween: null });
+        }
+    }
+
+    private showHint(slot: number, x: number, y: number, label: string) {
+        const pointer = this.hintPointers[slot];
+        if (!pointer) return;
+        pointer.text.setText(label);
+        const width = pointer.text.width + 28;
+        pointer.bg.clear();
+        pointer.bg.fillStyle(PRIMARY_BLUE, 1);
+        pointer.bg.fillRoundedRect(-width / 2, -30, width, 30, 15);
+        pointer.bg.fillTriangle(-8, 0, 8, 0, 0, 10);
+        pointer.text.setPosition(0, -15);
+        pointer.tween?.stop();
+        // y is the point being indicated; the bubble floats just above it.
+        pointer.view.setPosition(x, Math.max(y, 164)).setVisible(true);
+        const baseY = pointer.view.y;
+        pointer.tween = this.tweens.add({ targets: pointer.view, y: baseY + 6, duration: 520, yoyo: true, repeat: -1, ease: "Sine.InOut" });
+    }
+
+    private hideHints() {
+        this.hintPointers.forEach((pointer) => { pointer.tween?.stop(); pointer.tween = null; pointer.view.setVisible(false); });
+    }
+
+    private updateHintPointers() {
+        this.hideHints();
+        const valveTop = (valve: ValveWidget) => ({ x: valve.cardX + valve.cardWidth / 2, y: valve.cardTopY - 4 });
+        const openHint = "Geser ke atas (Buka 100%)";
+        const closeHint = "Geser ke bawah (Tutup 0%)";
+        switch (this.simulatorStep) {
+            case "READY": this.showHint(0, valveTop(this.valveA).x, valveTop(this.valveA).y, openHint); break;
+            case "INLET_OPEN": this.showHint(0, this.pumpHighlight.x, this.pumpHighlight.y - 66 * this.valveA.scale, "Klik pompa: ON"); break;
+            case "PUMP_RUNNING": this.showHint(0, valveTop(this.valveB).x, valveTop(this.valveB).y, openHint); break;
+            case "SEPARATING": this.showHint(0, this.ocmValueText.x, this.ocmValueText.y - 34, "Tunggu OCM ≤ 15 ppm"); break;
+            case "SAFE_TO_DISCHARGE": this.showHint(0, valveTop(this.valveD).x, valveTop(this.valveD).y, openHint); break;
+            case "SHUTDOWN_CLOSE_OVERBOARD": this.showHint(0, valveTop(this.valveD).x, valveTop(this.valveD).y, closeHint); break;
+            case "SHUTDOWN_STOP_PUMP": this.showHint(0, this.pumpHighlight.x, this.pumpHighlight.y - 66 * this.valveA.scale, "Klik pompa: OFF"); break;
+            case "SHUTDOWN_CLOSE_VALVES":
+                this.showHint(0, valveTop(this.valveA).x, valveTop(this.valveA).y, closeHint);
+                this.showHint(1, valveTop(this.valveB).x, valveTop(this.valveB).y, closeHint);
+                break;
+            default: break;
+        }
     }
 
     // ---- Legend (card_indikator_simulasi.png) --------------------------------------------
@@ -561,8 +712,8 @@ export class SimulatorOws extends Scene {
                 if (this.ppm <= 15) {
                     this.stopSeparation();
                     this.simulatorStep = "SAFE_TO_DISCHARGE";
-                    this.updateSimulatorUi();
                 }
+                this.updateSimulatorUi();
             }});
         }
         this.updateSimulatorUi();
@@ -576,7 +727,7 @@ export class SimulatorOws extends Scene {
     private handleUnsafeDischarge() {
         this.operationErrors++;
         this.unsafeDischargeAttempts++;
-        this.setFeedback("Pembuangan Tidak Aman", `Nilai OCM masih ${Math.round(this.ppm)} ppm. Valve overboard tidak boleh dibuka.`, "error");
+        this.setFeedback("Pembuangan Tidak Aman", `Nilai OCM masih ${Math.round(this.ppm)} ppm (batas aman ≤ 15 ppm). Valve D (Overboard) hanya boleh dibuka setelah OCM turun ≤ 15 ppm — tunggu proses pemisahan selesai.`, "error");
         this.setValveOpenness(this.valveD, 0, true);
         playSfx(this, SFX_KEYS.quizWrong);
         this.updateFlowVisualization();
@@ -625,13 +776,14 @@ export class SimulatorOws extends Scene {
         this.feedbackTitle = this.add.text(24, 22, "", {
             fontFamily: FONT,
             fontStyle: "600",
-            fontSize: 24,
+            fontSize: 22,
             color: GREEN_HEX,
+            wordWrap: { width: width - 48 },
         });
-        this.feedbackBody = this.add.text(24, 62, "", {
+        this.feedbackBody = this.add.text(24, 66, "", {
             fontFamily: FONT,
             fontStyle: "600",
-            fontSize: 18,
+            fontSize: 17,
             color: BODY_TEXT,
             wordWrap: { width: width - 48 }, lineSpacing: 4,
         });
@@ -676,44 +828,47 @@ export class SimulatorOws extends Scene {
         this.updatePumpStatus();
         this.updateFlowVisualization();
         this.updateControlHighlights();
+        this.updateProcedureTracker();
+        this.updateHintPointers();
         if (preserveFeedback) return;
 
+        const ppm = Math.round(this.ppm);
         switch (this.simulatorStep) {
             case "INLET_OPEN":
-                this.setFeedback("Inlet Siap", "Aktifkan Bilge Pump untuk mulai mengalirkan bilge water.", "neutral");
+                this.setFeedback("Langkah 2/8 · Nyalakan Bilge Pump", "Klik area Bilge Pump sampai statusnya berubah menjadi PUMP ON. Pompa menekan bilge water melewati unit pemisah.", "neutral");
                 break;
             case "PUMP_RUNNING":
-                this.setFeedback("Pompa Aktif", "Buka Valve B untuk mengalirkan fluida menuju proses OWS.", "neutral");
+                this.setFeedback("Langkah 3/8 · Buka Valve B (Top)", "Geser slider Valve B ke atas sampai 100% (Buka) agar campuran air-minyak mengalir ke proses pemisahan OWS.", "neutral");
                 break;
             case "SEPARATING":
-                this.setFeedback("Proses Pemisahan", "Amati nilai kandungan minyak pada OCM. Proses berjalan bertahap.", "neutral");
+                this.setFeedback("Langkah 4/8 · Pantau OCM", `Jangan ubah katup atau pompa. Tunggu pembacaan OCM turun sampai ≤ 15 ppm (batas MARPOL Annex I). Saat ini: ${ppm} ppm.`, "neutral");
                 break;
             case "SAFE_TO_DISCHARGE":
-                this.setFeedback("Batas Aman Tercapai", `Nilai OCM ${Math.round(this.ppm)} ppm telah memenuhi batas ≤ 15 ppm. Buka Valve D (Overboard).`, "success");
+                this.setFeedback("Langkah 5/8 · Buka Valve D (Overboard)", `OCM ${ppm} ppm sudah ≤ 15 ppm, jadi aman. Geser slider Valve D ke atas sampai 100% (Buka) untuk mengalirkan air bersih ke laut.`, "success");
                 break;
             case "DISCHARGING":
-                this.setFeedback("Overboard Discharge Active", `OCM: ${Math.round(this.ppm)} ppm. Air hasil pemisahan sedang dialirkan menuju outlet.`, "success");
+                this.setFeedback("Langkah 5/8 · Pembuangan Berlangsung", `OCM: ${ppm} ppm. Air hasil pemisahan sedang dialirkan ke laut. Tunggu sampai proses selesai — jangan menutup Valve D lebih awal.`, "success");
                 break;
             case "SHUTDOWN_CLOSE_OVERBOARD":
-                this.setFeedback("Proses Pembuangan Selesai", "Tutup Valve D (Overboard) untuk melanjutkan shutdown.", "neutral");
+                this.setFeedback("Langkah 6/8 · Tutup Valve D", "Pembuangan selesai. Geser slider Valve D ke bawah sampai 0% (Tutup) untuk menghentikan aliran ke laut.", "neutral");
                 break;
             case "SHUTDOWN_STOP_PUMP":
-                this.setFeedback("Valve Overboard Telah Ditutup", "Matikan Bilge Pump.", "neutral");
+                this.setFeedback("Langkah 7/8 · Matikan Bilge Pump", "Valve D sudah tertutup. Klik area Bilge Pump sampai statusnya PUMP OFF.", "neutral");
                 break;
             case "SHUTDOWN_CLOSE_VALVES":
-                this.setFeedback("Pompa Telah Dimatikan", "Tutup Valve A dan Valve B untuk mengembalikan sistem ke kondisi aman.", "neutral");
+                this.setFeedback("Langkah 8/8 · Tutup Valve A dan B", "Geser slider Valve A dan Valve B ke bawah sampai 0% (Tutup) agar sistem kembali ke kondisi aman.", "neutral");
                 break;
             case "COMPLETE":
                 this.setFeedback(
                     "OWS Shutdown Complete",
                     "Prosedur pengoperasian OWS berhasil diselesaikan. Sistem telah dikembalikan ke kondisi aman.",
                     "success",
-                    `OCM akhir: ${Math.round(this.ppm)} ppm   •   Overboard: Closed\nPump: OFF   •   Valve A: Closed   •   Valve B: Closed`,
+                    `OCM akhir: ${ppm} ppm   •   Overboard: Closed\nPump: OFF   •   Valve A: Closed   •   Valve B: Closed`,
                 );
                 break;
             case "READY":
             default:
-                this.setFeedback("Mulai Prosedur", "Buka Valve A (Inlet) untuk memulai aliran dari bilge.", "neutral");
+                this.setFeedback("Langkah 1/8 · Buka Valve A (Inlet)", "Geser slider Valve A ke atas sampai 100% (Buka). Valve A mengalirkan bilge water dari tangki bilge masuk ke OWS.", "neutral");
                 break;
         }
     }
@@ -765,11 +920,11 @@ export class SimulatorOws extends Scene {
     }
 
     private updateControlHighlights() {
-        const highlightedValve = this.simulatorStep === "READY" ? this.valveA
-            : this.simulatorStep === "PUMP_RUNNING" ? this.valveB
-                : this.simulatorStep === "SAFE_TO_DISCHARGE" || this.simulatorStep === "SHUTDOWN_CLOSE_OVERBOARD" ? this.valveD
-                    : this.simulatorStep === "SHUTDOWN_CLOSE_VALVES" ? null : null;
-        [this.valveA, this.valveB, this.valveD].forEach((valve) => this.redrawValveCard(valve, valve === highlightedValve));
+        const highlighted: ValveWidget[] = this.simulatorStep === "READY" ? [this.valveA]
+            : this.simulatorStep === "PUMP_RUNNING" ? [this.valveB]
+                : this.simulatorStep === "SAFE_TO_DISCHARGE" || this.simulatorStep === "SHUTDOWN_CLOSE_OVERBOARD" ? [this.valveD]
+                    : this.simulatorStep === "SHUTDOWN_CLOSE_VALVES" ? [this.valveA, this.valveB] : [];
+        [this.valveA, this.valveB, this.valveD].forEach((valve) => this.redrawValveCard(valve, highlighted.includes(valve)));
         const highlightPump = this.simulatorStep === "INLET_OPEN" || this.simulatorStep === "SHUTDOWN_STOP_PUMP";
         this.pumpHighlight.setFillStyle(0xcfe1ff, 0.7);
         this.pumpHighlight.setStrokeStyle(3, PRIMARY_BLUE, this.pumpOn || highlightPump ? 0.9 : 0.65);
