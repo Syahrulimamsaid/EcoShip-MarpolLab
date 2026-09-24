@@ -13,8 +13,8 @@ import {
     SOPEP_DOCUMENTATION_CHECKLIST,
     SOPEP_DOCUMENT_CARDS,
     SOPEP_EQUIPMENT_ITEMS,
+    SOPEP_IDENTIFICATION_FIELDS,
     SOPEP_IDENTIFY_HOTSPOTS,
-    SOPEP_INCIDENT_INFO,
     SOPEP_MISSION_SCENARIO,
     SOPEP_MISSION_TARGETS,
     SOPEP_PROGRESS_LABELS,
@@ -83,6 +83,13 @@ export class SopepSimulator extends Scene {
 
     private identifyFound = new Set<string>();
     private activeHotspotId: string | null = null;
+    private hotspotActiveId: string | null = null;
+    private identifySelections: Record<string, string> = {};
+    private identifyOpenFieldId: string | null = null;
+    private identifyWarningFields = new Set<string>();
+    private identifyFeedback: { message: string; tone: "warning" | "error" | "success" } | null = null;
+    private identificationComplete = false;
+    private identifyFormVisible = false;
 
     private reportSelections: Record<string, number> = {};
 
@@ -160,7 +167,7 @@ export class SopepSimulator extends Scene {
         const badgeText = this.add.text(0, 0, "MODUL SOPEP", { fontFamily: FONT, fontStyle: "600", fontSize: 15, color: "#ffffff" });
         const blueWidth = badgeText.width + 44;
         const chevron = this.add.text(0, 0, "›", { fontFamily: FONT, fontStyle: "600", fontSize: 20, color: PRIMARY_BLUE_HEX });
-        const label = this.add.text(0, 0, "Simulasi Penanganan Tumpahan", { fontFamily: FONT, fontStyle: "600", fontSize: 16, color: PRIMARY_BLUE_HEX });
+        const label = this.add.text(0, 0, "Simulasi Administrasi SOPEP", { fontFamily: FONT, fontStyle: "600", fontSize: 16, color: PRIMARY_BLUE_HEX });
         const whiteWidth = 20 + chevron.width + 10 + label.width + 24;
 
         const breadcrumb = this.add.graphics();
@@ -184,13 +191,20 @@ export class SopepSimulator extends Scene {
         this.mistakeCount = 0;
         this.identifyFound.clear();
         this.activeHotspotId = null;
+        this.hotspotActiveId = null;
+        this.identifySelections = {};
+        this.identifyOpenFieldId = null;
+        this.identifyWarningFields.clear();
+        this.identifyFeedback = null;
+        this.identificationComplete = false;
+        this.identifyFormVisible = false;
         this.reportSelections = {};
         this.equipmentSelected.clear();
         this.containmentPhaseIndex = 0;
         this.dropZones = [];
         this.spillVisual = undefined;
         this.documentsSelected.clear();
-        this.setStage("BRIEFING");
+        this.setStage("INCIDENT");
     }
 
     private setStage(stage: Stage) {
@@ -221,7 +235,7 @@ export class SopepSimulator extends Scene {
                 this.createIncidentScene();
                 break;
             case "IDENTIFY":
-                this.createIdentificationStep();
+                this.createIdentificationStepV2();
                 break;
             case "REPORT":
                 this.createReportingStep();
@@ -286,6 +300,18 @@ export class SopepSimulator extends Scene {
                 fontFamily: FONT, fontStyle: index === activeIndex ? "700" : "600", fontSize: 13, color: index === activeIndex ? DARK_NAVY : BODY_TEXT,
             });
             this.progressContainer.add([markText, labelText]);
+
+            const completed = index < activeIndex || (this.stage === "IDENTIFY" && this.identificationComplete && index === 0);
+            if (completed) {
+                const check = this.add.text(x, rowY, "✓", { fontFamily: FONT, fontStyle: "800", fontSize: 15, color: GREEN_HEX });
+                this.progressContainer.add(check);
+            }
+            if (index < SOPEP_PROGRESS_LABELS.length - 1) {
+                const connector = this.add.graphics();
+                connector.lineStyle(3, completed ? GREEN : BORDER_BLUE, 1);
+                connector.lineBetween(x + 18, rowY + 8, x + gap - 8, rowY + 8);
+                this.progressContainer.add(connector);
+            }
         });
     }
 
@@ -501,7 +527,7 @@ export class SopepSimulator extends Scene {
     // ---- INCIDENT (Section C) ------------------------------------------------------------
 
     private createIncidentScene() {
-        this.buildMissionPanel("KONDISI INSIDEN", "Area deck kapal mengalami tumpahan minyak. Periksa kondisi sebelum bertindak.");
+        this.buildMissionPanel("STEP 1 — IDENTIFIKASI INSIDEN", "Periksa kondisi kejadian dan identifikasi informasi awal sebelum melakukan tindakan penanganan.");
         this.addWhiteboardChrome();
 
         const top = this.boardTop();
@@ -509,7 +535,7 @@ export class SopepSimulator extends Scene {
         const illustY = top + 40;
         const illustW = Math.round(BOARD_WIDTH * 0.56);
         const illustH = this.boardHeight() - 160;
-        this.createAssetPlaceholder(illustX, illustY, illustW, illustH, "Ilustrasi Area Deck Kapal dengan Tumpahan Minyak", "sopep.asset.oilSpill");
+        this.createIncidentDeck(illustX, illustY, illustW, illustH, false);
 
         const panelX = illustX + illustW + 50;
         const panelW = BOARD_X + BOARD_WIDTH - 60 - panelX;
@@ -519,24 +545,23 @@ export class SopepSimulator extends Scene {
         panel.fillRoundedRect(panelX, panelY, panelW, 240, 16);
         panel.lineStyle(2, PRIMARY_BLUE, 0.5);
         panel.strokeRoundedRect(panelX, panelY, panelW, 240, 16);
-        const panelTitle = this.add.text(panelX + 22, panelY + 18, "KONDISI DARURAT", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: PRIMARY_BLUE_HEX });
+        const panelTitle = this.add.text(panelX + 22, panelY + 18, "MULAI PEMERIKSAAN", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: PRIMARY_BLUE_HEX });
         this.boardContainer.add([panel, panelTitle]);
 
         const rows: [string, string][] = [
-            ["Lokasi", SOPEP_INCIDENT_INFO.location],
-            ["Insiden", SOPEP_INCIDENT_INFO.incidentType],
-            ["Status", SOPEP_INCIDENT_INFO.status],
+            ["1", "Amati area kejadian"],
+            ["2", "Identifikasi sumber dan pencemar"],
+            ["3", "Catat kondisi awal tumpahan"],
         ];
         let rowY = panelTitle.y + panelTitle.height + 18;
         rows.forEach(([label, value]) => {
-            const labelText = this.add.text(panelX + 22, rowY, `${label}:`, { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: DARK_NAVY });
-            const valueColor = label === "Status" ? RED_HEX : DARK_NAVY;
-            const valueText = this.add.text(panelX + 150, rowY, value, { fontFamily: FONT, fontStyle: "700", fontSize: 14, color: valueColor });
+            const labelText = this.add.text(panelX + 22, rowY, label, { fontFamily: FONT, fontStyle: "800", fontSize: 14, color: PRIMARY_BLUE_HEX });
+            const valueText = this.add.text(panelX + 52, rowY, value, { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: DARK_NAVY });
             this.boardContainer.add([labelText, valueText]);
             rowY += 34;
         });
 
-        const noteText = this.add.text(panelX + 22, rowY + 8, "Anda harus mengidentifikasi sumber kejadian sebelum melakukan penanganan.", {
+        const noteText = this.add.text(panelX + 22, rowY + 8, "Belum ada tindakan penanganan pada tahap ini.", {
             fontFamily: FONT, fontStyle: "500", fontSize: 13, color: BODY_TEXT, wordWrap: { width: panelW - 44 }, lineSpacing: 4,
         });
         this.boardContainer.add(noteText);
@@ -564,99 +589,402 @@ export class SopepSimulator extends Scene {
 
     // ---- STEP 1: IDENTIFY (Section D) ----------------------------------------------------
 
-    private createIdentificationStep() {
-        this.buildMissionPanel("STEP 1 / IDENTIFIKASI INSIDEN", "Periksa kondisi kejadian sebelum menentukan tindakan.");
+    // ---- STEP 1: identification form (current learning flow) -----------------------------
+
+    private createIdentificationStepV2() {
+        this.buildMissionPanel(
+            "STEP 1 — IDENTIFIKASI INSIDEN",
+            "Periksa kondisi kejadian dan identifikasi informasi awal sebelum melakukan tindakan penanganan.",
+        );
         this.updateMissionProgress();
         this.addWhiteboardChrome();
 
+        if (!this.identifyFormVisible) {
+            this.createStepOneInspectionScreen();
+            return;
+        }
+
         const top = this.boardTop();
-        const pad = 44;
-        const illustX = BOARD_X + pad;
-        const illustY = top + pad;
-        const illustW = Math.round(BOARD_WIDTH * 0.56) - pad;
-        const illustH = this.boardHeight() - pad * 2;
-        this.createAssetPlaceholder(illustX, illustY, illustW, illustH, "Ilustrasi Tumpahan Minyak di Deck", "sopep.asset.oilSpill");
+        const pad = 28;
+        const visualX = BOARD_X + pad;
+        const visualY = top + pad;
+        const visualW = Math.round((BOARD_WIDTH - pad * 3) * 0.6);
+        const visualH = 520;
+        const formX = visualX + visualW + pad;
+        const formW = BOARD_X + BOARD_WIDTH - pad - formX;
 
-        const panelX = illustX + illustW + pad;
-        const panelW = BOARD_X + BOARD_WIDTH - pad - panelX;
-
-        SOPEP_IDENTIFY_HOTSPOTS.forEach((hotspot) => {
-            const hx = illustX + hotspot.xFrac * illustW;
-            const hy = illustY + hotspot.yFrac * illustH;
-            const found = this.identifyFound.has(hotspot.id);
-            const circle = this.add.circle(hx, hy, 22, 0xffffff, 0.95);
-            circle.setStrokeStyle(3, found ? GREEN : PRIMARY_BLUE, found ? 1 : 0.7);
-            const mark = this.add.text(hx, hy, found ? "✓" : "?", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: found ? GREEN_HEX : PRIMARY_BLUE_HEX }).setOrigin(0.5);
-            circle.setInteractive({ useHandCursor: true });
-            circle.on("pointerdown", () => this.handleHotspotClick(hotspot));
-            this.boardContainer.add([circle, mark]);
-        });
-
-        this.renderHotspotDetailPanel(panelX, top + pad, panelW);
+        this.createIncidentDeck(visualX, visualY, visualW, visualH, true);
+        this.createInspectionChecklist(visualX, visualY + visualH + 16, visualW);
+        this.createIdentificationForm(formX, visualY, formW, 680);
     }
 
-    private handleHotspotClick(hotspot: SopepHotspot) {
+    /** The first visible state follows the reference layout: a large deck
+     * inspection scene, labelled visual prompts, and one compact status
+     * panel. The form appears only after all visual checks are completed. */
+    private createStepOneInspectionScreen() {
+        const top = this.boardTop();
+        const pad = 28;
+        const panelW = 450;
+        const visualX = BOARD_X + pad;
+        const visualY = top + pad;
+        const visualW = BOARD_WIDTH - panelW - pad * 3;
+        const visualH = this.boardHeight() - pad * 2;
+        const panelX = visualX + visualW + pad;
+
+        this.createIncidentDeck(visualX, visualY, visualW, visualH, true, true);
+        this.createEmergencyInspectionPanel(panelX, visualY, panelW, visualH);
+    }
+
+    /** Composes the deck from keyed assets so another incident can replace
+     * individual environment objects without changing its interaction logic. */
+    private createIncidentDeck(x: number, y: number, width: number, height: number, showHotspots: boolean, showCallouts = false) {
+        const frame = this.add.graphics();
+        frame.fillStyle(0xffffff, 1);
+        frame.fillRoundedRect(x, y, width, height, 18);
+        frame.lineStyle(2, BORDER_BLUE, 1);
+        frame.strokeRoundedRect(x, y, width, height, 18);
+        this.boardContainer.add(frame);
+
+        const inset = 14;
+        const assetX = x + inset;
+        const assetY = y + inset;
+        const assetW = width - inset * 2;
+        const assetH = height - inset * 2;
+        this.addIncidentAsset("sopep.bg.mainDeck", assetX, assetY, assetW, assetH);
+        this.addIncidentAsset("sopep.env.pipeLeak", assetX + assetW * 0.68, assetY + assetH * 0.35, assetW * 0.2, assetH * 0.19);
+        this.addIncidentAsset("sopep.spill.medium", assetX + assetW * 0.43, assetY + assetH * 0.57, assetW * 0.22, assetH * 0.14);
+        this.addIncidentAsset("sopep.env.scupper", assetX + assetW * 0.12, assetY + assetH * 0.7, assetW * 0.13, assetH * 0.12);
+        this.addIncidentAsset("sopep.env.fuelDrum", assetX + assetW * 0.08, assetY + assetH * 0.38, assetW * 0.12, assetH * 0.27);
+        this.addIncidentAsset("sopep.env.lifebuoy", assetX + assetW * 0.88, assetY + assetH * 0.68, assetW * 0.11, assetH * 0.2);
+
+        if (!showHotspots) return;
+        SOPEP_IDENTIFY_HOTSPOTS.forEach((hotspot) => {
+            this.createInspectionHotspot(hotspot, assetX + hotspot.xFrac * assetW, assetY + hotspot.yFrac * assetH);
+        });
+        if (showCallouts) {
+            this.createInspectionCallouts(assetX, assetY, assetW, assetH);
+        } else {
+            this.createObservationCard(x + 22, y + height - 132, Math.min(width - 44, 560), 110);
+        }
+    }
+
+    private createInspectionCallouts(x: number, y: number, width: number, height: number) {
+        const offsets: Record<string, { x: number; y: number }> = {
+            pollutant: { x: 80, y: -130 },
+            source: { x: 72, y: -132 },
+            condition: { x: -92, y: -132 },
+            scupper: { x: -36, y: -126 },
+            location: { x: -278, y: -134 },
+        };
+        const calloutW = 232;
+        const calloutH = 82;
+
+        SOPEP_IDENTIFY_HOTSPOTS.forEach((hotspot) => {
+            const targetX = x + hotspot.xFrac * width;
+            const targetY = y + hotspot.yFrac * height;
+            const offset = offsets[hotspot.id];
+            if (!offset) return;
+            const calloutX = Phaser.Math.Clamp(targetX + offset.x, x + 10, x + width - calloutW - 10);
+            const calloutY = Phaser.Math.Clamp(targetY + offset.y, y + 10, y + height - calloutH - 10);
+            const checked = this.identifyFound.has(hotspot.id);
+            const isActive = this.activeHotspotId === hotspot.id;
+
+            const connector = this.add.graphics();
+            connector.lineStyle(2, checked ? GREEN : PRIMARY_BLUE, 0.8);
+            connector.beginPath();
+            connector.moveTo(targetX, targetY);
+            connector.lineTo(calloutX + calloutW / 2, calloutY + calloutH);
+            connector.strokePath();
+
+            const card = this.add.graphics();
+            card.fillStyle(0xffffff, 0.96);
+            card.fillRoundedRect(calloutX, calloutY, calloutW, calloutH, 12);
+            card.lineStyle(2, checked ? GREEN : PRIMARY_BLUE, 0.65);
+            card.strokeRoundedRect(calloutX, calloutY, calloutW, calloutH, 12);
+            const icon = this.add.circle(calloutX + 28, calloutY + 28, 19, checked ? GREEN : PRIMARY_BLUE, 1);
+            const iconMark = this.add.text(calloutX + 28, calloutY + 28, checked ? "✓" : "•", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: "#ffffff" }).setOrigin(0.5);
+            const title = this.add.text(calloutX + 56, calloutY + 16, hotspot.title, { fontFamily: FONT, fontStyle: "800", fontSize: 12, color: DARK_NAVY });
+            const detail = isActive
+                ? hotspot.detail
+                : checked
+                    ? "Titik sudah diperiksa."
+                    : "Klik untuk memeriksa informasi awal.";
+            const body = this.add.text(calloutX + 56, calloutY + 37, detail, { fontFamily: FONT, fontStyle: "500", fontSize: 10, color: BODY_TEXT, wordWrap: { width: calloutW - 70 }, lineSpacing: 2 });
+            const hit = this.add.rectangle(calloutX + calloutW / 2, calloutY + calloutH / 2, calloutW, calloutH, 0xffffff, 0).setInteractive({ useHandCursor: true });
+            hit.on("pointerdown", () => this.handleIdentificationHotspotClick(hotspot));
+            this.boardContainer.add([connector, card, icon, iconMark, title, body, hit]);
+        });
+    }
+
+    private createEmergencyInspectionPanel(x: number, y: number, width: number, height: number) {
+        const panel = this.add.graphics();
+        panel.fillStyle(0xffffff, 0.98);
+        panel.fillRoundedRect(x, y, width, height, 18);
+        panel.lineStyle(2, BORDER_BLUE, 1);
+        panel.strokeRoundedRect(x, y, width, height, 18);
+        panel.fillStyle(PRIMARY_BLUE, 1);
+        panel.fillRoundedRect(x, y, width, 54, { tl: 18, tr: 18, bl: 0, br: 0 });
+        const title = this.add.text(x + 20, y + 27, "KONDISI DARURAT", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: "#ffffff" }).setOrigin(0, 0.5);
+        this.boardContainer.add([panel, title]);
+
+        const incidentRows = [
+            ["sopep.ui.badgeLokasi", "Lokasi", "Main Deck", DARK_NAVY],
+            ["sopep.ui.badgeInsiden", "Insiden", "Oil Spill", DARK_NAVY],
+            ["sopep.ui.badgeStatus", "Status", "BELUM DITANGANI", RED_HEX],
+        ];
+        incidentRows.forEach(([asset, label, value, color], index) => {
+            const rowY = y + 78 + index * 67;
+            const icon = this.add.image(x + 42, rowY + 20, asset).setDisplaySize(35, 35);
+            const labelText = this.add.text(x + 78, rowY + 4, label, { fontFamily: FONT, fontStyle: "600", fontSize: 12, color: BODY_TEXT });
+            const valueText = this.add.text(x + 78, rowY + 24, value, { fontFamily: FONT, fontStyle: "800", fontSize: 14, color });
+            const divider = this.add.rectangle(x + 20, rowY + 57, width - 40, 1, BORDER_BLUE, 0.75);
+            this.boardContainer.add([icon, labelText, valueText, divider]);
+        });
+
+        const checklistY = y + 286;
+        const checklistHeader = this.add.graphics();
+        checklistHeader.fillStyle(PRIMARY_BLUE, 1);
+        checklistHeader.fillRoundedRect(x + 18, checklistY, width - 36, 36, 8);
+        const checklistTitle = this.add.text(x + width / 2, checklistY + 18, "INFORMASI YANG HARUS DIIDENTIFIKASI", { fontFamily: FONT, fontStyle: "800", fontSize: 11, color: "#ffffff" }).setOrigin(0.5);
+        this.boardContainer.add([checklistHeader, checklistTitle]);
+
+        const checks = [
+            ["location", "Lokasi kejadian"],
+            ["source", "Sumber tumpahan"],
+            ["pollutant", "Jenis pencemar"],
+            ["condition", "Kondisi tumpahan"],
+            ["scupper", "Saluran pembuangan (scupper)"],
+        ];
+        checks.forEach(([id, label], index) => {
+            const rowY = checklistY + 44 + index * 48;
+            const done = this.identifyFound.has(id);
+            const row = this.add.graphics();
+            row.fillStyle(done ? 0xebf8ef : SKY, 1);
+            row.fillRoundedRect(x + 18, rowY, width - 36, 42, 8);
+            row.lineStyle(1, done ? GREEN : BORDER_BLUE, 0.8);
+            row.strokeRoundedRect(x + 18, rowY, width - 36, 42, 8);
+            const status = this.add.image(x + 41, rowY + 21, done ? "sopep.ui.statusChecked" : "sopep.ui.statusUnchecked").setDisplaySize(22, 22);
+            const text = this.add.text(x + 70, rowY + 21, label, { fontFamily: FONT, fontStyle: done ? "700" : "600", fontSize: 12, color: done ? GREEN_HEX : DARK_NAVY }).setOrigin(0, 0.5);
+            this.boardContainer.add([row, status, text]);
+        });
+
+        const ready = SOPEP_IDENTIFY_HOTSPOTS.every((hotspot) => this.identifyFound.has(hotspot.id));
+        const next = new Button(this, {
+            x: x + width / 2,
+            y: y + height - 64,
+            width: width - 44,
+            height: 56,
+            text: "LANJUT  →",
+            fontFamily: FONT,
+            fontStyle: "800",
+            fontSize: 16,
+            borderRadius: 28,
+            fillColor: ready ? PRIMARY_BLUE : 0xaab4c6,
+            strokeAlpha: 0,
+            disabled: !ready,
+        });
+        if (ready) {
+            next.on("pointerdown", () => {
+                playSfx(this, SFX_KEYS.click);
+                this.identifyFormVisible = true;
+                this.renderStage();
+            });
+        }
+        this.boardContainer.add(next.view);
+    }
+
+    private addIncidentAsset(key: string, x: number, y: number, width: number, height: number) {
+        if (!this.textures.exists(key)) {
+            this.createAssetPlaceholder(x, y, width, height, key);
+            return;
+        }
+        const image = this.add.image(x + width / 2, y + height / 2, key).setDisplaySize(width, height);
+        this.boardContainer.add(image);
+    }
+
+    private createInspectionHotspot(hotspot: SopepHotspot, x: number, y: number) {
+        const checked = this.identifyFound.has(hotspot.id);
+        const active = hotspot.id === this.hotspotActiveId;
+        const container = this.add.container(x, y);
+        const marker = this.add.image(0, 0, checked ? "sopep.ui.hotspotChecked" : active ? "sopep.ui.hotspotActive" : "sopep.ui.hotspot").setDisplaySize(52, 52);
+        container.add(marker);
+        if (!checked && !active) {
+            const pulse = this.add.image(0, 0, "sopep.ui.hotspotPulse").setDisplaySize(64, 64).setAlpha(0.72);
+            container.addAt(pulse, 0);
+            this.tweens.add({ targets: pulse, scaleX: 1.22, scaleY: 1.22, alpha: 0.18, duration: 900, ease: "Sine.InOut", yoyo: true, repeat: -1 });
+        }
+        if (checked && !active) container.add(this.add.text(0, 0, "✓", { fontFamily: FONT, fontStyle: "800", fontSize: 19, color: GREEN_HEX }).setOrigin(0.5));
+        const hit = this.add.rectangle(0, 0, 58, 58, 0xffffff, 0).setInteractive({ useHandCursor: true });
+        container.add(hit);
+        hit.on("pointerover", () => this.tweens.add({ targets: container, scaleX: 1.12, scaleY: 1.12, duration: 120, ease: "Back.Out" }));
+        hit.on("pointerout", () => this.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 120, ease: "Quad.Out" }));
+        hit.on("pointerdown", () => this.handleIdentificationHotspotClick(hotspot));
+        this.boardContainer.add(container);
+    }
+
+    private handleIdentificationHotspotClick(hotspot: SopepHotspot) {
         playSfx(this, SFX_KEYS.click);
         this.identifyFound.add(hotspot.id);
         this.activeHotspotId = hotspot.id;
+        this.hotspotActiveId = hotspot.id;
+        this.identifyFeedback = null;
         this.renderStage();
+        this.time.delayedCall(220, () => {
+            if (this.stage !== "IDENTIFY" || this.hotspotActiveId !== hotspot.id) return;
+            this.hotspotActiveId = null;
+            this.renderStage();
+        });
     }
 
-    private renderHotspotDetailPanel(x: number, y: number, width: number) {
-        const inset = 26;
-        const height = this.boardHeight() - 44 - 90;
-        const panel = this.add.graphics();
-        panel.fillStyle(SKY, 1);
-        panel.fillRoundedRect(x, y, width, height, 16);
-        panel.lineStyle(2, PRIMARY_BLUE, 0.5);
-        panel.strokeRoundedRect(x, y, width, height, 16);
-        this.boardContainer.add(panel);
-
-        const active = SOPEP_IDENTIFY_HOTSPOTS.find((h) => h.id === this.activeHotspotId);
-        if (active) {
-            if (active.id === "source") {
-                this.createAssetPlaceholder(x + inset, y + inset, 84, 84, "", "sopep.asset.leakingPipe");
-            }
-            const titleText = this.add.text(x + inset, y + 124, active.title, { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: PRIMARY_BLUE_HEX, wordWrap: { width: width - inset * 2 } });
-            const detailText = this.add.text(x + inset, titleText.y + titleText.height + 8, active.detail, {
-                fontFamily: FONT, fontStyle: "500", fontSize: 14, color: DARK_NAVY, wordWrap: { width: width - inset * 2 }, lineSpacing: 4,
-            });
-            this.boardContainer.add([titleText, detailText]);
-        } else {
-            const hint = this.add.text(x + inset, y + inset, "Klik salah satu titik pada ilustrasi untuk melihat informasi kejadian.", {
-                fontFamily: FONT, fontStyle: "500", fontSize: 14, color: BODY_TEXT, wordWrap: { width: width - inset * 2 }, lineSpacing: 4,
-            });
-            this.boardContainer.add(hint);
+    private createObservationCard(x: number, y: number, width: number, height: number) {
+        const active = SOPEP_IDENTIFY_HOTSPOTS.find((hotspot) => hotspot.id === this.activeHotspotId);
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 0.96);
+        card.fillRoundedRect(x, y, width, height, 14);
+        card.lineStyle(2, active ? PRIMARY_BLUE : BORDER_BLUE, 1);
+        card.strokeRoundedRect(x, y, width, height, 14);
+        this.boardContainer.add(card);
+        if (!active) {
+            this.boardContainer.add(this.add.text(x + 20, y + height / 2, "Klik titik inspeksi untuk mencatat hasil pengamatan.", { fontFamily: FONT, fontStyle: "600", fontSize: 14, color: BODY_TEXT }).setOrigin(0, 0.5));
+            return;
         }
+        const info = this.add.image(x + 66, y + height / 2, active.infoTextureKey).setDisplaySize(92, 34);
+        const title = this.add.text(x + 124, y + 18, active.title, { fontFamily: FONT, fontStyle: "800", fontSize: 14, color: PRIMARY_BLUE_HEX });
+        const detail = this.add.text(x + 124, title.y + title.height + 6, active.detail, { fontFamily: FONT, fontStyle: "500", fontSize: 13, color: DARK_NAVY, wordWrap: { width: width - 144 }, lineSpacing: 3 });
+        this.boardContainer.add([info, title, detail]);
+        this.tweens.add({ targets: [card, info, title, detail], alpha: { from: 0, to: 1 }, duration: 180, ease: "Sine.Out" });
+    }
 
-        const progressY = y + height - 44;
-        const done = this.identifyFound.size;
-        const total = SOPEP_IDENTIFY_HOTSPOTS.length;
-        const progressText = this.add.text(x + inset, progressY, done >= total ? "✓ IDENTIFIKASI SELESAI" : `${done} / ${total} informasi ditemukan`, {
-            fontFamily: FONT, fontStyle: "700", fontSize: 14, color: done >= total ? GREEN_HEX : BODY_TEXT,
+    private createInspectionChecklist(x: number, y: number, width: number) {
+        const height = 150;
+        const card = this.add.graphics();
+        card.fillStyle(0xffffff, 0.96);
+        card.fillRoundedRect(x, y, width, height, 14);
+        card.lineStyle(2, BORDER_BLUE, 1);
+        card.strokeRoundedRect(x, y, width, height, 14);
+        const title = this.add.text(x + 18, y + 16, "PEMERIKSAAN AWAL", { fontFamily: FONT, fontStyle: "800", fontSize: 13, color: PRIMARY_BLUE_HEX });
+        this.boardContainer.add([card, title]);
+        const items = [["location", "Lokasi kejadian diperiksa"], ["pollutant", "Jenis pencemar diperiksa"], ["source", "Sumber tumpahan diperiksa"], ["condition", "Kondisi tumpahan diperiksa"], ["scupper", "Scupper diperiksa"]];
+        items.forEach(([id, label], index) => {
+            const itemX = x + 20 + (index % 2) * (width / 2);
+            const itemY = y + 50 + Math.floor(index / 2) * 30;
+            const done = this.identifyFound.has(id);
+            const status = this.add.image(itemX + 10, itemY + 8, done ? "sopep.ui.statusChecked" : "sopep.ui.statusUnchecked").setDisplaySize(18, 18);
+            const text = this.add.text(itemX + 26, itemY + 8, label, { fontFamily: FONT, fontStyle: done ? "700" : "500", fontSize: 12, color: done ? GREEN_HEX : BODY_TEXT }).setOrigin(0, 0.5);
+            this.boardContainer.add([status, text]);
+            if (done) this.tweens.add({ targets: status, scaleX: { from: 0.5, to: 1 }, scaleY: { from: 0.5, to: 1 }, duration: 180, ease: "Back.Out" });
         });
-        this.boardContainer.add(progressText);
+    }
 
-        const nextButton = new Button(this, {
-            x: x + width / 2,
-            y: this.boardTop() + this.boardHeight() - 44,
-            width,
-            height: 54,
-            text: "LANJUT",
-            fontFamily: FONT,
-            fontStyle: "700",
-            fontSize: 15,
-            borderRadius: 27,
-            fillColor: done >= total ? PRIMARY_BLUE : 0xc7d3e6,
-            strokeAlpha: 0,
-            textColor: "#ffffff",
+    private createIdentificationForm(x: number, y: number, width: number, height: number) {
+        const panel = this.add.graphics();
+        panel.fillStyle(0xffffff, 1);
+        panel.fillRoundedRect(x, y, width, height, 18);
+        panel.lineStyle(2, BORDER_BLUE, 1);
+        panel.strokeRoundedRect(x, y, width, height, 18);
+        panel.fillStyle(PRIMARY_BLUE, 1);
+        panel.fillRoundedRect(x, y, width, 50, { tl: 18, tr: 18, bl: 0, br: 0 });
+        this.boardContainer.add([panel, this.add.text(x + 20, y + 25, "FORM IDENTIFIKASI AWAL", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: "#ffffff" }).setOrigin(0, 0.5)]);
+        const fieldX = x + 22;
+        const fieldW = width - 44;
+        const fieldY = y + 72;
+        const fieldGap = 92;
+        SOPEP_IDENTIFICATION_FIELDS.forEach((field, index) => this.createIdentificationField(field, index, fieldX, fieldY, fieldW, fieldGap));
+        if (this.identifyOpenFieldId) this.createIdentificationOptions(fieldX, fieldY, fieldW, fieldGap);
+        if (this.identificationComplete) {
+            this.boardContainer.add(this.add.text(x + width / 2, y + 558, "✓  IDENTIFIKASI SELESAI", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: GREEN_HEX }).setOrigin(0.5));
+            this.boardContainer.add(this.add.text(x + width / 2, y + 585, "Informasi awal kejadian telah dicatat dan siap digunakan untuk menentukan tindakan selanjutnya.", { fontFamily: FONT, fontStyle: "500", fontSize: 12, color: DARK_NAVY, wordWrap: { width: width - 54 }, align: "center" }).setOrigin(0.5, 0));
+            const next = new Button(this, { x: x + width / 2, y: y + 646, width: width - 44, height: 48, text: "LANJUT KE TINDAKAN AWAL →", fontFamily: FONT, fontStyle: "700", fontSize: 14, borderRadius: 24, fillColor: PRIMARY_BLUE, strokeAlpha: 0 });
+            next.on("pointerdown", () => { playSfx(this, SFX_KEYS.click); this.setStage("REPORT"); });
+            this.boardContainer.add(next.view);
+            return;
+        }
+        const confirm = new Button(this, { x: x + width / 2, y: y + 556, width: width - 44, height: 48, text: "KONFIRMASI IDENTIFIKASI", fontFamily: FONT, fontStyle: "700", fontSize: 14, borderRadius: 24, fillColor: PRIMARY_BLUE, strokeAlpha: 0 });
+        confirm.on("pointerdown", () => this.handleIdentificationConfirm());
+        this.boardContainer.add(confirm.view);
+        if (this.identifyFeedback) this.createIdentificationFeedback(x + 22, y + 590, width - 44, this.identifyFeedback);
+    }
+
+    private createIdentificationField(field: typeof SOPEP_IDENTIFICATION_FIELDS[number], index: number, x: number, firstY: number, width: number, gap: number) {
+        const y = firstY + index * gap;
+        const unlocked = this.isIdentifyFieldUnlocked(field.unlockAfter);
+        const selected = this.identifySelections[field.id];
+        const warning = this.identifyWarningFields.has(field.id);
+        const border = this.identificationComplete ? GREEN : warning ? AMBER : unlocked ? PRIMARY_BLUE : BORDER_BLUE;
+        const input = this.add.graphics();
+        input.fillStyle(unlocked ? 0xffffff : 0xf1f5f9, 1);
+        input.fillRoundedRect(x, y + 20, width, 46, 10);
+        input.lineStyle(2, border, warning ? 0.95 : 0.65);
+        input.strokeRoundedRect(x, y + 20, width, 46, 10);
+        const label = this.add.text(x, y, field.label, { fontFamily: FONT, fontStyle: "700", fontSize: 11, color: unlocked ? PRIMARY_BLUE_HEX : BODY_TEXT });
+        const value = unlocked ? selected ?? "Pilih hasil inspeksi" : "Terkunci — periksa hotspot terkait";
+        const valueText = this.add.text(x + 14, y + 43, value, { fontFamily: FONT, fontStyle: selected ? "700" : "500", fontSize: 12, color: selected ? DARK_NAVY : BODY_TEXT }).setOrigin(0, 0.5);
+        const arrow = this.add.text(x + width - 18, y + 43, unlocked ? "⌄" : "•", { fontFamily: FONT, fontStyle: "800", fontSize: 16, color: unlocked ? PRIMARY_BLUE_HEX : BODY_TEXT }).setOrigin(0.5);
+        this.boardContainer.add([label, input, valueText, arrow]);
+        if (!unlocked || this.identificationComplete) return;
+        const hit = this.add.rectangle(x + width / 2, y + 43, width, 46, 0xffffff, 0).setInteractive({ useHandCursor: true });
+        hit.on("pointerdown", () => { playSfx(this, SFX_KEYS.click); this.identifyOpenFieldId = this.identifyOpenFieldId === field.id ? null : field.id; this.renderStage(); });
+        this.boardContainer.add(hit);
+    }
+
+    private createIdentificationOptions(x: number, firstY: number, width: number, gap: number) {
+        const index = SOPEP_IDENTIFICATION_FIELDS.findIndex((field) => field.id === this.identifyOpenFieldId);
+        const field = SOPEP_IDENTIFICATION_FIELDS[index];
+        if (!field || index < 0) return;
+        const menuY = firstY + index * gap + 70;
+        const menuH = field.options.length * 34 + 10;
+        const menu = this.add.graphics();
+        menu.fillStyle(0xffffff, 1);
+        menu.fillRoundedRect(x, menuY, width, menuH, 10);
+        menu.lineStyle(2, PRIMARY_BLUE, 0.8);
+        menu.strokeRoundedRect(x, menuY, width, menuH, 10);
+        this.boardContainer.add(menu);
+        field.options.forEach((option, optionIndex) => {
+            const optionY = menuY + 5 + optionIndex * 34;
+            const selected = this.identifySelections[field.id] === option;
+            const bg = this.add.rectangle(x + width / 2, optionY + 14, width - 10, 28, selected ? SKY : 0xffffff, 1);
+            const text = this.add.text(x + 14, optionY + 14, option, { fontFamily: FONT, fontStyle: selected ? "700" : "500", fontSize: 12, color: DARK_NAVY }).setOrigin(0, 0.5);
+            const hit = this.add.rectangle(x + width / 2, optionY + 14, width - 10, 28, 0xffffff, 0).setInteractive({ useHandCursor: true });
+            hit.on("pointerdown", () => { playSfx(this, SFX_KEYS.click); this.identifySelections[field.id] = option; this.identifyWarningFields.delete(field.id); this.identifyOpenFieldId = null; this.identifyFeedback = null; this.renderStage(); });
+            this.boardContainer.add([bg, text, hit]);
         });
-        nextButton.on("pointerdown", () => {
-            if (this.identifyFound.size < total) return;
-            playSfx(this, SFX_KEYS.click);
-            this.setStage("REPORT");
-        });
-        this.boardContainer.add(nextButton.view);
+    }
+
+    private createIdentificationFeedback(x: number, y: number, width: number, feedback: { message: string; tone: "warning" | "error" | "success" }) {
+        const color = feedback.tone === "success" ? GREEN : feedback.tone === "warning" ? AMBER : RED;
+        const hex = feedback.tone === "success" ? GREEN_HEX : feedback.tone === "warning" ? AMBER_HEX : RED_HEX;
+        const box = this.add.graphics();
+        box.fillStyle(0xffffff, 1);
+        box.fillRoundedRect(x, y, width, 68, 12);
+        box.lineStyle(2, color, 0.8);
+        box.strokeRoundedRect(x, y, width, 68, 12);
+        const text = this.add.text(x + 16, y + 14, feedback.message, { fontFamily: FONT, fontStyle: "600", fontSize: 12, color: hex, wordWrap: { width: width - 32 }, lineSpacing: 3 });
+        this.boardContainer.add([box, text]);
+    }
+
+    private isIdentifyFieldUnlocked(requiredHotspots: string[]) {
+        return requiredHotspots.every((hotspotId) => this.identifyFound.has(hotspotId));
+    }
+
+    private handleIdentificationConfirm() {
+        playSfx(this, SFX_KEYS.click);
+        if (SOPEP_IDENTIFY_HOTSPOTS.some((hotspot) => !this.identifyFound.has(hotspot.id))) {
+            this.identifyWarningFields.clear();
+            this.identifyFeedback = { message: "Identifikasi belum lengkap.\nPeriksa seluruh titik penting sebelum mengonfirmasi laporan.", tone: "warning" };
+            this.renderStage();
+            return;
+        }
+        const incorrect = SOPEP_IDENTIFICATION_FIELDS.filter((field) => this.identifySelections[field.id] !== field.correctOption);
+        if (incorrect.length > 0) {
+            this.identifyWarningFields = new Set(incorrect.map((field) => field.id));
+            this.identifyFeedback = { message: "Data identifikasi belum sesuai dengan hasil pengamatan. Periksa kembali area kejadian.", tone: "warning" };
+            this.renderStage();
+            return;
+        }
+        this.identifyWarningFields.clear();
+        this.identifyFeedback = { message: "IDENTIFIKASI SELESAI", tone: "success" };
+        this.identificationComplete = true;
+        this.renderStage();
     }
 
     // ---- STEP 2: REPORT (Section E) ------------------------------------------------------

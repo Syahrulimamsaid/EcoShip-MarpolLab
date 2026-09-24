@@ -14,6 +14,7 @@ const MENU_MODULES: ModuleId[] = [
     "simulator-ows",
     "simulator-stabilitas",
     "hasil-umpan-balik",
+    "evaluasi",
 ];
 
 export class MainMenu extends Scene {
@@ -107,6 +108,15 @@ export class MainMenu extends Scene {
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("SopepMateri"));
+                },
+            }),
+            new MenuCard(this, {
+                texture: "home.card.evaluasi.vertical",
+                locked: !isModuleUnlocked("evaluasi"),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuKuis),
+                onSelect: () => {
+                    playSfx(this, SFX_KEYS.click);
+                    this.playExitAnimation(() => this.scene.start("HasilUmpanBalik", { from: "MainMenu" }));
                 },
             }),
         ];
@@ -403,7 +413,7 @@ export class MainMenu extends Scene {
         // Portrait cards now (matches the *-ver.png assets, ~1024x1536), a
         // single row of 3 instead of the old 2-column wrapping landscape grid.
         const cardAspect = 3 / 2;
-        const gridColumns = 3;
+        const gridColumns = this.menuCards.length;
         const gridRows = Math.ceil(this.menuCards.length / gridColumns);
 
         const targetCardWidth = Math.min(
@@ -438,7 +448,9 @@ export class MainMenu extends Scene {
             cardHeight * gridRows + cardGapY * (gridRows - 1);
         const cardsBlockLeft =
             cardsZoneLeft +
-            Math.max(0, (cardsZoneWidthRef - cardsBlockWidth) / 2);
+            Math.max(0, (cardsZoneWidthRef - cardsBlockWidth) / 2) +
+            // Nudged right so the cards don't sit flush against the left edge.
+            Math.max(24, width * 0.035);
         const cardsBlockCenterX = cardsBlockLeft + cardsBlockWidth / 2;
         const cardsBlockTop = bandTop;
 
@@ -565,10 +577,10 @@ export class MainMenu extends Scene {
         });
 
         this.characterPanel.layout(
-            rightColumnCenterX - 150,
-            logoTop + 130,
-            cardsBlockTop + cardsBlockHeight - logoTop - 160,
-            rightColumnWidth - rightColumnMargin - 160,
+            rightColumnCenterX - 20,
+            logoTop + 160,
+            cardsBlockTop + cardsBlockHeight - logoTop - 120,
+            rightColumnWidth - rightColumnMargin - 120,
         );
 
         // Sized by width only, height derived from the real asset's own

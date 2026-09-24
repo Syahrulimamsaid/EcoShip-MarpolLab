@@ -18,7 +18,7 @@ import { SimulatorOws } from "./scenes/SimulatorOws/SimulatorOws";
 import { SimulatorStabilitas } from "./scenes/SimulatorStabilitas/SimulatorStabilitas";
 import { SopepMateri } from "./scenes/SopepMateri/SopepMateri";
 import { SopepHasilUmpanBalik } from "./scenes/SopepSimulator/SopepHasilUmpanBalik";
-import { SopepSimulator } from "./scenes/SopepSimulator/SopepSimulator";
+import { SopepSimulator } from "./scenes/SopepSimulator/SopepSimulatorStep1";
 import { Tentang } from "./scenes/Tentang/Tentang";
 
 //  Find out more information about the Game Config at:

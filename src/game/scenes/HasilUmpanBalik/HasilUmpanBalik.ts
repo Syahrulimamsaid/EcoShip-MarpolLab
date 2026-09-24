@@ -1,8 +1,8 @@
 import { GameObjects, Scale, Scene } from "phaser";
 
 import { Button } from "../../../component/Button/Button";
-import { ModuleHeader } from "../../../component/ModuleHeader/ModuleHeader";
-import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, createHeaderBarCard } from "../../../component/ModulePanel/ModulePanel";
+import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
+import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX, createHeaderBarCard } from "../../../component/ModulePanel/ModulePanel";
 import { EnterStyleName, playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { SFX_KEYS, playSfx } from "../../SfxManager";
@@ -12,7 +12,6 @@ import { FINAL_EVALUATION_QUIZ } from "./FinalQuizData";
 // window, same approach as the other module scenes.
 const DESIGN_WIDTH = 1536;
 const DESIGN_HEIGHT = 1060;
-const MARGIN = 40;
 const CARD_WIDTH = 900;
 const CARD_HEIGHT = 580;
 const CARD_X = DESIGN_WIDTH / 2 - CARD_WIDTH / 2;
@@ -31,8 +30,15 @@ export class HasilUmpanBalik extends Scene {
     private transitionGroups: GameObjects.GameObject[][] = [];
     private transitionStyles: (EnterStyleName | undefined)[] = [];
 
+    /** Where BACK returns to: the SOPEP result screen by default, MainMenu when opened from the menu. */
+    private backScene = "SopepHasilUmpanBalik";
+
     constructor() {
         super("HasilUmpanBalik");
+    }
+
+    init(data?: { from?: string }) {
+        this.backScene = data?.from ?? "SopepHasilUmpanBalik";
     }
 
     create() {
@@ -73,17 +79,38 @@ export class HasilUmpanBalik extends Scene {
         playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey), this.transitionStyles);
     }
 
+    /** Same joined module/page breadcrumb as the OWS materi header; BACK only appears
+     * when this page was reached from another screen, not from the main menu. */
     private buildHeader() {
-        const header = new ModuleHeader(this, {
-            x: MARGIN,
-            badgeLabel: "MODUL HASIL & UMPAN BALIK",
-            breadcrumbLabel: "Kuis Evaluasi Akhir",
-            heading: "Hasil & Umpan Balik",
-            subtitle: "Uji seluruh pemahamanmu lewat kuis evaluasi akhir sebelum menyelesaikan modul ini.",
+        const navButtons = new HomeBackButtons(this, {
+            x: 32,
+            y: 32,
             onHome: () => this.goTo("MainMenu"),
-            onBack: () => this.goTo("SopepHasilUmpanBalik"),
+            onBack: this.backScene === "MainMenu" ? undefined : () => this.goTo(this.backScene),
         });
-        this.root.add(header.view);
+
+        const crumbX = 32 + navButtons.width + 20;
+        const crumbY = 38;
+        const crumbHeight = navButtons.height - 10;
+        const centerY = crumbY + crumbHeight / 2;
+        const badgeText = this.add.text(0, 0, "MODUL EVALUASI", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 15, color: "#ffffff" });
+        const blueWidth = badgeText.width + 48;
+        const chevron = this.add.text(0, 0, "›", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 20, color: PRIMARY_BLUE_HEX });
+        const label = this.add.text(0, 0, "Kuis Evaluasi Akhir", { fontFamily: "Plus Jakarta Sans", fontStyle: "600", fontSize: 16, color: PRIMARY_BLUE_HEX });
+        const whiteWidth = 22 + chevron.width + 10 + label.width + 26;
+
+        const breadcrumb = this.add.graphics();
+        breadcrumb.fillStyle(0xffffff, 1);
+        breadcrumb.fillRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
+        breadcrumb.fillStyle(PRIMARY_BLUE, 1);
+        breadcrumb.fillRoundedRect(crumbX, crumbY, blueWidth, crumbHeight, { tl: crumbHeight / 2, bl: crumbHeight / 2, tr: 0, br: 0 });
+        breadcrumb.lineStyle(2, PRIMARY_BLUE, 1);
+        breadcrumb.strokeRoundedRect(crumbX, crumbY, blueWidth + whiteWidth, crumbHeight, crumbHeight / 2);
+
+        badgeText.setPosition(crumbX + blueWidth / 2, centerY).setOrigin(0.5);
+        chevron.setPosition(crumbX + blueWidth + 22, centerY - 2).setOrigin(0, 0.5);
+        label.setPosition(chevron.x + chevron.width + 10, centerY).setOrigin(0, 0.5);
+        this.root.add([navButtons.view, breadcrumb, badgeText, chevron, label]);
     }
 
     private buildCardChrome() {
@@ -117,7 +144,7 @@ export class HasilUmpanBalik extends Scene {
             .text(
                 centerX,
                 bodyTop + 138,
-                'Kuis ini terdiri dari 10 soal yang merangkum seluruh materi — mulai dari struktur dasar berganda kapal dan SOP darurat kebocoran, hingga simulasi distribusi muatan & stabilitas kapal.\n\nUrutan soal dan pilihan jawaban diacak setiap kali kamu memulai. Jawablah seluruh soal dengan benar untuk mengklaim lencana "Master of Maritime Safety" dan menyelesaikan modul ini sepenuhnya.',
+                'Kuis ini terdiri dari 10 soal yang merangkum seluruh materi — Simulator OWS (MARPOL Annex I), Pemilahan Sampah (MARPOL Annex V), dan Administrasi SOPEP (penanganan tumpahan minyak).\n\nUrutan soal dan pilihan jawaban diacak setiap kali kamu memulai. Jawablah seluruh soal dengan benar untuk mengklaim lencana "Master of Maritime Safety" dan menyelesaikan modul ini sepenuhnya.',
                 {
                     fontFamily: "Plus Jakarta Sans",
                     fontStyle: "600",
@@ -169,7 +196,7 @@ export class HasilUmpanBalik extends Scene {
                 this.scene.start("QuizScene", {
                     config: FINAL_EVALUATION_QUIZ,
                     returnScene: "HasilUmpanBalik",
-                    moduleId: "hasil-umpan-balik",
+                    moduleId: "evaluasi",
                 }),
             this.transitionStyles,
         );

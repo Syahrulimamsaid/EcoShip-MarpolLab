@@ -1,4 +1,5 @@
 import { GameObjects, Scene, Scale } from "phaser";
+import { SOPEP_STEP1_ASSETS, SOPEP_STEP2_ASSETS, SOPEP_STEP3_ASSETS, SOPEP_STEP4_ASSETS, SOPEP_STEP5_ASSETS } from "./SopepSimulator/config/assetKeys";
 
 // Boot.ts only loads the handful of assets this scene needs to render
 // itself (background, logo, touch button) — everything else loads below in
@@ -124,6 +125,10 @@ export class Preloader extends Scene {
             "home.card.hasil.vertical",
             "assets/home/card-hasil-ver.png",
         );
+        this.load.image(
+            "home.card.evaluasi.vertical",
+            "assets/home/card-evaluasi-ver.png",
+        );
         this.load.image("home.card.profile", "assets/home/card_profile.png");
         this.load.image("home.btn.settings", "assets/home/btn_settings.png");
         this.load.image(
@@ -156,6 +161,13 @@ export class Preloader extends Scene {
         this.load.image("soped.illustration.dokumen", "assets/soped/img-susunan-doc.png");
         this.load.image("soped.illustration.pelaporan", "assets/soped/img-komunikasi-radio.png");
         this.load.image("soped.illustration.pencatatan", "assets/soped/img-review-drill.png");
+
+        // SOPEP Step 1 assets use the user-provided simulator/1 folder.
+        SOPEP_STEP1_ASSETS.forEach(([key, path]) => this.load.image(key, path));
+        SOPEP_STEP2_ASSETS.forEach(([key, path]) => this.load.image(key, path));
+        SOPEP_STEP3_ASSETS.forEach(([key, path]) => this.load.image(key, path));
+        SOPEP_STEP4_ASSETS.forEach(([key, path]) => this.load.image(key, path));
+        SOPEP_STEP5_ASSETS.forEach(([key, path]) => this.load.image(key, path));
 
         // Shared header nav icons — Home (always present) and Back (only on
         // pages reached beyond a module's first-level materi/hub screen).

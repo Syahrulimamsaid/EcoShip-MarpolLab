@@ -48,13 +48,77 @@ export interface SopepHotspot {
     yFrac: number;
     title: string;
     detail: string;
+    /** Field(s) this visual observation unlocks in the initial form. */
+    unlocks: string[];
+    /** Existing visual asset used in the compact observation card. */
+    infoTextureKey: string;
 }
 
 export const SOPEP_IDENTIFY_HOTSPOTS: SopepHotspot[] = [
-    { id: "source", xFrac: 0.28, yFrac: 0.58, title: "SUMBER TUMPAHAN", detail: "Kebocoran pada sambungan pipa minyak." },
-    { id: "pollutant", xFrac: 0.5, yFrac: 0.72, title: "JENIS PENCEMAR", detail: "Minyak / oily mixture." },
-    { id: "location", xFrac: 0.7, yFrac: 0.55, title: "LOKASI", detail: "Main Deck, dekat jalur pipa transfer." },
-    { id: "condition", xFrac: 0.5, yFrac: 0.4, title: "KONDISI TUMPAHAN", detail: "Tumpahan meluas perlahan dan belum mencapai saluran pembuangan." },
+    {
+        id: "pollutant",
+        xFrac: 0.16,
+        yFrac: 0.52,
+        title: "JENIS PENCEMAR",
+        detail: "Amati karakteristik cairan yang tumpah. Hasil pengamatan menunjukkan minyak / oil.",
+        unlocks: ["pollutant"],
+        infoTextureKey: "sopep.ui.infoJenis",
+    },
+    {
+        id: "source",
+        xFrac: 0.71,
+        yFrac: 0.47,
+        title: "SUMBER TUMPAHAN",
+        detail: "Periksa titik keluarnya minyak. Terlihat kebocoran pada pipa / sambungan.",
+        unlocks: ["source"],
+        infoTextureKey: "sopep.ui.infoSumber",
+    },
+    {
+        id: "condition",
+        xFrac: 0.48,
+        yFrac: 0.68,
+        title: "KONDISI TUMPAHAN",
+        detail: "Periksa luas dan penyebaran awal. Tumpahan masih berada di area deck.",
+        unlocks: ["condition"],
+        infoTextureKey: "sopep.ui.infoKondisi",
+    },
+    {
+        id: "location",
+        xFrac: 0.78,
+        yFrac: 0.82,
+        title: "LOKASI KEJADIAN",
+        detail: "Identifikasi lokasi insiden. Hasil pengamatan: Main Deck.",
+        unlocks: ["location"],
+        infoTextureKey: "sopep.ui.infoLokasi",
+    },
+    {
+        id: "scupper",
+        xFrac: 0.18,
+        yFrac: 0.79,
+        title: "SALURAN PEMBUANGAN",
+        detail: "Periksa kondisi scupper untuk memastikan minyak belum masuk ke saluran pembuangan.",
+        unlocks: [],
+        infoTextureKey: "sopep.ui.infoKondisi",
+    },
+];
+
+/** Data-driven initial identification form. `incidentType` intentionally
+ * opens only after all observations, since it is the learner's conclusion
+ * from the full inspection rather than a label placed on the illustration. */
+export interface SopepIdentificationField {
+    id: string;
+    label: string;
+    options: string[];
+    correctOption: string;
+    unlockAfter: string[];
+}
+
+export const SOPEP_IDENTIFICATION_FIELDS: SopepIdentificationField[] = [
+    { id: "location", label: "LOKASI KEJADIAN", options: ["Main Deck", "Engine Room", "Pump Room", "Cargo Deck"], correctOption: "Main Deck", unlockAfter: ["location"] },
+    { id: "incidentType", label: "JENIS INSIDEN", options: ["Oil Spill", "Leakage", "Overflow", "Equipment Failure"], correctOption: "Oil Spill", unlockAfter: ["location", "pollutant", "source", "condition"] },
+    { id: "pollutant", label: "JENIS PENCEMAR", options: ["Fuel Oil", "Lubricating Oil", "Bilge Oil", "Unknown Oil"], correctOption: "Fuel Oil", unlockAfter: ["pollutant"] },
+    { id: "source", label: "SUMBER TUMPAHAN", options: ["Pipa/Sambungan", "Tangki", "Drum", "Peralatan"], correctOption: "Pipa/Sambungan", unlockAfter: ["source"] },
+    { id: "condition", label: "KONDISI TUMPAHAN", options: ["Kecil dan terlokalisasi", "Sedang", "Menyebar", "Berpotensi mencapai laut"], correctOption: "Kecil dan terlokalisasi", unlockAfter: ["condition"] },
 ];
 
 // ---- STEP 2 — Laporkan Insiden (Section E) ---------------------------------
@@ -194,7 +258,7 @@ export const SOPEP_DOCUMENTATION_CHECKLIST: string[] = [
 
 // ---- Progress row (Section L) ----------------------------------------------
 
-export const SOPEP_PROGRESS_LABELS: string[] = ["Identifikasi", "Pelaporan", "Persiapan", "Pengendalian", "Dokumentasi"];
+export const SOPEP_PROGRESS_LABELS: string[] = ["STEP 1", "STEP 2", "STEP 3", "STEP 4", "STEP 5"];
 
 // ---- Result (Section N) -----------------------------------------------------
 

@@ -1,12 +1,13 @@
 import { QuizConfig } from "../Quiz/QuizScene";
 
 /**
- * The cumulative final-evaluation quiz launched from Hasil & Umpan Balik —
- * one question set spanning both Simulator OWS (MARPOL Annex I, oil content
- * limits) and Simulator Stabilitas (moment/heel, distribusi muatan) so it
- * reads as a recap of the whole module, not just one part of it. All 10 must
- * be correct to claim the badge and see the completion popup (see
- * QuizScene.renderResult()'s perfectScoreMessage handling).
+ * The cumulative final-evaluation quiz launched from the Evaluasi menu — one
+ * question set spanning the three modules: Simulator OWS (MARPOL Annex I),
+ * Pemilahan Sampah (MARPOL Annex V) and Administrasi SOPEP, so it reads as a
+ * recap of the whole course. All 10 must be correct to claim the badge and see
+ * the completion popup (see QuizScene.renderResult()'s perfectScoreMessage
+ * handling). Options are shuffled at runtime, so the correct answer is
+ * always listed first here.
  */
 export const FINAL_EVALUATION_QUIZ: QuizConfig = {
     title: "KUIS EVALUASI AKHIR",
@@ -15,6 +16,7 @@ export const FINAL_EVALUATION_QUIZ: QuizConfig = {
     badgeName: "Master of Maritime Safety",
     perfectScoreMessage: "Selamat, Anda berhasil menyelesaikan materi dan kuis!",
     questions: [
+        // ── Simulator OWS (MARPOL Annex I) ──
         {
             question: "Berdasarkan MARPOL Annex I, berapa batas maksimum kandungan minyak yang boleh dibuang ke laut dari air got (bilge water) kapal?",
             options: [
@@ -36,16 +38,6 @@ export const FINAL_EVALUATION_QUIZ: QuizConfig = {
             correctIndex: 0,
         },
         {
-            question: "Mengapa katup/pipa bypass pada sistem OWS dilarang digunakan untuk membuang air got langsung ke laut?",
-            options: [
-                "Karena membuang air got yang belum tersaring melanggar MARPOL Annex I dan mencemari laut",
-                "Karena katup bypass hanya boleh dibuka saat kapal berlabuh",
-                "Karena katup bypass akan merusak mesin OWS jika dibuka",
-                "Karena katup bypass hanya berfungsi untuk mengisi air tawar",
-            ],
-            correctIndex: 0,
-        },
-        {
             question: "Setiap kegiatan pembuangan atau pemindahan minyak/air got di kamar mesin wajib dicatat pada dokumen apa?",
             options: [
                 "Oil Record Book (ORB) Bagian I",
@@ -55,63 +47,75 @@ export const FINAL_EVALUATION_QUIZ: QuizConfig = {
             ],
             correctIndex: 0,
         },
+        // ── Pemilahan Sampah (MARPOL Annex V) ──
         {
-            question: "Apa yang dimaksud dengan \"momen\" dalam simulasi distribusi muatan kapal?",
+            question: "Apa yang diatur oleh MARPOL Annex V?",
             options: [
-                "Hasil kali berat muatan dengan jarak (lengan) muatan tersebut dari garis tengah kapal",
-                "Total berat seluruh muatan di kapal",
-                "Kecepatan kapal saat berlayar",
-                "Waktu yang dibutuhkan untuk memuat barang",
+                "Pencegahan pencemaran laut oleh sampah dari kapal",
+                "Pencegahan pencemaran laut oleh minyak dari kapal",
+                "Pencegahan pencemaran udara oleh gas buang kapal",
+                "Pengendalian air ballast dan sedimen kapal",
             ],
             correctIndex: 0,
         },
         {
-            question: "Apa akibat jika muatan yang berat ditempatkan hanya pada satu sisi kapal (kiri atau kanan)?",
+            question: "Mengapa sampah di kapal harus dipilah berdasarkan kategori dan ditempatkan pada wadah yang sesuai?",
             options: [
-                "Kapal akan miring (heel) ke sisi yang lebih berat",
-                "Kapal akan melaju lebih cepat",
-                "Kapal menjadi lebih hemat bahan bakar",
-                "Tidak ada efek terhadap kestabilan kapal",
+                "Agar pengelolaan, penyimpanan, dan penyerahan sampah dapat dilakukan dengan aman dan sesuai prosedur",
+                "Agar seluruh sampah dapat dibuang langsung ke laut",
+                "Agar volume sampah bertambah sebelum diolah",
+                "Karena pemilahan hanya diwajibkan saat kapal berlabuh",
             ],
             correctIndex: 0,
         },
         {
-            question: "Bagaimana cara menyeimbangkan kembali kapal yang miring pada Simulator Stabilitas?",
+            question: "Manakah yang TIDAK boleh dimasukkan ke dalam incinerator kapal?",
             options: [
-                "Memindahkan/menambah muatan ke sisi yang lebih ringan hingga momen kiri dan kanan seimbang",
-                "Membuang seluruh muatan ke laut",
-                "Menambah kecepatan mesin kapal",
-                "Mengurangi jumlah awak kapal",
+                "Plastik, bahan berbahaya, atau limbah terlarang",
+                "Limbah yang diizinkan sesuai manual kapal",
+                "Sampah kertas yang sudah dipilah",
+                "Limbah yang diizinkan dalam batas kapasitas alat",
+            ],
+            correctIndex: 0,
+        },
+        // ── Administrasi SOPEP ──
+        {
+            question: "Apa yang dimaksud dengan SOPEP (Shipboard Oil Pollution Emergency Plan)?",
+            options: [
+                "Rencana darurat di atas kapal untuk mencegah, meminimalkan, dan menanggulangi pencemaran minyak di laut",
+                "Dokumen izin berlayar yang diterbitkan oleh pelabuhan",
+                "Catatan harian kegiatan pemuatan barang di kapal",
+                "Prosedur pemeliharaan mesin utama kapal",
             ],
             correctIndex: 0,
         },
         {
-            question: "Mengapa menumpuk muatan berat terlalu tinggi tetap berbahaya walau momen kiri-kanan sudah seimbang?",
+            question: "Mengapa saluran pembuangan (scupper) di deck harus ditutup saat terjadi tumpahan minyak?",
             options: [
-                "Karena menaikkan titik berat (G) kapal, mendekati titik metasentrik (M), sehingga mengurangi stabilitas",
-                "Karena membuat kapal menjadi lebih ringan",
-                "Karena mempercepat proses bongkar muat",
-                "Tidak berpengaruh apapun terhadap kapal",
+                "Agar minyak tidak mengalir ke laut melalui saluran pembuangan",
+                "Agar minyak lebih cepat mengering di deck",
+                "Agar air hujan dapat masuk ke area tumpahan",
+                "Karena scupper hanya berfungsi saat kapal berlayar",
             ],
             correctIndex: 0,
         },
         {
-            question: "Dari ketiga katup pada sistem OWS (Inlet, Outlet, Bypass), katup mana yang harus selalu tertutup selama proses filtrasi normal berlangsung?",
+            question: "Sebelum memasang oil boom dan menyerap tumpahan di deck, tindakan apa yang harus dilakukan lebih dulu?",
             options: [
-                "Katup Bypass — membukanya membuang air got yang belum tersaring langsung ke laut",
-                "Katup Inlet — agar air got tidak masuk ke separator",
-                "Katup Outlet — agar air hasil filtrasi tidak pernah dibuang",
-                "Ketiganya boleh dibuka bersamaan kapan saja",
+                "Mengendalikan sumber kebocoran dan mengamankan area kejadian",
+                "Membuang seluruh sisa minyak langsung ke laut",
+                "Menunggu tumpahan menyebar hingga mengering",
+                "Menyimpan laporan dan menonaktifkan alarm kapal",
             ],
             correctIndex: 0,
         },
         {
-            question: "Apa yang harus dilakukan jika Oil Content Monitor (OCM) masih menunjukkan kadar minyak ≥ 15 PPM saat proses filtrasi berlangsung?",
+            question: "Dokumentasi akhir penanganan tumpahan minyak dalam SOPEP sebaiknya memuat apa?",
             options: [
-                "Menjaga katup buang (overboard) tetap tertutup dan melanjutkan filtrasi hingga kadar minyak turun di bawah 15 PPM",
-                "Membuka katup buang sekarang juga agar prosesnya lebih cepat",
-                "Membuka katup bypass agar air langsung terbuang",
-                "Mematikan seluruh sistem dan mengabaikan pembacaan OCM",
+                "Formulir laporan, log kegiatan penanganan, daftar peralatan yang digunakan, dan foto dokumentasi",
+                "Hanya foto kondisi kapal setelah berlabuh",
+                "Hanya nama petugas yang bertugas di anjungan",
+                "Tidak perlu dokumentasi jika tumpahan sudah dibersihkan",
             ],
             correctIndex: 0,
         },
