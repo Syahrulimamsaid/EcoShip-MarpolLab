@@ -6,7 +6,7 @@ import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/Sc
 import { EventBus } from "../../EventBus";
 import { unlockNextModuleAfter } from "../../ModuleProgress";
 import { shuffled } from "../../QuizShuffle";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 
 const DESIGN_WIDTH = 1920;
 const DESIGN_HEIGHT = 1080;
@@ -145,7 +145,10 @@ export class PilahSampah extends Scene {
         this.startRound(1);
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.pilahSampahInstruksi);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
     }

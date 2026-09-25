@@ -15,7 +15,7 @@ import {
     trackGroup,
 } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 import {
     SOPEP_LESSONS,
     SOPEP_TRANSITION_CHECKLIST,
@@ -121,7 +121,10 @@ export class SopepMateri extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.materiSopep);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
     }

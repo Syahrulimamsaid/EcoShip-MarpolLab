@@ -6,7 +6,7 @@ import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } fro
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { setMaterialCompleted } from "../../OwsModuleState";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { OWS_COMPONENT_SFX, SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 import {
     OWS_COMPONENT_MARKERS,
     OWS_PPM_SAMPLES,
@@ -110,7 +110,10 @@ export class OwsMateri extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.materiOws);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
     }
@@ -651,6 +654,7 @@ export class OwsMateri extends Scene {
             hit.on("pointerdown", () => {
                 playSfx(this, SFX_KEYS.click);
                 this.activeMarkerIndex = index;
+                playVoiceSfx(this, OWS_COMPONENT_SFX[index]);
                 this.renderBoard();
             });
 

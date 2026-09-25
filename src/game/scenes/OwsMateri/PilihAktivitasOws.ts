@@ -6,7 +6,7 @@ import {
     trackGroup,
 } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx, playVoiceSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 
 const DESIGN_WIDTH = 1536;
 const DESIGN_HEIGHT = 980;
@@ -57,7 +57,10 @@ export class PilihAktivitasOws extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.materiOws2);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
     }

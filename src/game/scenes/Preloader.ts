@@ -1,4 +1,5 @@
 import { GameObjects, Scene, Scale } from "phaser";
+import { SFX_ASSETS } from "../SfxManager";
 import { SOPEP_STEP1_ASSETS, SOPEP_STEP2_ASSETS, SOPEP_STEP3_ASSETS, SOPEP_STEP4_ASSETS, SOPEP_STEP5_ASSETS } from "./SopepSimulator/config/assetKeys";
 
 // Boot.ts only loads the handful of assets this scene needs to render
@@ -83,22 +84,10 @@ export class Preloader extends Scene {
         this.load.image("profile.human", "assets/profile.png");
         this.load.image("character", "assets/character.png");
         this.load.audio("bgm.main", "assets/bgm/mangmaru-shameless-child-327092.mp3");
-        this.load.audio("sfx.menuClick", "assets/soundeffect/menu-click.mp3");
-        this.load.audio("bgm.dubbing_greeting", "assets/soundeffect/dashboard_archilab.mp3");
         this.load.audio("bgm.quizThinking", "assets/bgm/sonican-thinking-time.mp3");
-        this.load.audio("sfx.quizWrong", "assets/soundeffect/quiz_wrong.webm");
-        this.load.audio("sfx.quizCorrect", "assets/soundeffect/complete_evaluation.ogg");
 
-        // Materi narration/hover/result voice lines.
-        this.load.audio("sfx.keterangan.stabilitas", "assets/soundeffect/materi/keterangan_stabilitas_kapal.mp3");
-        this.load.audio("sfx.menu.anatomi", "assets/soundeffect/materi/menu_anatomi_struktur_kapal.mp3");
-        this.load.audio("sfx.menu.simulator", "assets/soundeffect/materi/menu_simulator_struktur_kapal.mp3");
-        this.load.audio("sfx.menu.evaluasi", "assets/soundeffect/materi/menu_evaluasi_umpan_balik.mp3");
-        this.load.audio("sfx.menu.tentang", "assets/soundeffect/materi/menu_tentang.mp3");
-        this.load.audio("sfx.menu.keluar", "assets/soundeffect/materi/menu_keluar.mp3");
-        this.load.audio("sfx.menu.kuis", "assets/soundeffect/materi/menu_kuis.mp3");
-        this.load.audio("sfx.nilai.baik", "assets/soundeffect/materi/nilai_baik.mp3");
-        this.load.audio("sfx.nilai.kurang", "assets/soundeffect/materi/nilai_kurang.mp3");
+        // Voice lines shipped in assets/soundeffect (see SFX_ASSETS).
+        SFX_ASSETS.forEach(([key, path]) => this.load.audio(key, path));
 
         this.load.image("background.home", "assets/home/bg.png");
         this.load.image(

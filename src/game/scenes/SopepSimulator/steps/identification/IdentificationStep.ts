@@ -109,7 +109,7 @@ export class IdentificationStep implements SOPEPStep {
             return;
         }
 
-        IDENTIFICATION_POINTS.forEach((point) => {
+        IDENTIFICATION_POINTS.forEach((point, order) => {
             const targetX = deckX + point.anchor.x * deckW;
             const targetY = deckY + point.anchor.y * deckH;
             const complete = this.context.state.isIdentified(point.id);
@@ -122,14 +122,24 @@ export class IdentificationStep implements SOPEPStep {
             const calloutY = PhaserMath.Clamp(targetY + point.callout.offsetY, deckY + 10, deckY + deckH - 94);
             const description = active ? "Memeriksa informasi…" : complete ? `Ditemukan: ${point.result}` : point.prompt;
             container.add(createHotspotCallout(scene, {
-                x: calloutX, y: calloutY, targetX, targetY, title: point.title, description, complete,
+                x: calloutX, y: calloutY, targetX, targetY, title: `${order + 1}. ${point.title}`, description, complete,
                 onClick: () => this.inspect(point.id),
             }));
         });
     }
 
+    /** The first point, in procedure order, that has not been identified yet. */
+    private nextPoint() {
+        return IDENTIFICATION_POINTS.find((point) => !this.context.state.isIdentified(point.id));
+    }
+
     private inspect(pointId: IdentificationPointId) {
         if (this.activePoint || this.context.state.isIdentified(pointId)) return;
+        const expected = this.nextPoint();
+        if (expected && expected.id !== pointId) {
+            showFeedbackToast(this.context.scene, this.context.container, 700, 330, "IKUTI URUTAN", `Periksa dulu: ${expected.title.charAt(0)}${expected.title.slice(1).toLowerCase()} (langkah ${IDENTIFICATION_POINTS.indexOf(expected) + 1} dari ${IDENTIFICATION_POINTS.length}).`, 0xf59a23);
+            return;
+        }
         this.activePoint = pointId;
         this.render();
         const timer = this.context.scene.time.delayedCall(220, () => {

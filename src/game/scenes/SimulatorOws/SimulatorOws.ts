@@ -6,7 +6,7 @@ import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } fro
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
 import { setSimulatorProgress } from "../../OwsModuleState";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 
 const DESIGN_WIDTH = 1920;
 const DESIGN_HEIGHT = 1080;
@@ -186,7 +186,10 @@ export class SimulatorOws extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.owsSimulasi);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.stopSeparation();
             this.stopDischargeTimer();
             this.tweens.killTweensOf(this.ocmValueText);

@@ -86,7 +86,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.anatomi.vertical",
                 locked: !isModuleUnlocked("simulator-ows"),
-                onHover: () => playVoiceSfx(this, SFX_KEYS.menuAnatomi),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuSimulatorOws),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("OwsMateri"));
@@ -95,7 +95,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.stabilitas.vertical",
                 locked: !isModuleUnlocked("simulator-stabilitas"),
-                onHover: () => playVoiceSfx(this, SFX_KEYS.menuSimulator),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuPemilahanSampah),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("PilahSampahMateri"));
@@ -104,7 +104,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.hasil.vertical",
                 locked: !isModuleUnlocked("hasil-umpan-balik"),
-                onHover: () => playVoiceSfx(this, SFX_KEYS.menuEvaluasi),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuAdmSopep),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("SopepMateri"));
@@ -113,7 +113,7 @@ export class MainMenu extends Scene {
             new MenuCard(this, {
                 texture: "home.card.evaluasi.vertical",
                 locked: !isModuleUnlocked("evaluasi"),
-                onHover: () => playVoiceSfx(this, SFX_KEYS.menuKuis),
+                onHover: () => playVoiceSfx(this, SFX_KEYS.menuEvaluasi),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
                     this.playExitAnimation(() => this.scene.start("HasilUmpanBalik", { from: "MainMenu" }));

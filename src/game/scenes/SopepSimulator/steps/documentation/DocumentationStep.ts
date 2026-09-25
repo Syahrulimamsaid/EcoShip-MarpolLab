@@ -3,6 +3,7 @@ import { Tweens } from "phaser";
 import { Button } from "../../../../../component/Button/Button";
 import { playSceneExit } from "../../../../../component/SceneTransition";
 import { unlockNextModuleAfter } from "../../../../ModuleProgress";
+import { SFX_KEYS, playSfx } from "../../../../SfxManager";
 import { createActivitySummary } from "../../components/ActivitySummary";
 import { createAttachmentThumbnail } from "../../components/AttachmentThumbnail";
 import { createConfirmDialog } from "../../components/ConfirmDialog";
@@ -232,6 +233,7 @@ export class DocumentationStep implements SOPEPStep {
         this.invalid.clear();
         this.dialog = "success";
         this.render();
+        playSfx(this.context.scene, SFX_KEYS.success);
     }
 
     private openEditor(field: TextField, x: number, y: number, width: number, height: number, value: string) {

@@ -9,15 +9,16 @@ export interface IdentificationPointConfig {
     callout: { offsetX: number; offsetY: number };
 }
 
+/** Fixed procedure order — identical to the checklist in the "Kondisi Darurat" panel. */
 export const IDENTIFICATION_POINTS: IdentificationPointConfig[] = [
     {
-        id: "pollutant",
-        title: "JENIS PENCEMAR",
-        prompt: "Klik untuk memeriksa jenis tumpahan.",
-        result: "Fuel Oil",
-        // Fuel drums in the composite main-deck illustration.
-        anchor: { x: 0.10, y: 0.47 },
-        callout: { offsetX: 86, offsetY: -118 },
+        id: "location",
+        title: "LOKASI KEJADIAN",
+        prompt: "Klik untuk memeriksa lokasi kejadian.",
+        result: "Main Deck",
+        // Clear deck area confirms the incident occurs on the Main Deck.
+        anchor: { x: 0.70, y: 0.69 },
+        callout: { offsetX: 80, offsetY: 75 },
     },
     {
         id: "source",
@@ -27,6 +28,15 @@ export const IDENTIFICATION_POINTS: IdentificationPointConfig[] = [
         // Oil flowing from the pipe joint.
         anchor: { x: 0.52, y: 0.52 },
         callout: { offsetX: 100, offsetY: -180 },
+    },
+    {
+        id: "pollutant",
+        title: "JENIS PENCEMAR",
+        prompt: "Klik untuk memeriksa jenis tumpahan.",
+        result: "Fuel Oil",
+        // Fuel drums in the composite main-deck illustration.
+        anchor: { x: 0.10, y: 0.47 },
+        callout: { offsetX: 86, offsetY: -118 },
     },
     {
         id: "spillCondition",
@@ -44,14 +54,5 @@ export const IDENTIFICATION_POINTS: IdentificationPointConfig[] = [
         result: "Scupper berisiko tercemar",
         anchor: { x: 0.16, y: 0.79 },
         callout: { offsetX: 70, offsetY: 40 },
-    },
-    {
-        id: "location",
-        title: "LOKASI KEJADIAN",
-        prompt: "Klik untuk memeriksa lokasi kejadian.",
-        result: "Main Deck",
-        // Clear deck area confirms the incident occurs on the Main Deck.
-        anchor: { x: 0.70, y: 0.69 },
-        callout: { offsetX: 80, offsetY: 75 },
     },
 ];

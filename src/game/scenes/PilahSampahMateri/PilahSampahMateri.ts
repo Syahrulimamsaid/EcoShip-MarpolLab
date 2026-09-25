@@ -5,7 +5,7 @@ import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, BORDER_BLUE, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 import {
     PILAH_COMMINUTOR_CARDS,
     PILAH_INCINERATOR_CARDS,
@@ -110,7 +110,10 @@ export class PilahSampahMateri extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.materiPilahSampah);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
     }

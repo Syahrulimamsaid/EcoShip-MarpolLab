@@ -1,5 +1,6 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SOPEP_STEP_SFX, playVoiceSfx, stopVoiceSfx } from "../../../SfxManager";
 import { SimulationState } from "./SimulationState";
 import { SOPEPStep, SOPEPStepContext } from "./StepTypes";
 
@@ -34,6 +35,8 @@ export class StepManager {
         this.activeStep = factory();
         this.activeStep.create(this.contextForActiveStep());
         this.activeStep.enter();
+        const voice = SOPEP_STEP_SFX[stepNumber - 1];
+        if (voice) playVoiceSfx(this.scene, voice);
     }
 
     completeCurrentStep() {
@@ -53,6 +56,7 @@ export class StepManager {
     }
 
     destroy() {
+        stopVoiceSfx();
         this.activeStep?.destroy();
         this.activeStep = null;
     }
