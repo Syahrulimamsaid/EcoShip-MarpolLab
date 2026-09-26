@@ -2,79 +2,33 @@
  * keys below; file paths stay confined to the preloader. */
 export const SOPEP_ASSET_KEYS = {
     background: "sopep.bg.mainDeck",
-    pipeLeak: "sopep.env.pipeLeak",
-    scupper: "sopep.env.scupper",
-    fuelDrum: "sopep.env.fuelDrum",
-    lifebuoy: "sopep.env.lifebuoy",
-    spillMedium: "sopep.spill.medium",
     hotspot: "sopep.ui.hotspot",
     hotspotPulse: "sopep.ui.hotspotPulse",
     hotspotActive: "sopep.ui.hotspotActive",
     hotspotChecked: "sopep.ui.hotspotChecked",
     statusUnchecked: "sopep.ui.statusUnchecked",
     statusChecked: "sopep.ui.statusChecked",
-    badgeLocation: "sopep.ui.badgeLokasi",
-    badgeIncident: "sopep.ui.badgeInsiden",
-    badgeStatus: "sopep.ui.badgeStatus",
 } as const;
 
 export const SOPEP_STEP1_ASSETS: Array<[string, string]> = [
     [SOPEP_ASSET_KEYS.background, "assets/soped/simulator/1/background/sopep.bg.mainDeck.png"],
-    [SOPEP_ASSET_KEYS.pipeLeak, "assets/soped/simulator/1/deck/sopep.env.pipeLeak.png"],
-    [SOPEP_ASSET_KEYS.scupper, "assets/soped/simulator/1/deck/sopep.env.scupper.png"],
-    [SOPEP_ASSET_KEYS.fuelDrum, "assets/soped/simulator/1/deck/sopep.env.fuelDrum.png"],
-    [SOPEP_ASSET_KEYS.lifebuoy, "assets/soped/simulator/1/deck/sopep.env.lifebuoy.png"],
-    [SOPEP_ASSET_KEYS.spillMedium, "assets/soped/simulator/1/spill/sopep.spill.medium.png"],
     [SOPEP_ASSET_KEYS.hotspot, "assets/soped/simulator/1/ui/sopep.ui.hotspot.png"],
     [SOPEP_ASSET_KEYS.hotspotPulse, "assets/soped/simulator/1/ui/sopep.ui.hotspotPulse.png"],
     [SOPEP_ASSET_KEYS.hotspotActive, "assets/soped/simulator/1/ui/sopep.ui.hotspotActive.png"],
     [SOPEP_ASSET_KEYS.hotspotChecked, "assets/soped/simulator/1/ui/sopep.ui.checklistDone.png"],
     [SOPEP_ASSET_KEYS.statusUnchecked, "assets/soped/simulator/1/ui/sopep.ui.checklistEmpty.png"],
     [SOPEP_ASSET_KEYS.statusChecked, "assets/soped/simulator/1/ui/sopep.ui.checklistDone.png"],
-    [SOPEP_ASSET_KEYS.badgeLocation, "assets/soped/simulator/1/ui/sopep.ui.badgeLokasi.png"],
-    [SOPEP_ASSET_KEYS.badgeIncident, "assets/soped/simulator/1/ui/sopep.ui.badgeInsiden.png"],
-    [SOPEP_ASSET_KEYS.badgeStatus, "assets/soped/simulator/1/ui/sopep.ui.badgeStatus.png"],
 ];
 
 /** Assets audited from `assets/soped/simulator/2`. */
 export const SOPEP_STEP2_ASSET_KEYS = {
-    background: "sopep2.bg.bridgeRadio",
-    officer: "sopep2.char.officerRadio",
-    vhfRadio: "sopep2.eq.vhfRadio",
-    radioMic: "sopep2.eq.radioMic",
     map: "sopep2.ui.mapPosition",
-    shipMarker: "sopep2.icon.shipMarker",
-    positionMarker: "sopep2.icon.positionMarker",
-    compass: "sopep2.prop.compass",
     badgeMayday: "sopep2.ui.badgeMayday",
-    iconCalendar: "sopep2.icon.calendar",
-    iconLocation: "sopep2.icon.location",
-    iconIncident: "sopep2.icon.incident",
-    iconQuantity: "sopep2.icon.quantity",
-    iconCause: "sopep2.icon.cause",
-    iconAction: "sopep2.icon.action",
-    iconAssistance: "sopep2.icon.assistance",
-    iconAdditional: "sopep2.icon.additional",
 } as const;
 
 export const SOPEP_STEP2_ASSETS: Array<[string, string]> = [
-    [SOPEP_STEP2_ASSET_KEYS.background, "assets/soped/simulator/2/background/sopep.bg.bridge_radio.png"],
-    [SOPEP_STEP2_ASSET_KEYS.officer, "assets/soped/simulator/2/character/sopep.char.officer_radio.png"],
-    [SOPEP_STEP2_ASSET_KEYS.vhfRadio, "assets/soped/simulator/2/equipment/sopep.eq.vhf_radio.png"],
-    [SOPEP_STEP2_ASSET_KEYS.radioMic, "assets/soped/simulator/2/equipment/sopep.eq.radio_mic.png"],
     [SOPEP_STEP2_ASSET_KEYS.map, "assets/soped/simulator/2/ui/sopep.ui.map_position.png"],
-    [SOPEP_STEP2_ASSET_KEYS.shipMarker, "assets/soped/simulator/2/icons/sopep.icon.ship_marker.png"],
-    [SOPEP_STEP2_ASSET_KEYS.positionMarker, "assets/soped/simulator/2/icons/sopep.icon.position_marker.png"],
-    [SOPEP_STEP2_ASSET_KEYS.compass, "assets/soped/simulator/2/props/sopep.prop.compass.png"],
     [SOPEP_STEP2_ASSET_KEYS.badgeMayday, "assets/soped/simulator/2/ui/sopep.ui.badge_mayday.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconCalendar, "assets/soped/simulator/2/icons/sopep.icon.calendar.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconLocation, "assets/soped/simulator/2/icons/sopep.icon.location.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconIncident, "assets/soped/simulator/2/icons/sopep.icon.incident.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconQuantity, "assets/soped/simulator/2/icons/sopep.icon.quantity.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconCause, "assets/soped/simulator/2/icons/sopep.icon.cause.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconAction, "assets/soped/simulator/2/icons/sopep.icon.action.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconAssistance, "assets/soped/simulator/2/icons/sopep.icon.assistance.png"],
-    [SOPEP_STEP2_ASSET_KEYS.iconAdditional, "assets/soped/simulator/2/icons/sopep.icon.additional.png"],
 ];
 
 /** Assets audited from `assets/soped/simulator/3`. Only files that Step 3

@@ -53,11 +53,11 @@ function buildIconButton(scene: Scene, x: number, y: number, size: number, textu
     let hoverTween: Phaser.Tweens.Tween | null = null;
     hit.on("pointerover", () => {
         hoverTween?.stop();
-        hoverTween = scene.tweens.add({ targets: container, scaleX: 1.08, scaleY: 1.08, duration: 120, ease: "Back.Out" });
+        hoverTween = scene.tweens.add({ targets: container, scaleX: 1.08, scaleY: 1.08, y: y - 4, duration: 120, ease: "Back.Out" });
     });
     hit.on("pointerout", () => {
         hoverTween?.stop();
-        hoverTween = scene.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 120, ease: "Quad.Out" });
+        hoverTween = scene.tweens.add({ targets: container, scaleX: 1, scaleY: 1, y, duration: 120, ease: "Quad.Out" });
     });
     hit.on("pointerdown", () => {
         playSfx(scene, SFX_KEYS.click);

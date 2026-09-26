@@ -1,5 +1,6 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../../SfxManager";
 import { SOPEP_ASSET_KEYS } from "../config/assetKeys";
 
 export type HotspotState = "idle" | "active" | "complete";
@@ -33,7 +34,7 @@ export class InteractiveHotspot {
         if (state !== "complete") {
             hit.on("pointerover", () => scene.tweens.add({ targets: this.view, scaleX: 1.1, scaleY: 1.1, duration: 120, ease: "Back.Out" }));
             hit.on("pointerout", () => scene.tweens.add({ targets: this.view, scaleX: 1, scaleY: 1, duration: 120, ease: "Quad.Out" }));
-            hit.on("pointerdown", onClick);
+            hit.on("pointerdown", () => { playSfx(scene, SFX_KEYS.click); onClick(); });
         }
     }
 }

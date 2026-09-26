@@ -1,5 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../game/SfxManager";
+
 export interface TentangButtonConfig {
     x?: number;
     y?: number;
@@ -74,6 +76,7 @@ export class TentangButton {
                 event: Phaser.Types.Input.EventData,
             ) => {
                 event.stopPropagation();
+                playSfx(this.scene, SFX_KEYS.click);
                 config.onClick();
             },
         );

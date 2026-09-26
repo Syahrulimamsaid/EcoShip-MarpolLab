@@ -116,7 +116,7 @@ export class MainMenu extends Scene {
                 onHover: () => playVoiceSfx(this, SFX_KEYS.menuEvaluasi),
                 onSelect: () => {
                     playSfx(this, SFX_KEYS.click);
-                    this.playExitAnimation(() => this.scene.start("HasilUmpanBalik", { from: "MainMenu" }));
+                    this.playExitAnimation(() => this.scene.start("HasilUmpanBalik"));
                 },
             }),
         ];

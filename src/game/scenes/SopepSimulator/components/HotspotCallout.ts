@@ -1,5 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../../SfxManager";
+
 const FONT = '"Plus Jakarta Sans", Arial, sans-serif';
 
 export interface HotspotCalloutConfig {
@@ -33,7 +35,7 @@ export function createHotspotCallout(scene: Scene, config: HotspotCalloutConfig)
     const title = scene.add.text(config.x + 57, config.y + 16, config.title, { fontFamily: FONT, fontStyle: "800", fontSize: 12, color: "#112c7e" });
     const detail = scene.add.text(config.x + 57, config.y + 38, config.description, { fontFamily: FONT, fontStyle: "500", fontSize: 10, color: "#31568f", wordWrap: { width: width - 72 }, lineSpacing: 2 });
     const hit = scene.add.rectangle(config.x + width / 2, config.y + height / 2, width, height, 0xffffff, 0).setInteractive({ useHandCursor: !config.complete });
-    if (!config.complete) hit.on("pointerdown", config.onClick);
+    if (!config.complete) hit.on("pointerdown", () => { playSfx(scene, SFX_KEYS.click); config.onClick(); });
     view.add(line);
     view.add(card);
     view.add(icon);

@@ -3,6 +3,7 @@ import { GameObjects, Scale, Scene } from "phaser";
 import { DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX } from "../../../component/ModulePanel/ModulePanel";
 import { playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
 // window, same approach as the other module scenes.
@@ -66,6 +67,19 @@ export class Tentang extends Scene {
             .setDisplaySize(58, 58)
             .setInteractive({ useHandCursor: true })
             .on("pointerup", () => this.goTo("MainMenu"));
+
+        // Same hover feel as the shared Home/Back buttons: grow slightly and pop up.
+        const baseY = backButton.y;
+        let hoverTween: Phaser.Tweens.Tween | null = null;
+        backButton.on("pointerover", () => {
+            hoverTween?.stop();
+            hoverTween = this.tweens.add({ targets: backButton, scaleX: backButton.scaleX * 1.08, scaleY: backButton.scaleY * 1.08, y: baseY - 4, duration: 120, ease: "Back.Out" });
+        });
+        backButton.on("pointerout", () => {
+            hoverTween?.stop();
+            hoverTween = this.tweens.add({ targets: backButton, scaleX: 58 / backButton.width, scaleY: 58 / backButton.height, y: baseY, duration: 120, ease: "Quad.Out" });
+        });
+        backButton.on("pointerdown", () => playSfx(this, SFX_KEYS.click));
 
         const title = this.add
             .text(MARGIN + 86, 66, "TENTANG", {

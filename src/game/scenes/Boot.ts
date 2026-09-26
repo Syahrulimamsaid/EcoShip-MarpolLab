@@ -22,6 +22,7 @@ export class Boot extends Scene {
         // Canvas text must be measured after the local font has loaded.
         Promise.all([
             document.fonts.load('500 16px "Plus Jakarta Sans"'),
+            document.fonts.load('600 16px "Plus Jakarta Sans"'),
             document.fonts.load('700 16px "Plus Jakarta Sans"'),
             document.fonts.load('800 16px "Plus Jakarta Sans"'),
         ]).then(

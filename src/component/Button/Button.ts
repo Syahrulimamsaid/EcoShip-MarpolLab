@@ -1,5 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../game/SfxManager";
+
 export type ButtonHoverAnimation = "popup" | "lift" | "scale" | "none";
 
 export interface ButtonConfig {
@@ -177,6 +179,7 @@ export class Button {
                 event: Phaser.Types.Input.EventData,
             ) => {
                 event.stopPropagation();
+                playSfx(this.scene, SFX_KEYS.click);
                 this.container.emit("pointerdown");
             },
         );
@@ -215,7 +218,7 @@ export class Button {
                 break;
             case "scale":
                 tweenConfig.x = baseX;
-                tweenConfig.y = baseY;
+                tweenConfig.y = baseY - this.config.hoverOffsetY;
                 tweenConfig.scaleX = baseScaleX * this.config.hoverScale;
                 tweenConfig.scaleY = baseScaleY * this.config.hoverScale;
                 break;

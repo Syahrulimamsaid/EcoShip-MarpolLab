@@ -1,5 +1,6 @@
 import { GameObjects, Input, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../../../SfxManager";
 import { EquipmentConfig } from "./preparationConfig";
 import { BLUE, FONT, GREEN, fitImage, strokeDashedRoundedRect } from "./preparationUi";
 
@@ -30,7 +31,7 @@ export class EquipmentSlot {
                 cross.lineBetween(width / 2 + 1, -height / 2 - 1, width / 2 - 9, -height / 2 + 9);
                 // 44 × 44 touch target around the visible 26 px badge.
                 const hit = scene.add.zone(width / 2 - 4, -height / 2 + 4, 44, 44).setInteractive({ useHandCursor: true });
-                hit.on("pointerdown", (_pointer: Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => { event.stopPropagation(); onRemove(); });
+                hit.on("pointerdown", (_pointer: Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => { event.stopPropagation(); playSfx(scene, SFX_KEYS.click); onRemove(); });
                 this.view.add([close, cross, hit]);
             }
         } else {

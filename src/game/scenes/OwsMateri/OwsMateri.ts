@@ -370,6 +370,9 @@ export class OwsMateri extends Scene {
     }
 
     private renderStep() {
+        // Step 3 (Komponen Utama) has its own narration; other steps stay quiet.
+        if (this.step === 3) playVoiceSfx(this, SFX_KEYS.materiOws2);
+        else stopVoiceSfx();
         this.maxReachedStep = Math.max(this.maxReachedStep, this.step);
         this.activeMarkerIndex = null;
         this.recordBookExampleOpen = false;

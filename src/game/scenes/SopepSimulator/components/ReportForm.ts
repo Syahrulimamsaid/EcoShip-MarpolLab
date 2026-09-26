@@ -1,6 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
 import { Button } from "../../../../component/Button/Button";
+import { SFX_KEYS, playSfx } from "../../../SfxManager";
 import { ReportingData, ReportingFieldId } from "../core/SimulationState";
 import { DEFAULT_REPORT_NOTE, REPORT_FIELDS } from "../steps/reporting/reportingConfig";
 
@@ -62,9 +63,9 @@ export class ReportForm {
         if (field.options) {
             const arrow = scene.add.text(x + width - 16, y + 18 + height / 2, "⌄", { fontFamily: FONT, fontStyle: "800", fontSize: 18, color: "#1764c8" }).setOrigin(0.5);
             this.view.add(arrow);
-            hit.on("pointerdown", () => this.toggleOptions(scene, x, y + 60, width, field.id, field.options!, actions));
+            hit.on("pointerdown", () => { playSfx(scene, SFX_KEYS.click); this.toggleOptions(scene, x, y + 60, width, field.id, field.options!, actions); });
         } else if (field.multiline) {
-            hit.on("pointerdown", () => actions.onChange(field.id, value || DEFAULT_REPORT_NOTE));
+            hit.on("pointerdown", () => { playSfx(scene, SFX_KEYS.click); actions.onChange(field.id, value || DEFAULT_REPORT_NOTE); });
         }
         this.view.add(label);
         this.view.add(box);
@@ -89,7 +90,7 @@ export class ReportForm {
             const label = scene.add.text(x + 12, itemY + 14, option, { fontFamily: FONT, fontStyle: "600", fontSize: 11, color: "#153b7a" }).setOrigin(0, 0.5);
             item.on("pointerover", () => item.setFillStyle(0xeaf3ff, 1));
             item.on("pointerout", () => item.setFillStyle(0xeaf3ff, 0));
-            item.on("pointerdown", () => { this.openMenu?.destroy(true); this.openMenu = null; actions.onChange(field, option); });
+            item.on("pointerdown", () => { playSfx(scene, SFX_KEYS.click); this.openMenu?.destroy(true); this.openMenu = null; actions.onChange(field, option); });
             menu.add(item); menu.add(label);
         });
         this.view.add(menu);

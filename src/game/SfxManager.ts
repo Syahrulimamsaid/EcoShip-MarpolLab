@@ -77,9 +77,28 @@ export const SOPEP_STEP_SFX = ["sfx.sopep.step1", "sfx.sopep.step2", "sfx.sopep.
  * to the game's global sound manager, so this is safe to call even right
  * before a scene.start() navigation — the clip keeps playing regardless of
  * the originating scene's lifecycle. */
+let lastClickAt = -Infinity;
+
 export function playSfx(scene: Scene, key: string, volume = 0.7) {
     if (!scene.cache.audio.exists(key)) return;
+    if (key === SFX_KEYS.click) {
+        // One click cue per press, even when a button, its scene and the global listener all ask for it.
+        const now = performance.now();
+        if (now - lastClickAt < 150) return;
+        lastClickAt = now;
+    }
     scene.sound.play(key, { volume });
+}
+
+/** Plays the click cue whenever any interactive object is pressed, in every scene, so
+ * no button has to remember to do it. Buttons that stop event propagation call playSfx()
+ * themselves; the throttle above keeps a press to a single click sound. */
+export function installGlobalClickSound(game: Phaser.Game) {
+    game.scene.getScenes(false).forEach((scene) => {
+        scene.events.on("create", () => {
+            scene.input.on("gameobjectdown", () => playSfx(scene, SFX_KEYS.click));
+        });
+    });
 }
 
 /** Score threshold used to pick the nilai_baik/nilai_kurang result cue —

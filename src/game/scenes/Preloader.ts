@@ -1,5 +1,5 @@
 import { GameObjects, Scene, Scale } from "phaser";
-import { SFX_ASSETS } from "../SfxManager";
+import { SFX_ASSETS, installGlobalClickSound } from "../SfxManager";
 import { SOPEP_STEP1_ASSETS, SOPEP_STEP2_ASSETS, SOPEP_STEP3_ASSETS, SOPEP_STEP4_ASSETS, SOPEP_STEP5_ASSETS } from "./SopepSimulator/config/assetKeys";
 
 // Boot.ts only loads the handful of assets this scene needs to render
@@ -80,8 +80,6 @@ export class Preloader extends Scene {
     }
 
     preload() {
-        this.load.image("star", "assets/star.png");
-        this.load.image("profile.human", "assets/profile.png");
         this.load.image("character", "assets/character.png");
         this.load.audio("bgm.main", "assets/bgm/mangmaru-shameless-child-327092.mp3");
         this.load.audio("bgm.quizThinking", "assets/bgm/sonican-thinking-time.mp3");
@@ -90,18 +88,6 @@ export class Preloader extends Scene {
         SFX_ASSETS.forEach(([key, path]) => this.load.audio(key, path));
 
         this.load.image("background.home", "assets/home/bg.png");
-        this.load.image(
-            "home.card.anatomi",
-            "assets/home/card-anatomi-struktur_new.png",
-        );
-        this.load.image(
-            "home.card.stabilitas",
-            "assets/home/card-simulator-stablitas-new.png",
-        );
-        this.load.image(
-            "home.card.hasil",
-            "assets/home/card-hasil_new.png",
-        );
         this.load.image(
             "home.card.anatomi.vertical",
             "assets/home/card-anatomi-struktur-ver.png",
@@ -118,24 +104,8 @@ export class Preloader extends Scene {
             "home.card.evaluasi.vertical",
             "assets/home/card-evaluasi-ver.png",
         );
-        this.load.image("home.card.profile", "assets/home/card_profile.png");
-        this.load.image("home.btn.settings", "assets/home/btn_settings.png");
-        this.load.image(
-            "home.btn.achievements",
-            "assets/home/btn_achievements.png",
-        );
-        this.load.image("home.btn.power", "assets/home/btn_power.png");
-        this.load.image("home.btn.mulai", "assets/home/btn-mulai_modul.png");
         this.load.image("home.btn.exit", "assets/home/btn_exit.png");
         this.load.image("home.bottom.banner", "assets/bottom_banner.png");
-
-        // Shared backdrop for every module content scene (materi/hub/quiz/
-        // result screens across all modules, not anatomi-specific despite
-        // the texture key name).
-        this.load.image(
-            "AnatomiStructure.background",
-            "assets/bg-sub.png",
-        );
 
         this.load.image(
             "ows.background",
@@ -163,9 +133,6 @@ export class Preloader extends Scene {
         this.load.image("btn_home", "assets/btn_home.png");
         this.load.image("btn_back", "assets/btn_back.png");
 
-        this.load.image("ows.cardSimulator", "assets/ows/card_menu_simulasi_ows.png");
-        this.load.image("ows.cardKuis", "assets/ows/card_menu_kuis_marpol.png");
-        this.load.image("ows.deskripsiMenu", "assets/ows/deskripsi_menu.png");
         this.load.image("ows.component", "assets/ows/component_ows.png");
         this.load.image("ows.cardIndikator", "assets/ows/card_indikator_simulasi.png");
         this.load.image("ows.cardInstruksi", "assets/ows/card_intruksi_simulasi.png");
@@ -218,6 +185,7 @@ export class Preloader extends Scene {
     }
 
     create() {
+        installGlobalClickSound(this.game);
         this.playIntroAnimation();
 
         // Started here, once the scene has actually reached create() rather

@@ -5,7 +5,7 @@ import { HomeBackButtons } from "../../../component/Button/HomeBackButtons";
 import { BODY_TEXT, DARK_NAVY, PRIMARY_BLUE, PRIMARY_BLUE_HEX, createHeaderBarCard } from "../../../component/ModulePanel/ModulePanel";
 import { EnterStyleName, playSceneEnter, playSceneExit, trackGroup } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
-import { SFX_KEYS, playSfx } from "../../SfxManager";
+import { SFX_KEYS, playSfx, playVoiceSfx, stopVoiceSfx } from "../../SfxManager";
 import { FINAL_EVALUATION_QUIZ } from "./FinalQuizData";
 
 // Authored at a fixed reference resolution and uniformly scaled to fit the
@@ -30,15 +30,8 @@ export class HasilUmpanBalik extends Scene {
     private transitionGroups: GameObjects.GameObject[][] = [];
     private transitionStyles: (EnterStyleName | undefined)[] = [];
 
-    /** Where BACK returns to: the SOPEP result screen by default, MainMenu when opened from the menu. */
-    private backScene = "SopepHasilUmpanBalik";
-
     constructor() {
         super("HasilUmpanBalik");
-    }
-
-    init(data?: { from?: string }) {
-        this.backScene = data?.from ?? "SopepHasilUmpanBalik";
     }
 
     create() {
@@ -66,7 +59,10 @@ export class HasilUmpanBalik extends Scene {
 
         EventBus.emit("current-scene-ready", this);
 
+        playVoiceSfx(this, SFX_KEYS.menuKuis);
+
         this.events.once("shutdown", () => {
+            stopVoiceSfx();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });
     }
@@ -79,14 +75,13 @@ export class HasilUmpanBalik extends Scene {
         playSceneExit(this, this.transitionGroups, () => this.scene.start(sceneKey), this.transitionStyles);
     }
 
-    /** Same joined module/page breadcrumb as the OWS materi header; BACK only appears
-     * when this page was reached from another screen, not from the main menu. */
+    /** Same joined module/page breadcrumb as the OWS materi header; this page is only
+     * opened from the main menu, so there is no BACK button. */
     private buildHeader() {
         const navButtons = new HomeBackButtons(this, {
             x: 32,
             y: 32,
             onHome: () => this.goTo("MainMenu"),
-            onBack: this.backScene === "MainMenu" ? undefined : () => this.goTo(this.backScene),
         });
 
         const crumbX = 32 + navButtons.width + 20;

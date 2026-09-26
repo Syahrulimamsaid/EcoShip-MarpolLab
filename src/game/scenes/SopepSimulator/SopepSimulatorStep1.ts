@@ -3,6 +3,7 @@ import { GameObjects, Scale, Scene } from "phaser";
 import { Button } from "../../../component/Button/Button";
 import { playSceneExit } from "../../../component/SceneTransition";
 import { EventBus } from "../../EventBus";
+import { SFX_KEYS, playSfx } from "../../SfxManager";
 import { StepManager } from "./core/StepManager";
 import { createStepRegistry } from "./core/StepRegistry";
 import { SimulationState } from "./core/SimulationState";
@@ -42,11 +43,15 @@ export class SopepSimulator extends Scene {
             () => this.refreshSharedUi(),
             (step) => this.showFutureStepPlaceholder(step),
         );
+        // Steps hold hotspots, cards, slots and buttons: one scene-level hook covers them all.
+        const playClick = () => playSfx(this, SFX_KEYS.click);
+        this.input.on("gameobjectdown", playClick);
         this.stepManager.goToStep(1);
 
         this.layout(this.scale.width, this.scale.height);
         this.scale.on(Scale.Events.RESIZE, this.handleResize, this);
         this.events.once("shutdown", () => {
+            this.input.off("gameobjectdown", playClick);
             this.stepManager.destroy();
             this.scale.off(Scale.Events.RESIZE, this.handleResize, this);
         });

@@ -1,5 +1,7 @@
 import { GameObjects, Scene } from "phaser";
 
+import { SFX_KEYS, playSfx } from "../../game/SfxManager";
+
 export interface BgmToggleButtonConfig {
     x?: number;
     y?: number;
@@ -94,6 +96,7 @@ export class BgmToggleButton {
                 event: Phaser.Types.Input.EventData,
             ) => {
                 event.stopPropagation();
+                playSfx(this.scene, SFX_KEYS.click);
                 this.enabled = this.onToggle();
                 this.draw(true);
             },

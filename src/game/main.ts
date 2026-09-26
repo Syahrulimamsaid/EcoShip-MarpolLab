@@ -1,6 +1,4 @@
 import { Boot } from "./scenes/Boot";
-import { GameOver } from "./scenes/GameOver";
-import { Game as MainGame } from "./scenes/Game";
 import { HasilUmpanBalik } from "./scenes/HasilUmpanBalik/HasilUmpanBalik";
 import { MainMenu } from "./scenes/MainMenu/MainMenu";
 import { AUTO, Game, Scale } from "phaser";
@@ -9,15 +7,9 @@ import { OwsQuiz } from "./scenes/OwsMateri/OwsQuiz";
 import { PilahSampah } from "./scenes/PilahSampah/PilahSampah";
 import { PilahSampahMateri } from "./scenes/PilahSampahMateri/PilahSampahMateri";
 import { Preloader } from "./scenes/Preloader";
-import { PilihAktivitasStabilitas } from "./scenes/StabilitasMateri/PilihAktivitasStabilitas";
 import { QuizScene } from "./scenes/Quiz/QuizScene";
-import { StabilitasMateri } from "./scenes/StabilitasMateri/StabilitasMateri";
-import { StabilitasQuiz } from "./scenes/StabilitasMateri/StabilitasQuiz";
-import { StabilitasSimulatorResult } from "./scenes/StabilitasMateri/StabilitasSimulatorResult";
 import { SimulatorOws } from "./scenes/SimulatorOws/SimulatorOws";
-import { SimulatorStabilitas } from "./scenes/SimulatorStabilitas/SimulatorStabilitas";
 import { SopepMateri } from "./scenes/SopepMateri/SopepMateri";
-import { SopepHasilUmpanBalik } from "./scenes/SopepSimulator/SopepHasilUmpanBalik";
 import { SopepSimulator } from "./scenes/SopepSimulator/SopepSimulatorStep1";
 import { Tentang } from "./scenes/Tentang/Tentang";
 
@@ -47,18 +39,10 @@ const config: Phaser.Types.Core.GameConfig = {
         PilahSampahMateri,
         PilahSampah,
         QuizScene,
-        StabilitasMateri,
-        PilihAktivitasStabilitas,
-        StabilitasQuiz,
-        SimulatorStabilitas,
-        StabilitasSimulatorResult,
         SopepMateri,
         SopepSimulator,
-        SopepHasilUmpanBalik,
         HasilUmpanBalik,
         Tentang,
-        MainGame,
-        GameOver,
     ],
 };
 
